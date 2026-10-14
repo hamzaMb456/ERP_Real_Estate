@@ -3,8 +3,8 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-import { CONTACT_ROLES, type ContactRole } from '@/components/role-pill';
+import { ArrowLeft, Building2, Save, User } from 'lucide-react';
+import { CONTACT_ROLES, RolePill, type ContactRole } from '@/components/role-pill';
 import { graphql } from '@/lib/graphql';
 
 const ADD_CONTACT = `
@@ -19,8 +19,15 @@ const ADD_ROLES = `
   }
 `;
 
-const inputClass =
-  'h-10 w-full rounded-lg border border-line bg-white px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+const FIELD =
+  'w-full h-11 px-3.5 text-sm bg-white border border-app-border rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all';
+const LABEL = 'block text-xs font-semibold text-slate-700 mb-1.5';
+
+const ROLE_SELECTED: Record<ContactRole, string> = {
+  owner: 'border-2 border-emerald-400 bg-emerald-50/40 shadow-sm',
+  renter: 'border-2 border-slate-400 bg-slate-50 shadow-sm',
+  buyer: 'border-2 border-amber-400 bg-[#FFFBEB]/40 shadow-sm',
+};
 
 function textOrNull(data: FormData, key: string): string | null {
   const value = String(data.get(key) ?? '').trim();
@@ -29,6 +36,7 @@ function textOrNull(data: FormData, key: string): string | null {
 
 export default function NewContactPage() {
   const router = useRouter();
+  const [kind, setKind] = useState<'person' | 'company'>('person');
   const [roles, setRoles] = useState<ContactRole[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -45,17 +53,17 @@ export default function NewContactPage() {
       return;
     }
     const data = new FormData(event.currentTarget);
+    const phone = textOrNull(data, 'telephone');
     setSubmitting(true);
     try {
       const created = await graphql<{ insert_contacts_one: { id: string } }>(ADD_CONTACT, {
         object: {
-          kind: String(data.get('kind')),
-          full_name: String(data.get('full_name')).trim(),
+          kind,
+          full_name: String(data.get('nom_complet')).trim(),
           email: textOrNull(data, 'email'),
-          phone: textOrNull(data, 'phone'),
-          national_id: textOrNull(data, 'national_id'),
-          address: textOrNull(data, 'address'),
-          notes: textOrNull(data, 'notes'),
+          phone: phone === null ? null : '+216 ' + phone,
+          national_id: textOrNull(data, 'identifiant_fiscal'),
+          address: textOrNull(data, 'adresse'),
         },
       });
       const contactId = created.insert_contacts_one.id;
@@ -75,90 +83,172 @@ export default function NewContactPage() {
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
-      <Link href="/contacts" className="inline-flex w-fit items-center gap-2 text-sm text-muted hover:text-ink">
-        <ArrowLeft size={16} aria-hidden />
-        Retour aux contacts
-      </Link>
-      <h1 className="text-2xl font-semibold text-ink">Ajouter un contact</h1>
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-4">
+        <Link
+          href="/contacts"
+          className="group inline-flex items-center gap-1.5 text-xs font-semibold text-brand transition-colors hover:text-brand-dark"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+          Retour aux contacts
+        </Link>
+      </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 rounded-lg border border-line bg-white p-6">
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 text-sm font-medium text-ink">Rôles</legend>
-          <div className="flex flex-wrap gap-2">
-            {CONTACT_ROLES.map((option) => (
-              <label
-                key={option.value}
-                className={
-                  'flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ' +
-                  (roles.includes(option.value) ? 'border-primary bg-soft text-primary' : 'border-line text-muted')
-                }
-              >
-                <input
-                  type="checkbox"
-                  checked={roles.includes(option.value)}
-                  onChange={() => toggleRole(option.value)}
-                  className="accent-primary"
-                />
-                {option.label}
-              </label>
-            ))}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Ajouter un contact</h1>
+        <p className="mt-1 text-xs text-slate-500">
+          Créez la fiche d’un propriétaire, locataire ou acquéreur dans votre base opérationnelle.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-app-border bg-white p-8 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <span className="mb-2 block text-xs font-semibold text-slate-700">Type de contact</span>
+            <div
+              role="radiogroup"
+              aria-label="Type de contact"
+              className="grid max-w-sm grid-cols-2 gap-3 rounded-lg border border-app-border bg-slate-50 p-1"
+            >
+              {(
+                [
+                  { value: 'person', label: 'Personne', icon: User },
+                  { value: 'company', label: 'Société', icon: Building2 },
+                ] as const
+              ).map((option) => {
+                const Icon = option.icon;
+                const selected = kind === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={
+                      'flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-xs transition-colors ' +
+                      (selected
+                        ? 'border border-emerald-200 bg-white font-semibold text-brand shadow-sm'
+                        : 'font-medium text-slate-600 hover:text-slate-900')
+                    }
+                  >
+                    <input
+                      type="radio"
+                      name="contact_type"
+                      value={option.value}
+                      checked={selected}
+                      onChange={() => setKind(option.value)}
+                      className="sr-only"
+                    />
+                    <Icon className="h-3.5 w-3.5" aria-hidden />
+                    {option.label}
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        </fieldset>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-            Type
-            <select name="kind" defaultValue="person" className={inputClass}>
-              <option value="person">Personne</option>
-              <option value="company">Société</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-            Nom complet
-            <input name="full_name" required className={inputClass} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-            E-mail
-            <input name="email" type="email" className={inputClass} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-ink">
-            Téléphone
-            <input name="phone" type="tel" className={inputClass} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-ink sm:col-span-2">
-            Pièce d’identité ou matricule fiscal
-            <input name="national_id" className={inputClass} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-ink sm:col-span-2">
-            Adresse
-            <input name="address" className={inputClass} />
-          </label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium text-ink sm:col-span-2">
-            Notes
-            <textarea name="notes" rows={3} className={inputClass + ' h-auto py-2'} />
-          </label>
-        </div>
+          <div>
+            <label htmlFor="nom_complet" className={LABEL}>
+              Nom complet <span className="text-rose-500">*</span>
+            </label>
+            <input id="nom_complet" name="nom_complet" type="text" required placeholder="Ex. Salma Gharbi" className={FIELD} />
+          </div>
 
-        {error && (
-          <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error}
-          </p>
-        )}
+          <div>
+            <label htmlFor="telephone" className={LABEL}>
+              Téléphone
+            </label>
+            <div className="relative flex rounded-lg">
+              <span className="inline-flex items-center rounded-l-lg border border-r-0 border-app-border bg-slate-50 px-3.5 text-xs font-medium text-slate-600">
+                +216
+              </span>
+              <input
+                id="telephone"
+                name="telephone"
+                type="tel"
+                placeholder="98 123 456"
+                className={FIELD.replace('rounded-lg', 'rounded-r-lg')}
+              />
+            </div>
+          </div>
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="h-10 rounded-lg bg-primary px-5 text-sm font-medium text-white hover:bg-primary-dark disabled:opacity-60"
-          >
-            {submitting ? 'Enregistrement…' : 'Enregistrer le contact'}
-          </button>
-          <Link href="/contacts" className="inline-flex h-10 items-center rounded-lg border border-line px-5 text-sm text-muted hover:text-ink">
-            Annuler
-          </Link>
-        </div>
-      </form>
+          <div>
+            <label htmlFor="email" className={LABEL}>
+              E-mail
+            </label>
+            <input id="email" name="email" type="email" placeholder="salma.gharbi@email.tn" className={FIELD} />
+          </div>
+
+          <div>
+            <label htmlFor="identifiant_fiscal" className={LABEL}>
+              CIN ou matricule fiscal
+            </label>
+            <input
+              id="identifiant_fiscal"
+              name="identifiant_fiscal"
+              type="text"
+              placeholder="Ex. 08942155 ou 1489201/A"
+              className={FIELD}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="adresse" className={LABEL}>
+              Adresse
+            </label>
+            <input id="adresse" name="adresse" type="text" placeholder="Ex. 14 Rue des Jardins, Carthage, Tunis" className={FIELD} />
+          </div>
+
+          <div className="border-t border-app-border pt-5">
+            <div className="mb-3">
+              <span className="block text-xs font-semibold text-slate-800">Rôle(s)</span>
+              <p className="mt-0.5 text-xs text-slate-500">Un contact peut avoir plusieurs rôles.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+              {CONTACT_ROLES.map((role) => {
+                const selected = roles.includes(role.value);
+                return (
+                  <label
+                    key={role.value}
+                    className={
+                      'relative flex cursor-pointer select-none flex-col rounded-lg p-4 transition-all ' +
+                      (selected ? ROLE_SELECTED[role.value] : 'border border-app-border bg-white hover:border-slate-400')
+                    }
+                  >
+                    <div className="mb-2 flex items-start justify-between">
+                      <RolePill role={role.value} />
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleRole(role.value)}
+                        className="h-4 w-4 rounded border-slate-300 accent-brand"
+                      />
+                    </div>
+                    <span className="mt-1 text-xs leading-relaxed text-slate-500">{role.description}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {error && (
+            <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+              {error}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-3 border-t border-app-border pt-6">
+            <Link href="/contacts" className="px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:text-slate-900">
+              Annuler
+            </Link>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex h-11 items-center gap-2 rounded-lg bg-brand px-5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" aria-hidden />
+              {submitting ? 'Enregistrement…' : 'Enregistrer le contact'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

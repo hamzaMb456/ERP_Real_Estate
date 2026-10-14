@@ -1,23 +1,29 @@
 import {
   BarChart3,
   Building2,
+  DollarSign,
   FileText,
-  LayoutDashboard,
+  LayoutGrid,
+  Package,
   Settings,
-  ShieldCheck,
+  Shield,
   Tag,
-  Truck,
   Users,
-  Wallet,
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
 
 export type NavChild = { label: string; href: string };
-export type NavItem = { label: string; href: string; icon: LucideIcon; children?: NavChild[] };
+export type NavItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  children?: NavChild[];
+  separated?: boolean;
+};
 
 export const NAVIGATION: NavItem[] = [
-  { label: 'Tableau de bord', href: '/', icon: LayoutDashboard },
+  { label: 'Tableau de bord', href: '/', icon: LayoutGrid },
   {
     label: 'Biens',
     href: '/biens',
@@ -42,7 +48,7 @@ export const NAVIGATION: NavItem[] = [
   {
     label: 'Finance',
     href: '/finance',
-    icon: Wallet,
+    icon: DollarSign,
     children: [
       { label: 'Factures de loyer', href: '/finance' },
       { label: 'Paiements', href: '/finance/paiements' },
@@ -53,19 +59,20 @@ export const NAVIGATION: NavItem[] = [
   {
     label: 'Sécurité des immeubles',
     href: '/securite',
-    icon: ShieldCheck,
+    icon: Shield,
     children: [
       { label: 'Incidents', href: '/securite' },
       { label: 'Gardes et clés', href: '/securite/gardes-cles' },
     ],
   },
-  { label: 'Fournisseurs', href: '/fournisseurs', icon: Truck },
+  { label: 'Fournisseurs', href: '/fournisseurs', icon: Package },
   { label: 'Ventes', href: '/ventes', icon: Tag },
   { label: 'Rapports', href: '/rapports', icon: BarChart3 },
   {
     label: 'Administration',
     href: '/administration',
     icon: Settings,
+    separated: true,
     children: [
       { label: 'Utilisateurs et rôles', href: '/administration' },
       { label: "Journal d'audit", href: '/administration/audit' },
@@ -73,11 +80,23 @@ export const NAVIGATION: NavItem[] = [
   },
 ];
 
+export const SEARCH_PLACEHOLDERS: Record<string, string> = {
+  '/': 'Rechercher un bien, un locataire…',
+  '/biens': 'Rechercher un bien ou une unité…',
+  '/contacts': 'Rechercher un contact...',
+};
+
+export function sectionOf(pathname: string): string {
+  if (pathname === '/') return '/';
+  return '/' + (pathname.split('/')[1] ?? '');
+}
+
 export function findTrail(pathname: string): string[] {
   for (const item of NAVIGATION) {
     const child = item.children?.find((c) => c.href === pathname);
-    if (child) return [item.label, child.label];
+    if (child) return [child.label];
     if (item.href === pathname) return [item.label];
   }
-  return [];
+  const section = NAVIGATION.find((item) => item.href === sectionOf(pathname));
+  return section ? [section.label] : [];
 }
