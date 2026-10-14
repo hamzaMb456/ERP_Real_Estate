@@ -30,7 +30,7 @@ export function Topbar() {
           <input
             type="text"
             placeholder={placeholder}
-            className="w-full rounded-lg border border-app-border bg-slate-50 py-1.5 pl-8 pr-10 text-xs text-slate-800 placeholder-slate-400 transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full rounded-lg border border-app-border bg-slate-50 py-1.5 pl-8 pr-10 text-xs text-slate-800 placeholder-slate-500 transition-colors focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           />
           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
             <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-400">⌘K</kbd>
@@ -50,13 +50,7 @@ export function Topbar() {
                 {language.label}
               </span>
             ) : (
-              <span
-                key={language.code}
-                className="cursor-not-allowed rounded px-2 py-0.5 text-slate-500"
-                title="Bientôt disponible"
-              >
-                {language.label}
-              </span>
+              <button key={language.code} type="button" aria-disabled="true" className="cursor-not-allowed rounded px-2 py-0.5 text-slate-500" title="Bientôt disponible">{language.label}</button>
             ),
           )}
         </div>

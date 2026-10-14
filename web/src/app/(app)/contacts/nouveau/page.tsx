@@ -23,7 +23,7 @@ const ADD_ROLES = `
 `;
 
 const FIELD =
-  'w-full h-11 px-3.5 text-sm bg-white border border-app-border rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all';
+  'w-full h-11 px-3.5 text-sm bg-white border border-app-border rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all';
 const LABEL = 'block text-xs font-semibold text-slate-700 mb-1.5';
 
 const ROLE_SELECTED: Record<ContactRole, string> = {
@@ -41,6 +41,7 @@ export default function NewContactPage() {
   const router = useRouter();
   const [kind, setKind] = useState<'person' | 'company'>('person');
   const [roles, setRoles] = useState<ContactRole[]>([]);
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -59,17 +60,21 @@ export default function NewContactPage() {
     const phone = textOrNull(data, 'telephone');
     setSubmitting(true);
     try {
-      const created = await graphql<{ insert_contacts_one: { id: string } }>(ADD_CONTACT, {
-        object: {
-          kind,
-          full_name: String(data.get('nom_complet')).trim(),
-          email: textOrNull(data, 'email'),
-          phone: phone === null ? null : '+216 ' + phone,
-          national_id: textOrNull(data, 'identifiant_fiscal'),
-          address: textOrNull(data, 'adresse'),
-        },
-      });
-      const contactId = created.insert_contacts_one.id;
+      let contactId = createdId;
+      if (contactId === null) {
+        const created = await graphql<{ insert_contacts_one: { id: string } }>(ADD_CONTACT, {
+          object: {
+            kind,
+            full_name: String(data.get('nom_complet')).trim(),
+            email: textOrNull(data, 'email'),
+            phone: phone === null ? null : '+216 ' + phone,
+            national_id: textOrNull(data, 'identifiant_fiscal'),
+            address: textOrNull(data, 'adresse'),
+          },
+        });
+        contactId = created.insert_contacts_one.id;
+        setCreatedId(contactId);
+      }
       try {
         await graphql(ADD_ROLES, { objects: roles.map((role) => ({ contact_id: contactId, role })) });
       } catch (rolesError) {
@@ -125,7 +130,7 @@ export default function NewContactPage() {
                   <motion.label
                     key={option.value}
                     className={
-                      'relative flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-xs transition-colors ' +
+                      'relative flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-xs transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand ' +
                       (selected ? 'font-semibold text-brand' : 'font-medium text-slate-600 hover:text-slate-900')
                     }
                     whileTap={{ scale: 0.96 }}
@@ -218,7 +223,7 @@ export default function NewContactPage() {
                   <motion.label
                     key={role.value}
                     className={
-                      'relative flex cursor-pointer select-none flex-col rounded-lg p-4 transition-colors ' +
+                      'relative flex cursor-pointer select-none flex-col rounded-lg p-4 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand ' +
                       (selected ? ROLE_SELECTED[role.value] : 'border border-app-border bg-white hover:border-slate-400')
                     }
                     whileHover={{ y: -2 }}

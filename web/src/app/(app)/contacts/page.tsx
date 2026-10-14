@@ -3,7 +3,15 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ChevronRight, Home, KeyRound, Plus, Search, ShoppingCart, type LucideIcon } from 'lucide-react';
-import { HoverLift, MotionLink, Stagger, StaggerItem, pressable, staggerItem } from '@/components/motion/primitives';
+import {
+  HoverLift,
+  MotionLink,
+  SkeletonList,
+  Stagger,
+  StaggerItem,
+  pressable,
+  staggerItem,
+} from '@/components/motion/primitives';
 import { CONTACT_ROLES, RolePill, type ContactRole } from '@/components/role-pill';
 import { springs } from '@/lib/motion-tokens';
 import { useGraphql } from '@/lib/use-graphql';
@@ -77,7 +85,7 @@ export default function ContactsPage() {
     <Stagger className="space-y-6">
       <StaggerItem className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900">Contacts</h2>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Contacts</h1>
           <p className="mt-1 text-xs text-slate-500">
             Les personnes et sociétés avec qui vous travaillez : propriétaires, locataires et acquéreurs.
           </p>
@@ -163,22 +171,18 @@ export default function ContactsPage() {
                 setPage(1);
               }}
               placeholder="Rechercher un nom, un téléphone…"
-              className="w-full rounded-lg border border-app-border bg-slate-50 py-1.5 pl-9 pr-3 text-xs text-slate-800 placeholder-slate-400 transition-[border-color,box-shadow] duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+              className="w-full rounded-lg border border-app-border bg-slate-50 py-1.5 pl-9 pr-3 text-xs text-slate-800 placeholder-slate-500 transition-[border-color,box-shadow] duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
             />
           </label>
         </div>
 
         {result.status === 'loading' && (
-          <div className="space-y-2 p-4" aria-label="Chargement des contacts">
-            {[0, 1, 2, 3].map((index) => (
-              <motion.div
-                key={index}
-                className="h-12 rounded-lg bg-slate-100"
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.4, repeat: Infinity, delay: index * 0.12, ease: 'easeInOut' }}
-              />
-            ))}
-          </div>
+          <SkeletonList
+            count={4}
+            className="space-y-2 p-4"
+            itemClassName="h-12 rounded-lg bg-slate-100"
+            label="Chargement des contacts…"
+          />
         )}
         {result.status === 'error' && (
           <p role="alert" className="m-4 rounded-lg bg-red-50 px-4 py-3 text-xs text-red-800">
@@ -200,7 +204,7 @@ export default function ContactsPage() {
                   </tr>
                 </thead>
                 <motion.tbody
-                  key={roleFilter + needle + currentPage}
+                  key={roleFilter + currentPage}
                   className="divide-y divide-slate-100"
                   variants={rowsContainer}
                   initial="hidden"

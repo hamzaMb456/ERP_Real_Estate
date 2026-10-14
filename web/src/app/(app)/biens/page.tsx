@@ -14,7 +14,7 @@ import {
   Upload,
   type LucideIcon,
 } from 'lucide-react';
-import { Stagger, StaggerItem, staggerItem } from '@/components/motion/primitives';
+import { SkeletonList, Stagger, StaggerItem, staggerItem } from '@/components/motion/primitives';
 import { StatusPill } from '@/components/status-pill';
 import { formatArea, formatTnd } from '@/lib/format';
 import { motionTokens, springs } from '@/lib/motion-tokens';
@@ -204,13 +204,10 @@ export default function BiensPage() {
               <List className="h-3.5 w-3.5" aria-hidden />
               Liste
             </span>
-            <span
-              className="flex cursor-not-allowed items-center gap-1.5 rounded px-3 py-1.5 text-xs text-[#52645A]"
-              title="Bientôt disponible"
-            >
+            <button type="button" aria-disabled="true" className="flex cursor-not-allowed items-center gap-1.5 rounded px-3 py-1.5 text-xs text-[#52645A]" title="Bientôt disponible">
               <MapIcon className="h-3.5 w-3.5" aria-hidden />
               Carte
-            </span>
+            </button>
           </div>
           <ToolbarButton icon={Download} label="Exporter vers Excel" />
           <ToolbarButton icon={Upload} label="Importer depuis Excel" />
@@ -311,7 +308,7 @@ export default function BiensPage() {
           <motion.button
             type="button"
             onClick={reset}
-            className="text-xs font-semibold text-brand hover:underline focus:outline-none"
+            className="rounded px-1 py-1.5 text-xs font-semibold text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             whileTap={{ scale: 0.95 }}
           >
             Réinitialiser
@@ -338,7 +335,7 @@ export default function BiensPage() {
             <motion.button
               type="button"
               onClick={() => setSelected([])}
-              title="Désélectionner"
+              title="Désélectionner" aria-label="Désélectionner"
               className="flex h-7 w-7 items-center justify-center rounded-md text-[#52645A] transition-colors hover:bg-white hover:text-[#0F2A20]"
               whileTap={{ scale: 0.9 }}
             >
@@ -349,16 +346,7 @@ export default function BiensPage() {
       </AnimatePresence>
 
       {result.status === 'loading' && (
-        <div className="space-y-2" aria-label="Chargement des biens">
-          {[0, 1, 2].map((index) => (
-            <motion.div
-              key={index}
-              className="h-14 rounded-lg bg-slate-100"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.4, repeat: Infinity, delay: index * 0.12, ease: 'easeInOut' }}
-            />
-          ))}
-        </div>
+        <SkeletonList count={3} className="space-y-2" itemClassName="h-14 rounded-lg bg-slate-100" label="Chargement des biens…" />
       )}
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -392,7 +380,7 @@ export default function BiensPage() {
               </tr>
             </thead>
             <motion.tbody
-              key={status + city + type + branch + needle + String(showArchived)}
+              key={status + city + type + branch + String(showArchived)}
               className="divide-y divide-app-border"
               variants={rowsContainer}
               initial="hidden"
@@ -461,9 +449,7 @@ export default function BiensPage() {
                       </td>
                       <td className="px-3 py-3.5 text-center align-middle">
                         <div className="flex items-center justify-center gap-1">
-                          <span className="cursor-not-allowed px-1 py-1 text-xs font-semibold text-brand opacity-60" title="Bientôt disponible">
-                            Voir
-                          </span>
+                          <button type="button" aria-disabled="true" className="cursor-not-allowed px-1 py-1.5 text-xs font-semibold text-brand opacity-60" title="Bientôt disponible">Voir</button>
                           <span className="flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-md border border-[#A7F3D0] bg-[#ECFDF5] text-brand opacity-60">
                             <MoreVertical className="h-3.5 w-3.5" aria-hidden />
                           </span>
@@ -479,7 +465,7 @@ export default function BiensPage() {
                             initial={{ opacity: 0, y: -6 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -6 }}
-                            transition={{ duration: motionTokens.duration.fast, delay: index * 0.04 }}
+                            transition={{ duration: motionTokens.duration.fast, delay: Math.min(index, 8) * 0.04 }}
                           >
                             <td className="px-3 py-3 text-center" />
                             <td className="px-3 py-3 align-middle">
@@ -502,9 +488,7 @@ export default function BiensPage() {
                               {formatTnd(unit.rent_amount)}
                             </td>
                             <td className="px-3 py-3 text-center align-middle">
-                              <span className="cursor-not-allowed px-1 py-1 text-xs font-semibold text-brand opacity-60" title="Bientôt disponible">
-                                Voir
-                              </span>
+                              <button type="button" aria-disabled="true" className="cursor-not-allowed px-1 py-1.5 text-xs font-semibold text-brand opacity-60" title="Bientôt disponible">Voir</button>
                             </td>
                           </motion.tr>
                         ))}

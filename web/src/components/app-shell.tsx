@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { useAuth } from '@/components/auth-provider';
-import { PageTransition, ScrollProgress } from '@/components/motion/primitives';
+import { PageTransition, Pulse, ScrollProgress } from '@/components/motion/primitives';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
 import { motionTokens } from '@/lib/motion-tokens';
@@ -21,12 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!ready || !session) {
     return (
       <div className="flex h-screen items-center justify-center text-sm text-slate-500" role="status">
-        <motion.span
-          animate={{ opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          Chargement…
-        </motion.span>
+        <Pulse>Chargement…</Pulse>
       </div>
     );
   }

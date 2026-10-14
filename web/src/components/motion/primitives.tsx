@@ -97,8 +97,8 @@ export function StaggerItem({ children, className }: { children: ReactNode; clas
 export function HoverLift({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <motion.div
-      className={className}
-      whileHover={{ y: -3, boxShadow: '0 10px 24px -12px rgba(4, 120, 87, 0.35)' }}
+      className={'transition-shadow duration-200 hover:shadow-lg ' + (className ?? '')}
+      whileHover={{ y: -3 }}
       transition={springs.snappy}
     >
       {children}
@@ -106,9 +106,53 @@ export function HoverLift({ children, className }: { children: ReactNode; classN
   );
 }
 
+export function Pulse({
+  className,
+  delay = 0,
+  children,
+}: {
+  className?: string;
+  delay?: number;
+  children?: ReactNode;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      animate={reduce ? undefined : { opacity: [0.5, 1, 0.5] }}
+      transition={{ duration: 1.4, repeat: Infinity, delay, ease: 'easeInOut' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export function SkeletonList({
+  count,
+  itemClassName,
+  className,
+  label = 'Chargement…',
+}: {
+  count: number;
+  itemClassName: string;
+  className?: string;
+  label?: string;
+}) {
+  return (
+    <div role="status" aria-live="polite" className={className}>
+      <span className="sr-only">{label}</span>
+      {Array.from({ length: count }, (_, index) => (
+        <Pulse key={index} className={itemClassName} delay={index * 0.1} />
+      ))}
+    </div>
+  );
+}
+
+const defaultFormat = (n: number) => String(Math.round(n));
+
 export function AnimatedNumber({
   value,
-  format = (n: number) => String(Math.round(n)),
+  format = defaultFormat,
   className,
 }: {
   value: number;
@@ -121,7 +165,12 @@ export function AnimatedNumber({
 
   useEffect(() => {
     const node = ref.current;
-    if (!node || !inView || reduce) return;
+    if (!node) return;
+    if (reduce) {
+      node.textContent = format(value);
+      return;
+    }
+    if (!inView) return;
     const controls = animate(0, value, {
       duration: motionTokens.duration.crawl,
       ease: motionTokens.easing.smooth,
@@ -134,7 +183,7 @@ export function AnimatedNumber({
 
   return (
     <span ref={ref} className={className}>
-      {format(value)}
+      {format(0)}
     </span>
   );
 }

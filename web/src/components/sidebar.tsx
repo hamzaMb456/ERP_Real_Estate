@@ -63,7 +63,7 @@ export function Sidebar() {
           <Building className="h-5 w-5" aria-hidden />
         </motion.div>
         <div className="min-w-0">
-          <h1 className="truncate text-sm font-bold leading-tight text-slate-900">ERP Immobilier</h1>
+          <p className="truncate text-sm font-bold leading-tight text-slate-900">ERP Immobilier</p>
           <p className="truncate text-xs text-slate-500">Emerald ERP System</p>
         </div>
       </div>
@@ -101,7 +101,7 @@ export function Sidebar() {
               className={item.separated ? 'border-t border-slate-100 pt-2' : undefined}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ ...springs.gentle, delay: 0.1 + index * 0.04 }}
+              transition={{ ...springs.gentle, delay: 0.1 + index * 0.04, layout: springs.snappy }}
             >
               {!item.children ? (
                 <MotionLink

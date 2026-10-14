@@ -50,13 +50,13 @@ export default function ConnexionPage() {
         <div aria-hidden className="grid-pattern pointer-events-none absolute inset-0 opacity-80" />
         <motion.div
           aria-hidden
-          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-white opacity-5 blur-3xl"
+          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-white opacity-5 blur-3xl motion-reduce:hidden"
           animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
           transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
           aria-hidden
-          className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-[#7bd8b1] opacity-10 blur-3xl"
+          className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-[#7bd8b1] opacity-10 blur-3xl motion-reduce:hidden"
           animate={{ x: [0, -40, 0], y: [0, -30, 0] }}
           transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
         />
@@ -75,7 +75,7 @@ export default function ConnexionPage() {
 
         <div className="relative z-10 my-12 max-w-xl lg:my-auto">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-xs font-semibold tracking-wide text-white">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-[#7bd8b1]" />
+            <span className="h-2 w-2 motion-safe:animate-pulse rounded-full bg-[#7bd8b1]" />
             Solution de gestion immobilière d’entreprise
           </div>
           <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
@@ -124,12 +124,12 @@ export default function ConnexionPage() {
             <span aria-current="page" className="rounded bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
               FR
             </span>
-            <span className="cursor-not-allowed px-3 py-1.5 text-xs font-medium text-[#3e4943]" dir="rtl" lang="ar" title="Bientôt disponible">
+            <button type="button" aria-disabled="true" className="cursor-not-allowed px-3 py-1.5 text-xs font-medium text-[#3e4943]" dir="rtl" lang="ar" title="Bientôt disponible">
               عربية
-            </span>
-            <span className="cursor-not-allowed px-3 py-1.5 text-xs font-medium text-[#3e4943]" title="Bientôt disponible">
+            </button>
+            <button type="button" aria-disabled="true" className="cursor-not-allowed px-3 py-1.5 text-xs font-medium text-[#3e4943]" title="Bientôt disponible">
               EN
-            </span>
+            </button>
           </nav>
         </div>
 
@@ -183,7 +183,7 @@ export default function ConnexionPage() {
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#6e7a73] transition-colors hover:text-[#0e1f17] focus:text-brand focus:outline-none"
+                  className="absolute inset-y-0 right-0 flex items-center rounded-r-lg pr-3.5 text-[#6e7a73] transition-colors hover:text-[#0e1f17] focus-visible:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
                 </button>
@@ -197,9 +197,9 @@ export default function ConnexionPage() {
                   Se souvenir de moi
                 </label>
               </div>
-              <span className="cursor-not-allowed font-semibold text-[#005d42]" title="Bientôt disponible">
+              <button type="button" aria-disabled="true" className="cursor-not-allowed font-semibold text-[#005d42]" title="Bientôt disponible">
                 Mot de passe oublié ?
-              </span>
+              </button>
             </div>
 
             <AnimatePresence>
@@ -224,16 +224,7 @@ export default function ConnexionPage() {
               className="flex h-[44px] w-full items-center justify-center rounded-lg bg-brand text-base font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-[#005d42] focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-60"
               {...pressable}
             >
-              {submitting ? (
-                <motion.span
-                  animate={{ opacity: [0.5, 1, 0.5] }}
-                  transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  Connexion…
-                </motion.span>
-              ) : (
-                'Se connecter'
-              )}
+              {submitting ? <span className="motion-safe:animate-pulse">Connexion…</span> : 'Se connecter'}
             </motion.button>
           </form>
 
@@ -248,9 +239,9 @@ export default function ConnexionPage() {
 
           <div className="text-center text-sm text-[#3e4943]">
             <span>Pas encore de compte ? </span>
-            <span className="cursor-not-allowed font-semibold text-[#005d42]" title="Bientôt disponible">
+            <button type="button" aria-disabled="true" className="cursor-not-allowed font-semibold text-[#005d42]" title="Bientôt disponible">
               Créer un compte
-            </span>
+            </button>
           </div>
         </motion.div>
 

@@ -18,7 +18,7 @@ import {
   ShoppingCart,
   type LucideIcon,
 } from 'lucide-react';
-import { HoverLift, MotionLink, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { HoverLift, MotionLink, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { CONTACT_ROLES, type ContactRole } from '@/components/role-pill';
 import { springs } from '@/lib/motion-tokens';
 import { useGraphql } from '@/lib/use-graphql';
@@ -77,7 +77,7 @@ function InfoRow({ label, icon: Icon, children }: { label: string; icon: LucideI
     <div className="space-y-1">
       <div className="text-xs font-medium text-slate-500">{label}</div>
       <div className="flex items-center gap-1.5 truncate text-sm font-semibold text-slate-900">
-        <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+        <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
         {children}
       </div>
     </div>
@@ -104,13 +104,7 @@ export default function ContactDetailPage() {
       </div>
 
       {result.status === 'loading' && (
-        <motion.p
-          className="text-xs text-slate-500"
-          animate={{ opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          Chargement du contact…
-        </motion.p>
+        <Pulse className="text-xs text-slate-500">Chargement du contact…</Pulse>
       )}
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-xs text-red-800">
@@ -221,7 +215,7 @@ function ContactView({ contact }: { contact: ContactDetails }) {
                       <motion.div
                         className={
                           'flex h-7 w-7 items-center justify-center rounded-md ' +
-                          (active ? role.tile : 'bg-slate-50 text-slate-400')
+                          (active ? role.tile : 'bg-slate-50 text-slate-500')
                         }
                         whileHover={{ rotate: -10, scale: 1.12 }}
                         transition={springs.bouncy}
@@ -233,7 +227,7 @@ function ContactView({ contact }: { contact: ContactDetails }) {
                     <span className="relative flex h-2 w-2" title={active ? 'Actif' : 'Inactif'}>
                       {active && (
                         <motion.span
-                          className="absolute inline-flex h-full w-full rounded-full bg-emerald-400"
+                          className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 motion-reduce:hidden"
                           animate={{ scale: [1, 2.4], opacity: [0.6, 0] }}
                           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
                         />
@@ -249,19 +243,19 @@ function ContactView({ contact }: { contact: ContactDetails }) {
                       <p className="mt-0.5 text-slate-500">Les baux, unités et offres liés seront affichés ici.</p>
                     </div>
                   ) : (
-                    <div className="text-xs italic leading-relaxed text-slate-400">
+                    <div className="text-xs italic leading-relaxed text-slate-500">
                       <p>{EMPTY_TEXT[role.value]}</p>
                     </div>
                   )}
                 </div>
                 <div className="mt-3 border-t border-slate-100 pt-4">
                   {active ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
                       <span>Détails bientôt disponibles</span>
                       <ChevronRight className="h-3 w-3" aria-hidden />
                     </span>
                   ) : (
-                    <span className="text-xs font-medium text-slate-400">Aucun historique</span>
+                    <span className="text-xs font-medium text-slate-500">Aucun historique</span>
                   )}
                 </div>
               </HoverLift>
@@ -272,7 +266,7 @@ function ContactView({ contact }: { contact: ContactDetails }) {
 
       <StaggerItem className="rounded-lg border border-app-border bg-white p-5 shadow-sm">
         <div className="mb-2 flex items-center gap-2 border-b border-slate-100 pb-2">
-          <FileText className="h-4 w-4 text-slate-400" aria-hidden />
+          <FileText className="h-4 w-4 text-slate-500" aria-hidden />
           <h2 className="text-sm font-bold text-slate-900">Notes</h2>
         </div>
         <p className="whitespace-pre-line text-xs leading-relaxed text-slate-600">{contact.notes || 'Aucune note.'}</p>
