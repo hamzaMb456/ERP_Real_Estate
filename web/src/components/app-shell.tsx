@@ -11,7 +11,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, ready } = useAuth();
   const router = useRouter();
-  const scrollRef = useRef<HTMLElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (ready && !session) router.replace('/connexion');
@@ -27,15 +27,21 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
+      <a
+        href="#contenu"
+        className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
+      >
+        Aller au contenu
+      </a>
       <AppSidebar />
       <SidebarInset className="h-svh overflow-hidden">
         <AppHeader />
         <ScrollProgress container={scrollRef} />
-        <main ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div ref={scrollRef} id="contenu" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
           <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
             <PageTransition>{children}</PageTransition>
           </div>
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -61,16 +61,16 @@ export default function ConnexionPage() {
           </span>
           <div>
             <p className="text-lg font-semibold leading-tight">ERP Immobilier</p>
-            <p className="text-xs text-primary-foreground/70">Plateforme de gestion foncière · Tunisie</p>
+            <p className="text-xs text-primary-foreground/85">Plateforme de gestion foncière · Tunisie</p>
           </div>
         </div>
 
         <div className="relative max-w-lg space-y-8">
           <div className="space-y-4">
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight text-balance">
+            <p className="text-4xl font-semibold leading-tight tracking-tight text-balance">
               Gérez votre patrimoine immobilier en toute simplicité
-            </h1>
-            <p className="text-lg text-primary-foreground/80">
+            </p>
+            <p className="text-lg text-primary-foreground/90">
               La plateforme unifiée pour les agences, promoteurs et syndics professionnels.
             </p>
           </div>
@@ -86,7 +86,7 @@ export default function ConnexionPage() {
           </motion.ul>
         </div>
 
-        <p className="relative text-xs text-primary-foreground/60">© 2025 Emerald ERP · Conforme aux normes immobilières locales</p>
+        <p className="relative text-xs text-primary-foreground/85">© 2025 Emerald ERP · Conforme aux normes immobilières locales</p>
       </aside>
 
       <main className="flex items-center justify-center p-6 sm:p-10">
@@ -100,7 +100,7 @@ export default function ConnexionPage() {
             <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground lg:hidden">
               <Building2 className="size-5" />
             </span>
-            <h2 className="text-2xl font-semibold tracking-tight">Connexion</h2>
+            <h1 className="text-2xl font-semibold tracking-tight">Connexion</h1>
             <p className="text-sm text-muted-foreground">Accédez à l’espace de votre organisation.</p>
           </div>
 

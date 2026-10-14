@@ -120,16 +120,22 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV_GROUPS.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarMenu>
-              {group.items.map((item) => (
-                <NavEntry key={item.label} item={item} pathname={pathname} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        ))}
+        <nav aria-label="Navigation principale">
+          {NAV_GROUPS.map((group) => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <NavEntry
+                    key={item.label + (item.href === sectionOf(pathname) ? ':active' : '')}
+                    item={item}
+                    pathname={pathname}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          ))}
+        </nav>
       </SidebarContent>
 
       <SidebarFooter>

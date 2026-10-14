@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { useEffect, type ReactNode } from 'react';
 
 export function PageHeader({
   title,
@@ -9,6 +11,10 @@ export function PageHeader({
   description?: string;
   actions?: ReactNode;
 }) {
+  useEffect(() => {
+    document.title = title + ' · ERP Immobilier';
+  }, [title]);
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="space-y-1">

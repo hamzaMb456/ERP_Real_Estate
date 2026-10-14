@@ -41,11 +41,15 @@ export function CommandPalette() {
   }, []);
 
   useEffect(() => {
-    if (!open || contacts.length > 0) return;
-    graphql<{ contacts: ContactHit[] }>('query { contacts(order_by: { full_name: asc }, limit: 50) { id full_name } }')
-      .then((data) => setContacts(data.contacts))
-      .catch(() => setContacts([]));
-  }, [open, contacts.length]);
+    if (!open) return;
+    let active = true;
+    graphql<{ contacts: ContactHit[] }>('query { contacts(order_by: { full_name: asc }, limit: 200) { id full_name } }')
+      .then((data) => active && setContacts(data.contacts))
+      .catch(() => active && setContacts([]));
+    return () => {
+      active = false;
+    };
+  }, [open]);
 
   const go = useCallback(
     (href: string) => {
@@ -61,7 +65,7 @@ export function CommandPalette() {
         variant="outline"
         onClick={() => setOpen(true)}
         className="hidden w-64 justify-between font-normal text-muted-foreground md:flex"
-        aria-label="Ouvrir la recherche"
+        aria-label="Rechercher"
       >
         <span className="flex items-center gap-2">
           <Search className="size-3.5" />
@@ -69,7 +73,7 @@ export function CommandPalette() {
         </span>
         <kbd className="pointer-events-none rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">⌘K</kbd>
       </Button>
-      <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label="Ouvrir la recherche">
+      <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)} aria-label="Rechercher">
         <Search />
       </Button>
 

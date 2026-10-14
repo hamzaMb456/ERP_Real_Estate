@@ -46,7 +46,7 @@ const schema = z.object({
   phone: z
     .string()
     .trim()
-    .refine((value) => value === '' || /^[0-9 ]{8,12}$/.test(value), 'Numéro invalide : 8 chiffres attendus (ex. 98 123 456).'),
+    .refine((value) => value === '' || /^\d{8}$/.test(value.replace(/\s/g, '')), 'Numéro invalide : 8 chiffres attendus (ex. 98 123 456).'),
   email: z
     .string()
     .trim()
@@ -152,8 +152,8 @@ export default function NewContactPage() {
 
               <Field data-invalid={!!errors.full_name}>
                 <FieldLabel htmlFor="full_name">Nom complet *</FieldLabel>
-                <Input id="full_name" placeholder="Ex. Salma Gharbi" aria-invalid={!!errors.full_name} {...register('full_name')} />
-                <FieldError errors={[errors.full_name]} />
+                <Input id="full_name" placeholder="Ex. Salma Gharbi" aria-invalid={!!errors.full_name} aria-describedby={errors.full_name ? "full_name-error" : undefined} {...register("full_name")} />
+                <FieldError id="full_name-error" errors={[errors.full_name]} />
               </Field>
 
               <div className="grid gap-6 sm:grid-cols-2">
@@ -163,14 +163,14 @@ export default function NewContactPage() {
                     <InputGroupAddon>
                       <InputGroupText>+216</InputGroupText>
                     </InputGroupAddon>
-                    <InputGroupInput id="phone" type="tel" inputMode="tel" placeholder="98 123 456" aria-invalid={!!errors.phone} {...register('phone')} />
+                    <InputGroupInput id="phone" type="tel" inputMode="tel" placeholder="98 123 456" aria-invalid={!!errors.phone} aria-describedby={errors.phone ? "phone-error" : undefined} {...register('phone')} />
                   </InputGroup>
-                  <FieldError errors={[errors.phone]} />
+                  <FieldError id="phone-error" errors={[errors.phone]} />
                 </Field>
                 <Field data-invalid={!!errors.email}>
                   <FieldLabel htmlFor="email">E-mail</FieldLabel>
-                  <Input id="email" type="email" placeholder="salma.gharbi@email.tn" aria-invalid={!!errors.email} {...register('email')} />
-                  <FieldError errors={[errors.email]} />
+                  <Input id="email" type="email" placeholder="salma.gharbi@email.tn" aria-invalid={!!errors.email} aria-describedby={errors.email ? "email-error" : undefined} {...register('email')} />
+                  <FieldError id="email-error" errors={[errors.email]} />
                 </Field>
               </div>
 
@@ -210,6 +210,8 @@ export default function NewContactPage() {
                               </span>
                               <Checkbox
                                 id={'role-' + role.value}
+                                aria-invalid={!!errors.roles}
+                                onBlur={field.onBlur}
                                 checked={selected}
                                 onCheckedChange={(checked) =>
                                   field.onChange(checked ? [...field.value, role.value] : field.value.filter((item) => item !== role.value))

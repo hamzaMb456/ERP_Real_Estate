@@ -8,25 +8,28 @@ export type QueryState<T> =
   | { status: 'error'; message: string }
   | { status: 'success'; data: T };
 
+type Settled<T> = { key: string; state: Exclude<QueryState<T>, { status: 'loading' }> };
+
 export function useGraphql<T>(query: string, variables?: Record<string, unknown>): QueryState<T> {
-  const [state, setState] = useState<QueryState<T>>({ status: 'loading' });
-  const variablesKey = JSON.stringify(variables ?? {});
+  const key = query + JSON.stringify(variables ?? {});
+  const [settled, setSettled] = useState<Settled<T> | null>(null);
 
   useEffect(() => {
     let active = true;
-    graphql<T>(query, JSON.parse(variablesKey) as Record<string, unknown>)
-      .then((data) => active && setState({ status: 'success', data }))
+    graphql<T>(query, variables)
+      .then((data) => active && setSettled({ key, state: { status: 'success', data } }))
       .catch((error: unknown) =>
         active &&
-        setState({
-          status: 'error',
-          message: error instanceof Error ? error.message : 'Erreur inconnue.',
+        setSettled({
+          key,
+          state: { status: 'error', message: error instanceof Error ? error.message : 'Erreur inconnue.' },
         }),
       );
     return () => {
       active = false;
     };
-  }, [query, variablesKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
-  return state;
+  return settled !== null && settled.key === key ? settled.state : { status: 'loading' };
 }

@@ -17,7 +17,7 @@ import { useGraphql } from '@/lib/use-graphql';
 
 const CONTACTS_QUERY = `
   query Contacts {
-    contacts(order_by: { full_name: asc }) {
+    contacts(order_by: { full_name: asc }, limit: 500) {
       id
       kind
       full_name
@@ -166,7 +166,7 @@ export default function ContactsPage() {
                       return (
                         <MotionRow key={contact.id} variants={staggerItem} className="group">
                           <TableCell className="pl-4">
-                            <Link href={'/contacts/' + contact.id} className="flex items-center gap-3 outline-none">
+                            <Link href={'/contacts/' + contact.id} className="flex items-center gap-3 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
                               <Avatar className="size-9">
                                 <AvatarFallback className={primary?.avatar + ' text-xs font-semibold'}>
                                   {initials(contact.full_name)}
@@ -218,13 +218,25 @@ export default function ContactsPage() {
                   {filtered.length === 0 ? 'Aucun résultat' : from + '–' + to + ' sur ' + filtered.length + ' contacts'}
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-disabled={currentPage === 1}
+                    className={currentPage === 1 ? 'opacity-50' : ''}
+                    onClick={() => currentPage > 1 && setPage(currentPage - 1)}
+                  >
                     Précédent
                   </Button>
                   <span className="tabular-nums">
                     {currentPage} / {pageCount}
                   </span>
-                  <Button variant="outline" size="sm" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-disabled={currentPage === pageCount}
+                    className={currentPage === pageCount ? 'opacity-50' : ''}
+                    onClick={() => currentPage < pageCount && setPage(currentPage + 1)}
+                  >
                     Suivant
                   </Button>
                 </div>

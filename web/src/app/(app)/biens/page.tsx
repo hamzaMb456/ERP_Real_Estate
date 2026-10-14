@@ -21,7 +21,7 @@ import { useGraphql } from '@/lib/use-graphql';
 
 const PROPERTIES_QUERY = `
   query PropertiesWithUnits {
-    properties(order_by: { name: asc }) {
+    properties(order_by: { name: asc }, limit: 200) {
       id
       name
       type
@@ -151,12 +151,10 @@ export default function BiensPage() {
           actions={
             <Tooltip>
               <TooltipTrigger asChild>
-                <span tabIndex={0}>
-                  <Button disabled>
-                    <Plus data-icon="inline-start" />
-                    Ajouter un bien
-                  </Button>
-                </span>
+                <Button aria-disabled="true" className="cursor-not-allowed opacity-60" onClick={(event) => event.preventDefault()}>
+                  <Plus data-icon="inline-start" />
+                  Ajouter un bien
+                </Button>
               </TooltipTrigger>
               <TooltipContent>Bientôt disponible</TooltipContent>
             </Tooltip>

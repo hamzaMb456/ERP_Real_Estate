@@ -178,7 +178,7 @@ export default function DashboardPage() {
                 <p className="py-10 text-center text-sm text-muted-foreground">Aucune unité enregistrée.</p>
               ) : (
                 <div className="flex flex-col items-center gap-4 sm:flex-row lg:flex-col xl:flex-row">
-                  <ChartContainer config={STATUS_CONFIG} className="aspect-square h-44 shrink-0">
+                  <ChartContainer config={STATUS_CONFIG} className="aspect-square h-44 shrink-0" aria-hidden>
                     <PieChart>
                       <ChartTooltip content={<ChartTooltipContent nameKey="status" hideLabel />} />
                       <Pie

@@ -203,12 +203,10 @@ export default function ContactDetailPage() {
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span tabIndex={0}>
-                  <Button variant="outline" disabled>
-                    <Pencil data-icon="inline-start" />
-                    Modifier
-                  </Button>
-                </span>
+                <Button variant="outline" aria-disabled="true" className="cursor-not-allowed opacity-60" onClick={(event) => event.preventDefault()}>
+                  <Pencil data-icon="inline-start" />
+                  Modifier
+                </Button>
               </TooltipTrigger>
               <TooltipContent>Bientôt disponible</TooltipContent>
             </Tooltip>
