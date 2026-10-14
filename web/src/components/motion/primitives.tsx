@@ -207,7 +207,7 @@ export function ScrollProgress({ container }: { container: RefObject<HTMLElement
     <motion.div
       aria-hidden
       style={{ scaleX: scrollYProgress }}
-      className="pointer-events-none absolute left-0 right-0 top-16 z-30 h-0.5 origin-left bg-brand"
+      className="pointer-events-none absolute left-0 right-0 top-14 z-30 h-0.5 origin-left bg-primary"
     />
   );
 }

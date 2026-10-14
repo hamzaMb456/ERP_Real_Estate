@@ -1,37 +1,15 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { motion } from 'motion/react';
-import {
-  Banknote,
-  CalendarClock,
-  ChartColumn,
-  ChartPie,
-  CircleAlert,
-  CircleCheck,
-  CreditCard,
-  DoorOpen,
-  FileCheck,
-  FileText,
-  Filter,
-  Plus,
-  Receipt,
-  TriangleAlert,
-  Wallet,
-  Wrench,
-  type LucideIcon,
-} from 'lucide-react';
-import {
-  AnimatedNumber,
-  GrowBar,
-  HoverLift,
-  Pulse,
-  Reveal,
-  SkeletonList,
-  Stagger,
-  StaggerItem,
-} from '@/components/motion/primitives';
-import { springs } from '@/lib/motion-tokens';
+import Link from 'next/link';
+import { Cell, Pie, PieChart } from 'recharts';
+import { ArrowUpRight, Building2, DoorOpen, KeyRound, Landmark, Plus, Users } from 'lucide-react';
+import { StatusBadge } from '@/components/domain/badges';
+import { AnimatedNumber, GrowBar, HoverLift, Reveal, SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { formatTnd } from '@/lib/format';
 import { useGraphql } from '@/lib/use-graphql';
 
 const DASHBOARD_QUERY = `
@@ -40,119 +18,106 @@ const DASHBOARD_QUERY = `
       status
       property { branch { id name } }
     }
+    properties(where: { archived_at: { _is_null: true } }, order_by: { name: asc }, limit: 5) {
+      id
+      name
+      city
+      units(where: { archived_at: { _is_null: true } }) { status rent_amount }
+    }
+    contacts_aggregate { aggregate { count } }
   }
 `;
 
-type DashboardUnit = { status: string; property: { branch: { id: string; name: string } | null } | null };
+type DashboardData = {
+  units: { status: string; property: { branch: { id: string; name: string } | null } | null }[];
+  properties: { id: string; name: string; city: string | null; units: { status: string; rent_amount: number | string | null }[] }[];
+  contacts_aggregate: { aggregate: { count: number } };
+};
 
-const PENDING = 'Disponible avec le module';
+const STATUS_CONFIG = {
+  rented: { label: 'Loué', color: 'var(--chart-1)' },
+  vacant: { label: 'Disponible', color: 'var(--chart-3)' },
+  for_sale: { label: 'À vendre', color: 'var(--chart-2)' },
+  under_maintenance: { label: 'En travaux', color: 'var(--chart-4)' },
+  sold: { label: 'Vendu', color: 'var(--chart-5)' },
+} satisfies ChartConfig;
+
 const formatPercent = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',') + ' %';
 const formatInt = (n: number) => String(Math.round(n));
 
-function ActionButton({ icon: Icon, label, primary }: { icon: LucideIcon; label: string; primary?: boolean }) {
-  return (
-    <motion.button
-      type="button"
-      disabled
-      title="Bientôt disponible"
-      className={
-        'flex h-10 items-center gap-2 rounded-lg px-4 text-xs shadow-sm disabled:cursor-not-allowed disabled:opacity-60 ' +
-        (primary
-          ? 'bg-emerald-700 font-semibold text-white'
-          : 'border border-slate-200 bg-white font-medium text-slate-700')
-      }
-      whileHover={{ y: -1 }}
-      transition={springs.snappy}
-    >
-      <Icon className={'h-[18px] w-[18px] ' + (primary ? '' : 'text-slate-500')} aria-hidden />
-      <span>{label}</span>
-    </motion.button>
-  );
-}
-
-function KpiCard({
+function Kpi({
   label,
   icon: Icon,
-  numeric,
-  unit,
-  note,
-  tone = 'default',
+  value,
+  format,
+  hint,
 }: {
   label: string;
-  icon: LucideIcon;
-  numeric?: { value: number; format: (n: number) => string } | null;
-  unit?: string;
-  note: ReactNode;
-  tone?: 'default' | 'success' | 'danger';
+  icon: typeof Users;
+  value: number;
+  format: (n: number) => string;
+  hint: string;
 }) {
-  const border = tone === 'danger' ? 'border-red-200 bg-red-50/20' : 'border-slate-200';
-  const labelColor = tone === 'danger' ? 'text-red-700' : tone === 'success' ? 'text-emerald-800' : 'text-slate-500';
-  const iconColor = tone === 'danger' ? 'text-red-600' : tone === 'success' ? 'text-emerald-700' : 'text-slate-500';
-  const valueColor = tone === 'danger' ? 'text-red-700' : tone === 'success' ? 'text-emerald-900' : 'text-slate-900';
   return (
     <StaggerItem className="h-full">
-      <HoverLift className={'relative flex h-full flex-col justify-between overflow-hidden rounded-xl border bg-white p-4 shadow-sm ' + border}>
-        {tone === 'success' && (
-          <motion.div
-            className="absolute left-0 right-0 top-0 h-1 origin-left bg-emerald-600"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.9, delay: 0.4 }}
-          />
-        )}
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className={'text-xs font-semibold uppercase tracking-wider ' + labelColor}>{label}</span>
-            <motion.span whileHover={{ rotate: -10, scale: 1.15 }} transition={springs.bouncy} className="inline-flex">
-              <Icon className={'h-[18px] w-[18px] ' + iconColor} aria-hidden />
-            </motion.span>
-          </div>
-          <div className={'flex items-baseline gap-1 text-2xl font-bold tracking-tight tabular-nums ' + valueColor}>
-            {numeric ? (
-              <AnimatedNumber value={numeric.value} format={numeric.format} />
-            ) : (
-              <span className="text-slate-500">—</span>
-            )}
-            {unit && <span className="text-xs font-medium text-slate-500">{unit}</span>}
-          </div>
-          <p className="mt-1 text-[11px] text-slate-500">{note}</p>
-        </div>
+      <HoverLift className="h-full">
+        <Card className="h-full">
+          <CardHeader>
+            <CardDescription>{label}</CardDescription>
+            <CardAction>
+              <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <Icon className="size-4" />
+              </span>
+            </CardAction>
+            <CardTitle className="text-3xl font-semibold tabular-nums">
+              <AnimatedNumber value={value} format={format} />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">{hint}</CardContent>
+        </Card>
       </HoverLift>
     </StaggerItem>
   );
-}
-
-function SectionCard({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: ReactNode }) {
-  return (
-    <StaggerItem className="h-full">
-      <HoverLift className="flex h-full flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div>
-          <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-3">
-            <Icon className="h-5 w-5 text-emerald-700" aria-hidden />
-            <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-          </div>
-          {children}
-        </div>
-      </HoverLift>
-    </StaggerItem>
-  );
-}
-
-function Empty({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-center text-xs text-slate-500">{children}</p>;
 }
 
 export default function DashboardPage() {
-  const result = useGraphql<{ units: DashboardUnit[] }>(DASHBOARD_QUERY);
-  const units = result.status === 'success' ? result.data.units : [];
-  const ready = result.status === 'success';
+  const result = useGraphql<DashboardData>(DASHBOARD_QUERY);
+
+  if (result.status === 'error') {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Tableau de bord" />
+        <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          Impossible de charger les chiffres : {result.message}
+        </p>
+      </div>
+    );
+  }
+
+  if (result.status === 'loading') {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Tableau de bord" description="Vue d’ensemble de la société" />
+        <SkeletonList
+          count={4}
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+          itemClassName="h-32 rounded-xl bg-muted"
+          label="Chargement du tableau de bord…"
+        />
+      </div>
+    );
+  }
+
+  const { units, properties, contacts_aggregate } = result.data;
   const total = units.length;
   const count = (status: string) => units.filter((unit) => unit.status === status).length;
   const rented = count('rented');
   const vacant = count('vacant');
-  const maintenance = count('under_maintenance');
-  const forSale = count('for_sale');
   const occupancy = total === 0 ? 0 : (rented / total) * 100;
+
+  const chartData = (Object.keys(STATUS_CONFIG) as (keyof typeof STATUS_CONFIG)[])
+    .map((status) => ({ status, label: STATUS_CONFIG[status].label, value: count(status), fill: STATUS_CONFIG[status].color }))
+    .filter((entry) => entry.value > 0);
 
   const byBranch = new Map<string, { name: string; total: number; rented: number }>();
   for (const unit of units) {
@@ -163,175 +128,182 @@ export default function DashboardPage() {
     if (unit.status === 'rented') entry.rented += 1;
     byBranch.set(branch.id, entry);
   }
-  const branches = [...byBranch.values()].sort((a, b) => b.rented / b.total - a.rented / a.total);
+  const branches = [...byBranch.entries()]
+    .map(([id, entry]) => ({ id, ...entry }))
+    .sort((a, b) => b.rented / b.total - a.rented / a.total);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">Tableau de bord</h1>
-        <p className="mt-0.5 text-xs text-slate-500">Vue d’ensemble de la société</p>
-      </div>
+      <PageHeader
+        title="Tableau de bord"
+        description="Vue d’ensemble de la société : occupation du parc, répartition des unités et biens."
+        actions={
+          <Button asChild>
+            <Link href="/contacts/nouveau">
+              <Plus data-icon="inline-start" />
+              Ajouter un contact
+            </Link>
+          </Button>
+        }
+      />
 
-      {result.status === 'error' && (
-        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-xs text-red-800">
-          Impossible de charger les chiffres : {result.message}
-        </p>
-      )}
-
-      <Stagger className="flex flex-wrap items-center gap-3">
-        <StaggerItem>
-          <ActionButton icon={CreditCard} label="Enregistrer un paiement" primary />
-        </StaggerItem>
-        <StaggerItem>
-          <ActionButton icon={FileText} label="Générer les factures du mois" />
-        </StaggerItem>
-        <StaggerItem>
-          <ActionButton icon={Wrench} label="Créer un ordre de travail" />
-        </StaggerItem>
-        <StaggerItem>
-          <ActionButton icon={Plus} label="Ajouter un bien" />
-        </StaggerItem>
-      </Stagger>
-
-      {!ready && result.status === 'loading' ? (
-        <SkeletonList
-          count={8}
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
-          itemClassName="h-28 rounded-xl bg-slate-100"
-          label="Chargement du tableau de bord…"
+      <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Kpi label="Taux d’occupation" icon={KeyRound} value={occupancy} format={formatPercent} hint={rented + ' unités louées sur ' + total} />
+        <Kpi
+          label="Unités vacantes"
+          icon={DoorOpen}
+          value={vacant}
+          format={formatInt}
+          hint={count('under_maintenance') + ' en travaux, ' + count('for_sale') + ' à vendre'}
         />
-      ) : (
-        <Stagger className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <KpiCard
-            label="Taux d’occupation"
-            icon={ChartPie}
-            numeric={{ value: occupancy, format: formatPercent }}
-            note={rented + ' / ' + total + ' unités louées'}
-          />
-          <KpiCard label="Loyers facturés ce mois" icon={Receipt} unit="TND" note={PENDING + ' Finance'} />
-          <KpiCard label="Loyers encaissés" icon={Banknote} unit="TND" note={PENDING + ' Finance'} tone="success" />
-          <KpiCard label="Loyers impayés" icon={TriangleAlert} unit="TND" note={PENDING + ' Finance'} tone="danger" />
-          <KpiCard
-            label="Unités vacantes"
-            icon={DoorOpen}
-            numeric={{ value: vacant, format: formatInt }}
-            note={'dont ' + maintenance + ' en travaux'}
-          />
-          <KpiCard label="Baux à échéance (60 j)" icon={CalendarClock} note={PENDING + ' Baux'} />
-          <KpiCard label="Chèques en attente" icon={FileCheck} note={PENDING + ' Finance'} />
-          <KpiCard label="Revenus de la société" icon={Wallet} unit="TND" note={PENDING + ' Finance'} />
-        </Stagger>
-      )}
+        <Kpi label="Biens" icon={Building2} value={properties.length} format={formatInt} hint={'dans ' + byBranch.size + (byBranch.size > 1 ? ' succursales' : ' succursale')} />
+        <Kpi
+          label="Contacts"
+          icon={Users}
+          value={contacts_aggregate.aggregate.count}
+          format={formatInt}
+          hint="propriétaires, locataires, acquéreurs"
+        />
+      </Stagger>
 
-      <Reveal className="flex flex-wrap gap-3 text-xs">
-        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
-          <Wrench className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-          <span className="text-slate-600">Ordres de travail ouverts :</span>
-          <strong className="text-slate-900">—</strong>
-        </div>
-        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
-          <FileText className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-          <span className="text-slate-600">Unités à vendre :</span>
-          <strong className="text-slate-900">{ready ? forSale : '…'}</strong>
-        </div>
-      </Reveal>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Reveal className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-start gap-2">
-            <ChartColumn className="mt-0.5 h-4 w-4 text-emerald-700" aria-hidden />
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Facturé vs encaissé (12 derniers mois)</h2>
-              <p className="text-xs text-slate-500">Évolution comparée de la facturation et du recouvrement mensuel.</p>
-            </div>
-          </div>
-          <Empty>Les courbes apparaîtront dès que le module Finance enregistrera des factures et des paiements.</Empty>
+      <div className="grid gap-4 lg:grid-cols-5">
+        <Reveal className="lg:col-span-2">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Répartition des unités</CardTitle>
+              <CardDescription>Par statut, toutes succursales</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {chartData.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">Aucune unité enregistrée.</p>
+              ) : (
+                <div className="flex flex-col items-center gap-4 sm:flex-row lg:flex-col xl:flex-row">
+                  <ChartContainer config={STATUS_CONFIG} className="aspect-square h-44 shrink-0">
+                    <PieChart>
+                      <ChartTooltip content={<ChartTooltipContent nameKey="status" hideLabel />} />
+                      <Pie
+                        data={chartData}
+                        dataKey="value"
+                        nameKey="status"
+                        innerRadius={48}
+                        outerRadius={78}
+                        paddingAngle={3}
+                        strokeWidth={0}
+                      >
+                        {chartData.map((entry) => (
+                          <Cell key={entry.status} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                  <ul className="w-full space-y-2 text-sm">
+                    {chartData.map((entry) => (
+                      <li key={entry.status} className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2">
+                          <span className="size-2.5 rounded-full" style={{ backgroundColor: entry.fill }} aria-hidden />
+                          {entry.label}
+                        </span>
+                        <span className="font-medium tabular-nums">{entry.value}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </Reveal>
 
-        <Reveal className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" delay={0.1}>
-          <div className="mb-4 flex items-start gap-2">
-            <ChartColumn className="mt-0.5 h-4 w-4 text-emerald-700" aria-hidden />
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Taux d’occupation par succursale</h2>
-              <p className="text-xs text-slate-500">Performance commerciale des {branches.length} agences régionales</p>
-            </div>
-          </div>
-          <div className="space-y-3.5">
-            {branches.map((branch) => {
-              const rate = Math.round((branch.rented / branch.total) * 100);
-              return (
-                <div key={branch.name}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="font-medium text-slate-800">{branch.name}</span>
-                    <span className="font-semibold text-slate-900">
-                      {rate} % <span className="font-normal text-slate-500">({branch.rented} / {branch.total})</span>
-                    </span>
+        <Reveal className="lg:col-span-3" delay={0.08}>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Occupation par succursale</CardTitle>
+              <CardDescription>Part des unités louées</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {branches.map((branch) => {
+                const rate = Math.round((branch.rented / branch.total) * 100);
+                return (
+                  <div key={branch.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{branch.name}</span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {branch.rented} / {branch.total} · <span className="font-medium text-foreground">{rate} %</span>
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <GrowBar percent={rate} className="bg-primary" />
+                    </div>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                    <GrowBar percent={rate} className="bg-emerald-700" />
-                  </div>
-                </div>
-              );
-            })}
-            {ready && branches.length === 0 && <Empty>Aucune unité rattachée à une succursale.</Empty>}
-          </div>
-          <div className="mt-3.5 flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-500">
-            <span>
-              Moyenne consolidée : <strong className="font-semibold text-emerald-800">{formatPercent(occupancy)}</strong>
-            </span>
-            <span className="text-[11px] text-slate-500">Seuil d’alerte : &lt; 85 %</span>
-          </div>
+                );
+              })}
+              {branches.length === 0 && (
+                <p className="py-10 text-center text-sm text-muted-foreground">Aucune unité rattachée à une succursale.</p>
+              )}
+            </CardContent>
+          </Card>
         </Reveal>
       </div>
 
-      <Reveal className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col justify-between gap-4 p-5 lg:flex-row lg:items-center">
-          <div className="flex items-center gap-2.5">
-            <Pulse className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-700">
-              <CircleAlert className="h-[22px] w-[22px]" aria-hidden />
-            </Pulse>
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Loyers en retard et dossiers pré-contentieux</h2>
-              <p className="text-xs text-slate-500">Aucun dossier pour le moment</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" disabled className="flex h-9 cursor-not-allowed items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3.5 text-xs font-semibold text-slate-500">
-              Relance groupée
-            </button>
-            <button type="button" disabled title="Bientôt disponible" className="flex h-9 cursor-not-allowed items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 opacity-60">
-              Exporter vers Excel
-            </button>
-          </div>
-        </div>
-        <div className="border-t border-slate-100 px-5">
-          <Empty>Les loyers impayés seront listés ici avec le module Finance.</Empty>
-        </div>
-      </Reveal>
+      <div className="grid gap-4 lg:grid-cols-5">
+        <Reveal className="lg:col-span-3">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Biens</CardTitle>
+              <CardDescription>Aperçu du parc immobilier</CardDescription>
+              <CardAction>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/biens">
+                    Voir tout <ArrowUpRight data-icon="inline-end" />
+                  </Link>
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="divide-y">
+              {properties.map((property) => {
+                const rentedUnits = property.units.filter((unit) => unit.status === 'rented');
+                const rent = rentedUnits.reduce((sum, unit) => sum + Number(unit.rent_amount ?? 0), 0);
+                const rate = property.units.length === 0 ? null : Math.round((rentedUnits.length / property.units.length) * 100);
+                return (
+                  <div key={property.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{property.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {property.city ?? '—'} · {property.units.length} unités
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="hidden text-sm tabular-nums text-muted-foreground sm:inline">{formatTnd(rent)}</span>
+                      <StatusBadge status="rented" label={rate === null ? '—' : rate + ' % loué'} />
+                    </div>
+                  </div>
+                );
+              })}
+              {properties.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Aucun bien enregistré.</p>}
+            </CardContent>
+          </Card>
+        </Reveal>
 
-      <Stagger whenInView className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <SectionCard title="À approuver" icon={CircleCheck}>
-          <Empty>Aucune demande en attente.</Empty>
-        </SectionCard>
-        <SectionCard title="Pipeline des ventes" icon={Filter}>
-          <div className="space-y-2.5 pt-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-slate-600">Unités à vendre</span>
-              <span className="font-bold text-slate-800">{ready ? forSale : '…'}</span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <GrowBar percent={total === 0 ? 0 : (forSale / total) * 100} className="bg-emerald-500" />
-            </div>
-            <p className="pt-2 text-[11px] text-slate-500">Visites, offres et compromis : module Ventes à venir.</p>
-          </div>
-        </SectionCard>
-        <SectionCard title="Baux à échéance" icon={CalendarClock}>
-          <Empty>Les échéances de baux apparaîtront ici.</Empty>
-        </SectionCard>
-        <SectionCard title="Docs fournisseurs" icon={FileText}>
-          <Empty>Aucun document à renouveler.</Empty>
-        </SectionCard>
-      </Stagger>
+        <Reveal className="lg:col-span-2" delay={0.08}>
+          <Card className="h-full border-dashed bg-muted/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Landmark className="size-4 text-muted-foreground" />
+                Finance : bientôt
+              </CardTitle>
+              <CardDescription>
+                Loyers facturés, encaissés et impayés, chèques en attente et relances arriveront avec le module Finance.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li>• Factures de loyer et paiements</li>
+                <li>• Suivi des impayés et échéanciers</li>
+                <li>• Revenus et honoraires de la société</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </Reveal>
+      </div>
     </div>
   );
 }

@@ -1,23 +1,22 @@
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import {
-  ChevronRight,
-  ChevronDown,
-  Download,
-  Layers,
-  List,
-  Map as MapIcon,
-  MoreVertical,
-  Plus,
-  Upload,
-  type LucideIcon,
-} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { motion } from 'motion/react';
+import { Building2, ChevronDown, MapPin, Plus, Search, SearchX } from 'lucide-react';
+import { StatusBadge } from '@/components/domain/badges';
 import { SkeletonList, Stagger, StaggerItem, staggerItem } from '@/components/motion/primitives';
-import { StatusPill } from '@/components/status-pill';
+import { PageHeader } from '@/components/page-header';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatArea, formatTnd } from '@/lib/format';
-import { motionTokens, springs } from '@/lib/motion-tokens';
 import { useGraphql } from '@/lib/use-graphql';
 
 const PROPERTIES_QUERY = `
@@ -85,54 +84,8 @@ const STATUS_CHIPS: { value: StatusFilter; label: string }[] = [
   { value: 'under_maintenance', label: 'En travaux' },
 ];
 
-const rowsContainer = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
-};
-
-const OUTLINE_BUTTON =
-  'h-10 px-3.5 rounded-lg border border-app-border bg-white text-xs font-semibold text-[#0F2A20] flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-60';
-const SELECT =
-  'h-10 appearance-none rounded-lg border border-app-border bg-app-bg pl-3 pr-8 text-xs text-[#0F2A20] outline-none transition-shadow focus:ring-2 focus:ring-brand';
-
-function ToolbarButton({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
-  return (
-    <motion.button
-      type="button"
-      disabled
-      title="Bientôt disponible"
-      className={OUTLINE_BUTTON}
-      whileHover={{ y: -1 }}
-      transition={springs.snappy}
-    >
-      <Icon className="h-3.5 w-3.5" aria-hidden />
-      <span>{label}</span>
-    </motion.button>
-  );
-}
-
-function SelectBox({
-  value,
-  onChange,
-  children,
-  label,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  children: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <div className="relative">
-      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className={SELECT}>
-        {children}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#52645A]">
-        <ChevronDown className="h-3.5 w-3.5" aria-hidden />
-      </div>
-    </div>
-  );
-}
+const rowsContainer = { hidden: {}, visible: { transition: { staggerChildren: 0.04 } } };
+const MotionRow = motion.create(TableRow);
 
 export default function BiensPage() {
   const result = useGraphql<{ properties: Property[] }>(PROPERTIES_QUERY);
@@ -142,18 +95,14 @@ export default function BiensPage() {
   const [branch, setBranch] = useState('all');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [showArchived, setShowArchived] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [selected, setSelected] = useState<string[]>([]);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const properties = useMemo(() => (result.status === 'success' ? result.data.properties : []), [result]);
 
   const cities = [...new Set(properties.map((property) => property.city).filter((value): value is string => !!value))];
   const branches = [
-    ...new Map(properties.flatMap((property) => (property.branch ? [[property.branch.id, property.branch.name]] : []))),
+    ...new Map(properties.flatMap((property) => (property.branch ? [[property.branch.id, property.branch.name] as const] : []))),
   ];
-
-  const visibleUnits = (property: Property) =>
-    property.units.filter((unit) => (showArchived || !unit.archived_at) && (status === 'all' || unit.status === status));
 
   const needle = search.trim().toLowerCase();
   const rows = properties
@@ -168,13 +117,17 @@ export default function BiensPage() {
           (property.address_line ?? '').toLowerCase().includes(needle) ||
           property.units.some((unit) => unit.code.toLowerCase().includes(needle))),
     )
-    .map((property) => ({ property, units: visibleUnits(property) }))
+    .map((property) => ({
+      property,
+      units: property.units.filter((unit) => (showArchived || !unit.archived_at) && (status === 'all' || unit.status === status)),
+    }))
     .filter(({ units }) => status === 'all' || units.length > 0);
 
   const allUnits = properties.flatMap((property) => property.units.filter((unit) => showArchived || !unit.archived_at));
   const countStatus = (value: StatusFilter) =>
     value === 'all' ? allUnits.length : allUnits.filter((unit) => unit.status === value).length;
   const activeProperties = properties.filter((property) => showArchived || !property.archived_at);
+  const hasFilters = search !== '' || city !== 'all' || type !== 'all' || branch !== 'all' || status !== 'all' || showArchived;
 
   function reset() {
     setSearch('');
@@ -185,328 +138,239 @@ export default function BiensPage() {
     setShowArchived(false);
   }
 
-  function toggleSelected(id: string) {
-    setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
-  }
-
   return (
-    <Stagger className="mx-auto max-w-[1360px] space-y-6">
-      <StaggerItem className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#0F2A20]">Biens et unités</h1>
-          <p className="mt-0.5 text-sm text-[#52645A]">
-            {allUnits.length} unités dans {activeProperties.length} biens
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="mr-1 flex items-center rounded-lg border border-app-border bg-white p-1">
-            <span className="flex items-center gap-1.5 rounded border border-[#A7F3D0] bg-[#ECFDF5] px-3 py-1.5 text-xs font-semibold text-brand">
-              <List className="h-3.5 w-3.5" aria-hidden />
-              Liste
-            </span>
-            <button type="button" aria-disabled="true" className="flex cursor-not-allowed items-center gap-1.5 rounded px-3 py-1.5 text-xs text-[#52645A]" title="Bientôt disponible">
-              <MapIcon className="h-3.5 w-3.5" aria-hidden />
-              Carte
-            </button>
-          </div>
-          <ToolbarButton icon={Download} label="Exporter vers Excel" />
-          <ToolbarButton icon={Upload} label="Importer depuis Excel" />
-          <ToolbarButton icon={Layers} label="Ajouter plusieurs unités" />
-          <motion.button
-            type="button"
-            disabled
-            title="Bientôt disponible"
-            className="ml-2 flex h-10 items-center gap-1.5 rounded-lg bg-brand px-4 text-xs font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-            whileHover={{ y: -1 }}
-            transition={springs.snappy}
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            <span>Ajouter un bien</span>
-          </motion.button>
-        </div>
+    <Stagger className="space-y-6">
+      <StaggerItem>
+        <PageHeader
+          title="Biens et unités"
+          description={
+            result.status === 'success'
+              ? allUnits.length + ' unités dans ' + activeProperties.length + ' biens'
+              : 'Chargement du parc immobilier…'
+          }
+          actions={
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0}>
+                  <Button disabled>
+                    <Plus data-icon="inline-start" />
+                    Ajouter un bien
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Bientôt disponible</TooltipContent>
+            </Tooltip>
+          }
+        />
       </StaggerItem>
 
-      <StaggerItem className="flex items-center gap-2.5 overflow-x-auto pb-1 pt-2">
-        {STATUS_CHIPS.map((chip) => {
-          const active = status === chip.value;
-          return (
-            <motion.button
-              key={chip.value}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setStatus(chip.value)}
-              className={
-                'relative inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-brand ' +
-                (active
-                  ? 'font-semibold text-white'
-                  : 'border border-app-border bg-white font-medium text-[#52645A] transition-colors hover:bg-[#ECFDF5] hover:text-[#0F2A20]')
-              }
-              whileTap={{ scale: motionTokens.scale.press }}
-              transition={springs.snappy}
+      <StaggerItem>
+        <Card className="py-4">
+          <CardContent className="space-y-4">
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={status}
+              onValueChange={(value) => setStatus((value || 'all') as StatusFilter)}
+              className="flex-wrap justify-start"
+              aria-label="Filtrer par statut"
             >
-              {active && (
-                <motion.span
-                  layoutId="status-chip"
-                  className="absolute inset-0 rounded-full bg-brand shadow-sm"
-                  transition={springs.snappy}
+              {STATUS_CHIPS.map((chip) => (
+                <ToggleGroupItem key={chip.value} value={chip.value} className="gap-1.5">
+                  {chip.label}
+                  <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">{countStatus(chip.value)}</span>
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <InputGroup className="min-w-64 flex-1 sm:max-w-sm">
+                <InputGroupAddon>
+                  <Search />
+                </InputGroupAddon>
+                <InputGroupInput
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Nom, adresse ou référence d’unité"
+                  aria-label="Rechercher un bien"
                 />
+              </InputGroup>
+              <Select value={city} onValueChange={setCity}>
+                <SelectTrigger className="w-40" aria-label="Ville">
+                  <SelectValue placeholder="Ville" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les villes</SelectItem>
+                  {cities.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger className="w-40" aria-label="Type de bien">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les types</SelectItem>
+                  {Object.entries(PROPERTY_TYPES).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={branch} onValueChange={setBranch}>
+                <SelectTrigger className="w-44" aria-label="Succursale">
+                  <SelectValue placeholder="Succursale" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les succursales</SelectItem>
+                  {branches.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <Checkbox id="archived" checked={showArchived} onCheckedChange={(checked) => setShowArchived(checked === true)} />
+                <Label htmlFor="archived" className="text-sm font-normal text-muted-foreground">
+                  Biens archivés
+                </Label>
+              </div>
+              {hasFilters && (
+                <Button variant="ghost" size="sm" onClick={reset}>
+                  Réinitialiser
+                </Button>
               )}
-              <span className="relative z-10">
-                {chip.label} ({countStatus(chip.value)})
-              </span>
-            </motion.button>
-          );
-        })}
-      </StaggerItem>
-
-      <StaggerItem className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-app-border bg-white p-3.5 text-sm shadow-sm">
-        <div className="flex flex-1 flex-wrap items-center gap-3">
-          <div className="relative min-w-[260px] flex-1">
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Rechercher par nom, adresse ou référence"
-              className="h-10 w-full rounded-lg border border-app-border bg-app-bg pl-3.5 pr-8 text-xs text-[#0F2A20] outline-none transition-shadow placeholder:text-[#52645A] focus:border-brand focus:ring-2 focus:ring-brand"
-            />
-          </div>
-          <SelectBox label="Ville" value={city} onChange={setCity}>
-            <option value="all">Ville : Toutes</option>
-            {cities.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </SelectBox>
-          <SelectBox label="Type" value={type} onChange={setType}>
-            <option value="all">Type : Tous</option>
-            {Object.entries(PROPERTY_TYPES).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </SelectBox>
-          <SelectBox label="Succursale" value={branch} onChange={setBranch}>
-            <option value="all">Succursale : Toutes</option>
-            {branches.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </SelectBox>
-        </div>
-        <div className="flex items-center gap-4">
-          <label className="flex cursor-pointer select-none items-center gap-2">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(event) => setShowArchived(event.target.checked)}
-              className="h-4 w-4 rounded border-app-border accent-brand"
-            />
-            <span className="text-xs text-[#52645A]">Afficher les biens archivés</span>
-          </label>
-          <motion.button
-            type="button"
-            onClick={reset}
-            className="rounded px-1 py-1.5 text-xs font-semibold text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            whileTap={{ scale: 0.95 }}
-          >
-            Réinitialiser
-          </motion.button>
-        </div>
-      </StaggerItem>
-
-      <AnimatePresence>
-        {selected.length > 0 && (
-          <motion.div
-            key="selection"
-            className="flex items-center justify-between rounded-lg border border-[#A7F3D0] bg-[#ECFDF5] px-4 py-2.5 text-xs text-[#0F2A20]"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: motionTokens.duration.fast }}
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="h-2 w-2 rounded-full bg-brand" />
-              <span className="font-semibold">
-                {selected.length} {selected.length > 1 ? 'biens sélectionnés' : 'bien sélectionné'}
-              </span>
             </div>
-            <motion.button
-              type="button"
-              onClick={() => setSelected([])}
-              title="Désélectionner" aria-label="Désélectionner"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[#52645A] transition-colors hover:bg-white hover:text-[#0F2A20]"
-              whileTap={{ scale: 0.9 }}
-            >
-              ✕
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </CardContent>
+        </Card>
+      </StaggerItem>
 
       {result.status === 'loading' && (
-        <SkeletonList count={3} className="space-y-2" itemClassName="h-14 rounded-lg bg-slate-100" label="Chargement des biens…" />
+        <SkeletonList count={3} className="space-y-4" itemClassName="h-40 rounded-xl bg-muted" label="Chargement des biens…" />
       )}
       {result.status === 'error' && (
-        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           Impossible de charger les biens : {result.message}
         </p>
       )}
 
-      {result.status === 'success' && (
-        <StaggerItem className="overflow-x-auto rounded-lg border border-app-border bg-white shadow-sm">
-          <table className="w-full min-w-[960px] table-fixed border-collapse text-left text-xs">
-            <colgroup>
-              <col style={{ width: '4%' }} />
-              <col style={{ width: '32%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '14%' }} />
-              <col style={{ width: '12%' }} />
-              <col style={{ width: '8%' }} />
-            </colgroup>
-            <thead>
-              <tr className="border-b border-app-border bg-app-bg text-[11px] font-semibold uppercase tracking-wider text-[#52645A]">
-                <th className="px-3 py-3 text-center" scope="col" />
-                <th className="px-3 py-3" scope="col">Bien / Unité</th>
-                <th className="px-3 py-3" scope="col">Ville</th>
-                <th className="px-3 py-3" scope="col">Unités</th>
-                <th className="px-3 py-3" scope="col">Statut</th>
-                <th className="px-3 py-3" scope="col">Propriétaire(s)</th>
-                <th className="px-3 py-3 text-right" scope="col">Loyer mensuel</th>
-                <th className="px-3 py-3 text-center" scope="col">Actions</th>
-              </tr>
-            </thead>
-            <motion.tbody
-              key={status + city + type + branch + String(showArchived)}
-              className="divide-y divide-app-border"
-              variants={rowsContainer}
-              initial="hidden"
-              animate="visible"
-            >
-              {rows.map(({ property, units }) => {
-                const open = expanded[property.id] ?? true;
-                const rented = units.filter((unit) => unit.status === 'rented');
-                const occupancy = units.length === 0 ? null : Math.round((rented.length / units.length) * 100);
-                const rentTotal = rented.reduce((sum, unit) => sum + Number(unit.rent_amount ?? 0), 0);
-                return (
-                  <Fragment key={property.id}>
-                    <motion.tr variants={staggerItem} className="bg-[#F8FCF9] transition-colors hover:bg-[#F2FAF5]">
-                      <td className="px-3 py-3.5 text-center align-middle">
-                        <input
-                          type="checkbox"
-                          aria-label={'Sélectionner ' + property.name}
-                          checked={selected.includes(property.id)}
-                          onChange={() => toggleSelected(property.id)}
-                          className="h-4 w-4 rounded border-app-border accent-brand"
-                        />
-                      </td>
-                      <td className="px-3 py-3.5 align-middle">
-                        <div className="flex items-center gap-2">
-                          <motion.button
-                            type="button"
-                            aria-expanded={open}
-                            aria-label={(open ? 'Replier ' : 'Déplier ') + property.name}
-                            onClick={() => setExpanded((current) => ({ ...current, [property.id]: !open }))}
-                            className="flex h-6 w-6 items-center justify-center rounded text-brand outline-none transition-colors hover:bg-[#EAFEF1] focus:ring-2 focus:ring-brand"
-                            whileTap={{ scale: 0.85 }}
-                          >
-                            <motion.span animate={{ rotate: open ? 90 : 0 }} transition={springs.snappy} className="inline-flex">
-                              <ChevronRight className="h-4 w-4" aria-hidden />
-                            </motion.span>
-                          </motion.button>
-                          <div className="truncate">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate text-sm font-bold text-[#0F2A20]">{property.name}</span>
-                              {property.archived_at && (
-                                <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-                                  Archivé
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-0.5 truncate text-[11px] text-[#52645A]">
-                              {[property.address_line, PROPERTY_TYPES[property.type] ?? property.type, property.branch ? 'Succursale ' + property.branch.name : null]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="truncate px-3 py-3.5 align-middle font-medium text-[#0F2A20]">{property.city ?? '—'}</td>
-                      <td className="px-3 py-3.5 align-middle font-medium text-[#0F2A20]">{units.length}</td>
-                      <td className="px-3 py-3.5 align-middle">
-                        {occupancy === null ? (
-                          <span className="text-[#52645A]">—</span>
-                        ) : (
-                          <StatusPill status="rented" label={occupancy + ' % Loué'} />
-                        )}
-                      </td>
-                      <td className="truncate px-3 py-3.5 align-middle text-[#52645A]">—</td>
-                      <td className="px-3 py-3.5 text-right align-middle font-semibold tabular-nums text-[#0F2A20]">
-                        {formatTnd(rentTotal)}
-                      </td>
-                      <td className="px-3 py-3.5 text-center align-middle">
-                        <div className="flex items-center justify-center gap-1">
-                          <button type="button" aria-disabled="true" className="cursor-not-allowed px-1 py-1.5 text-xs font-semibold text-brand opacity-60" title="Bientôt disponible">Voir</button>
-                          <span className="flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-md border border-[#A7F3D0] bg-[#ECFDF5] text-brand opacity-60">
-                            <MoreVertical className="h-3.5 w-3.5" aria-hidden />
-                          </span>
-                        </div>
-                      </td>
-                    </motion.tr>
-                    <AnimatePresence initial={false}>
-                      {open &&
-                        units.map((unit, index) => (
-                          <motion.tr
-                            key={unit.id}
-                            className="bg-white transition-colors hover:bg-[#F9FCFA]"
-                            initial={{ opacity: 0, y: -6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -6 }}
-                            transition={{ duration: motionTokens.duration.fast, delay: Math.min(index, 8) * 0.04 }}
-                          >
-                            <td className="px-3 py-3 text-center" />
-                            <td className="px-3 py-3 align-middle">
-                              <div className="pl-10">
-                                <div className="font-semibold text-[#0F2A20]">{UNIT_TYPES[unit.type] ?? unit.type} {unit.code}</div>
-                                <div className="mt-0.5 text-[11px] text-[#52645A]">
-                                  {[unit.floor === null ? null : 'Étage ' + unit.floor, unit.rooms === null ? null : unit.rooms + ' pièces', unit.surface_m2 === null ? null : formatArea(unit.surface_m2)]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-3 py-3" />
-                            <td className="px-3 py-3" />
-                            <td className="px-3 py-3 align-middle">
-                              <StatusPill status={unit.status} />
-                            </td>
-                            <td className="px-3 py-3 align-middle text-[#52645A]">—</td>
-                            <td className="px-3 py-3 text-right align-middle font-semibold tabular-nums text-[#0F2A20]">
-                              {formatTnd(unit.rent_amount)}
-                            </td>
-                            <td className="px-3 py-3 text-center align-middle">
-                              <button type="button" aria-disabled="true" className="cursor-not-allowed px-1 py-1.5 text-xs font-semibold text-brand opacity-60" title="Bientôt disponible">Voir</button>
-                            </td>
-                          </motion.tr>
-                        ))}
-                    </AnimatePresence>
-                  </Fragment>
-                );
-              })}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-[#52645A]">
-                    Aucun bien ne correspond à vos filtres.
-                  </td>
-                </tr>
-              )}
-            </motion.tbody>
-          </table>
-        </StaggerItem>
+      {result.status === 'success' && rows.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <SearchX className="size-5" />
+            </span>
+            <p className="font-medium">Aucun bien ne correspond</p>
+            <p className="text-sm text-muted-foreground">Modifiez les filtres pour élargir la recherche.</p>
+            <Button variant="outline" size="sm" onClick={reset} className="mt-2">
+              Réinitialiser les filtres
+            </Button>
+          </CardContent>
+        </Card>
       )}
+
+      {result.status === 'success' &&
+        rows.map(({ property, units }) => {
+          const open = !collapsed[property.id];
+          const rented = units.filter((unit) => unit.status === 'rented');
+          const occupancy = units.length === 0 ? null : Math.round((rented.length / units.length) * 100);
+          const rentTotal = rented.reduce((sum, unit) => sum + Number(unit.rent_amount ?? 0), 0);
+          return (
+            <StaggerItem key={property.id}>
+              <Collapsible open={open} onOpenChange={(next) => setCollapsed((current) => ({ ...current, [property.id]: !next }))}>
+                <Card className="gap-0 overflow-hidden py-0">
+                  <CardHeader className="border-b bg-muted/30 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                          <Building2 className="size-5" />
+                        </span>
+                        <div className="min-w-0">
+                          <h2 className="truncate text-base font-semibold">
+                            {property.name}
+                            {property.archived_at && (
+                              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Archivé</span>
+                            )}
+                          </h2>
+                          <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="size-3" aria-hidden />
+                              {[property.address_line, property.city].filter(Boolean).join(', ') || 'Adresse non renseignée'}
+                            </span>
+                            <span aria-hidden>·</span>
+                            <span>{PROPERTY_TYPES[property.type] ?? property.type}</span>
+                            {property.branch && (
+                              <>
+                                <span aria-hidden>·</span>
+                                <span>Succursale {property.branch.name}</span>
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="hidden text-right sm:block">
+                          <p className="text-sm font-semibold tabular-nums">{formatTnd(rentTotal)}</p>
+                          <p className="text-xs text-muted-foreground">loyer mensuel</p>
+                        </div>
+                        {occupancy !== null && <StatusBadge status="rented" label={occupancy + ' % loué'} />}
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="icon-sm" aria-label={(open ? 'Replier ' : 'Déplier ') + property.name}>
+                            <ChevronDown className={'transition-transform duration-200 ' + (open ? 'rotate-180' : '')} />
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CollapsibleContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="pl-4">Unité</TableHead>
+                          <TableHead className="hidden md:table-cell">Étage</TableHead>
+                          <TableHead className="hidden md:table-cell">Pièces</TableHead>
+                          <TableHead className="hidden sm:table-cell">Surface</TableHead>
+                          <TableHead className="text-right">Loyer</TableHead>
+                          <TableHead className="pr-4">Statut</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <motion.tbody variants={rowsContainer} initial="hidden" animate="visible" className="[&_tr:last-child]:border-0">
+                        {units.map((unit) => (
+                          <MotionRow key={unit.id} variants={staggerItem}>
+                            <TableCell className="pl-4">
+                              <span className="font-medium">{unit.code}</span>
+                              <span className="ml-2 text-xs text-muted-foreground">{UNIT_TYPES[unit.type] ?? unit.type}</span>
+                            </TableCell>
+                            <TableCell className="hidden tabular-nums md:table-cell">{unit.floor ?? '—'}</TableCell>
+                            <TableCell className="hidden tabular-nums md:table-cell">{unit.rooms ?? '—'}</TableCell>
+                            <TableCell className="hidden tabular-nums sm:table-cell">{formatArea(unit.surface_m2)}</TableCell>
+                            <TableCell className="text-right font-medium tabular-nums">{formatTnd(unit.rent_amount)}</TableCell>
+                            <TableCell className="pr-4">
+                              <StatusBadge status={unit.status} />
+                            </TableCell>
+                          </MotionRow>
+                        ))}
+                        {units.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                              Aucune unité à afficher pour ce filtre.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </motion.tbody>
+                    </Table>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            </StaggerItem>
+          );
+        })}
     </Stagger>
   );
 }

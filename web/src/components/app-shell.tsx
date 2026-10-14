@@ -2,12 +2,11 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'motion/react';
+import { AppHeader } from '@/components/app-header';
+import { AppSidebar } from '@/components/app-sidebar';
 import { useAuth } from '@/components/auth-provider';
 import { PageTransition, Pulse, ScrollProgress } from '@/components/motion/primitives';
-import { Sidebar } from '@/components/sidebar';
-import { Topbar } from '@/components/topbar';
-import { motionTokens } from '@/lib/motion-tokens';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, ready } = useAuth();
@@ -20,27 +19,24 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!ready || !session) {
     return (
-      <div className="flex h-screen items-center justify-center text-sm text-slate-500" role="status">
+      <div className="flex h-svh items-center justify-center text-sm text-muted-foreground" role="status">
         <Pulse>Chargement…</Pulse>
       </div>
     );
   }
 
   return (
-    <motion.div
-      className="flex h-screen overflow-hidden text-sm text-slate-800 antialiased"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: motionTokens.duration.slow }}
-    >
-      <Sidebar />
-      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar />
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset className="h-svh overflow-hidden">
+        <AppHeader />
         <ScrollProgress container={scrollRef} />
-        <main ref={scrollRef} className="custom-scrollbar flex-1 overflow-y-auto p-6 md:p-8">
-          <PageTransition>{children}</PageTransition>
+        <main ref={scrollRef} className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
+            <PageTransition>{children}</PageTransition>
+          </div>
         </main>
-      </div>
-    </motion.div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

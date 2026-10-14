@@ -1,5 +1,5 @@
 import {
-  BarChart3,
+  ChartColumn,
   Building2,
   DollarSign,
   FileText,
@@ -14,89 +14,109 @@ import {
 } from 'lucide-react';
 
 export type NavChild = { label: string; href: string };
-export type NavItem = {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-  children?: NavChild[];
-  separated?: boolean;
-};
+export type NavItem = { label: string; href: string; icon: LucideIcon; children?: NavChild[] };
+export type NavGroup = { label: string; items: NavItem[] };
 
-export const NAVIGATION: NavItem[] = [
-  { label: 'Tableau de bord', href: '/', icon: LayoutGrid },
+export const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Biens',
-    href: '/biens',
-    icon: Building2,
-    children: [
-      { label: 'Biens et unités', href: '/biens' },
-      { label: 'Carte des biens', href: '/biens/carte' },
-      { label: 'Parties communes', href: '/biens/parties-communes' },
-      { label: 'Biens archivés', href: '/biens/archives' },
-    ],
-  },
-  { label: 'Contacts', href: '/contacts', icon: Users },
-  {
-    label: 'Locataires et baux',
-    href: '/baux',
-    icon: FileText,
-    children: [
-      { label: 'Baux', href: '/baux' },
-      { label: 'Demandes de location', href: '/baux/demandes' },
+    label: 'Pilotage',
+    items: [
+      { label: 'Tableau de bord', href: '/', icon: LayoutGrid },
+      {
+        label: 'Biens',
+        href: '/biens',
+        icon: Building2,
+        children: [
+          { label: 'Biens et unités', href: '/biens' },
+          { label: 'Carte des biens', href: '/biens/carte' },
+          { label: 'Parties communes', href: '/biens/parties-communes' },
+          { label: 'Biens archivés', href: '/biens/archives' },
+        ],
+      },
+      { label: 'Contacts', href: '/contacts', icon: Users },
     ],
   },
   {
-    label: 'Finance',
-    href: '/finance',
-    icon: DollarSign,
-    children: [
-      { label: 'Factures de loyer', href: '/finance' },
-      { label: 'Paiements', href: '/finance/paiements' },
-      { label: 'Dépenses', href: '/finance/depenses' },
+    label: 'Gestion',
+    items: [
+      {
+        label: 'Locataires et baux',
+        href: '/baux',
+        icon: FileText,
+        children: [
+          { label: 'Baux', href: '/baux' },
+          { label: 'Demandes de location', href: '/baux/demandes' },
+        ],
+      },
+      {
+        label: 'Finance',
+        href: '/finance',
+        icon: DollarSign,
+        children: [
+          { label: 'Factures de loyer', href: '/finance' },
+          { label: 'Paiements', href: '/finance/paiements' },
+          { label: 'Dépenses', href: '/finance/depenses' },
+        ],
+      },
+      { label: 'Maintenance', href: '/maintenance', icon: Wrench },
+      {
+        label: 'Sécurité des immeubles',
+        href: '/securite',
+        icon: Shield,
+        children: [
+          { label: 'Incidents', href: '/securite' },
+          { label: 'Gardes et clés', href: '/securite/gardes-cles' },
+        ],
+      },
+      { label: 'Fournisseurs', href: '/fournisseurs', icon: Package },
+      { label: 'Ventes', href: '/ventes', icon: Tag },
     ],
   },
-  { label: 'Maintenance', href: '/maintenance', icon: Wrench },
   {
-    label: 'Sécurité des immeubles',
-    href: '/securite',
-    icon: Shield,
-    children: [
-      { label: 'Incidents', href: '/securite' },
-      { label: 'Gardes et clés', href: '/securite/gardes-cles' },
-    ],
+    label: 'Analyse',
+    items: [{ label: 'Rapports', href: '/rapports', icon: ChartColumn }],
   },
-  { label: 'Fournisseurs', href: '/fournisseurs', icon: Package },
-  { label: 'Ventes', href: '/ventes', icon: Tag },
-  { label: 'Rapports', href: '/rapports', icon: BarChart3 },
   {
     label: 'Administration',
-    href: '/administration',
-    icon: Settings,
-    separated: true,
-    children: [
-      { label: 'Utilisateurs et rôles', href: '/administration' },
-      { label: "Journal d'audit", href: '/administration/audit' },
+    items: [
+      {
+        label: 'Administration',
+        href: '/administration',
+        icon: Settings,
+        children: [
+          { label: 'Utilisateurs et rôles', href: '/administration' },
+          { label: "Journal d'audit", href: '/administration/audit' },
+        ],
+      },
     ],
   },
 ];
 
-export const SEARCH_PLACEHOLDERS: Record<string, string> = {
-  '/': 'Rechercher un bien, un locataire…',
-  '/biens': 'Rechercher un bien ou une unité…',
-  '/contacts': 'Rechercher un contact...',
-};
+export const NAVIGATION: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
 export function sectionOf(pathname: string): string {
   if (pathname === '/') return '/';
   return '/' + (pathname.split('/')[1] ?? '');
 }
 
-export function findTrail(pathname: string): string[] {
-  for (const item of NAVIGATION) {
-    const child = item.children?.find((c) => c.href === pathname);
-    if (child) return [child.label];
-    if (item.href === pathname) return [item.label];
-  }
+export type Crumb = { label: string; href?: string };
+
+const SEGMENT_LABELS: Record<string, string> = { nouveau: 'Nouveau' };
+
+export function buildCrumbs(pathname: string): Crumb[] {
   const section = NAVIGATION.find((item) => item.href === sectionOf(pathname));
-  return section ? [section.label] : [];
+  if (!section) return [];
+  if (pathname === '/') return [{ label: section.label }];
+
+  const exact = section.children?.find((child) => child.href === pathname);
+  if (exact || pathname === section.href) {
+    return [{ label: section.label, href: section.href }, ...(exact && exact.href !== section.href ? [{ label: exact.label }] : [])].map(
+      (crumb, index, all) => (index === all.length - 1 ? { label: crumb.label } : crumb),
+    );
+  }
+
+  const rest = pathname.slice(section.href.length).split('/').filter(Boolean);
+  const last = rest[rest.length - 1] ?? '';
+  const label = SEGMENT_LABELS[last] ?? 'Fiche';
+  return [{ label: section.label, href: section.href }, { label }];
 }

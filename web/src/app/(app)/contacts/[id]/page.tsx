@@ -1,25 +1,17 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'motion/react';
-import {
-  ArrowLeft,
-  ChevronRight,
-  Contact as ContactIcon,
-  FileText,
-  Home,
-  IdCard,
-  KeyRound,
-  Mail,
-  MapPin,
-  Pencil,
-  Phone,
-  ShoppingCart,
-  type LucideIcon,
-} from 'lucide-react';
-import { HoverLift, MotionLink, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
-import { CONTACT_ROLES, type ContactRole } from '@/components/role-pill';
+import { ArrowLeft, Copy, FileText, IdCard, Mail, MapPin, Pencil, Phone, UserX } from 'lucide-react';
+import { toast } from 'sonner';
+import { CONTACT_ROLES, RoleBadge, type ContactRole } from '@/components/domain/badges';
+import { HoverLift, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { springs } from '@/lib/motion-tokens';
 import { useGraphql } from '@/lib/use-graphql';
 
@@ -51,16 +43,10 @@ type ContactDetails = {
   roles: { role: ContactRole }[];
 };
 
-const ROLE_ICONS: Record<ContactRole, LucideIcon> = { owner: Home, renter: KeyRound, buyer: ShoppingCart };
-const PILL_CLASSES: Record<ContactRole, string> = {
-  owner: 'bg-emerald-50 text-brand border-emerald-200',
-  renter: 'bg-slate-100 text-slate-700 border-slate-200',
-  buyer: 'bg-amber-50 text-amber-800 border-amber-200',
-};
 const EMPTY_TEXT: Record<ContactRole, string> = {
-  owner: 'Aucune unité en gestion',
-  renter: 'Aucun bail',
-  buyer: 'Aucune offre ni réservation',
+  owner: 'Aucune unité en gestion pour le moment.',
+  renter: 'Aucun bail pour le moment.',
+  buyer: 'Aucune offre ni réservation pour le moment.',
 };
 
 function initials(name: string): string {
@@ -72,15 +58,69 @@ function initials(name: string): string {
     .join('');
 }
 
-function InfoRow({ label, icon: Icon, children }: { label: string; icon: LucideIcon; children: ReactNode }) {
+async function copy(value: string, label: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    toast.success(label + ' copié');
+  } catch {
+    toast.error('Copie impossible', { description: 'Le navigateur a refusé l’accès au presse-papiers.' });
+  }
+}
+
+function InfoRow({
+  label,
+  icon: Icon,
+  value,
+  href,
+  copyLabel,
+}: {
+  label: string;
+  icon: typeof Mail;
+  value: string | null;
+  href?: string;
+  copyLabel?: string;
+}) {
   return (
     <div className="space-y-1">
-      <div className="text-xs font-medium text-slate-500">{label}</div>
-      <div className="flex items-center gap-1.5 truncate text-sm font-semibold text-slate-900">
-        <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
-        {children}
-      </div>
+      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+      <dd className="flex items-center gap-2 text-sm">
+        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        {value ? (
+          <>
+            {href ? (
+              <a href={href} className="truncate font-medium text-primary hover:underline">
+                {value}
+              </a>
+            ) : (
+              <span className="truncate font-medium">{value}</span>
+            )}
+            {copyLabel && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-xs" aria-label={'Copier ' + copyLabel} onClick={() => void copy(value, copyLabel)}>
+                    <Copy />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copier</TooltipContent>
+              </Tooltip>
+            )}
+          </>
+        ) : (
+          <span className="text-muted-foreground">Non renseigné</span>
+        )}
+      </dd>
     </div>
+  );
+}
+
+function BackLink() {
+  return (
+    <Button asChild variant="ghost" size="sm" className="-ml-2">
+      <Link href="/contacts">
+        <ArrowLeft data-icon="inline-start" />
+        Retour aux contacts
+      </Link>
+    </Button>
   );
 }
 
@@ -88,189 +128,158 @@ export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
   const result = useGraphql<{ contact: ContactDetails | null }>(CONTACT_QUERY, { id });
 
-  return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <MotionLink
-          href="/contacts"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-dark"
-          whileHover={{ x: -3 }}
-          whileTap={{ scale: 0.97 }}
-          transition={springs.snappy}
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          <span>Retour aux contacts</span>
-        </MotionLink>
+  if (result.status === 'loading') {
+    return (
+      <div className="space-y-6">
+        <BackLink />
+        <Pulse className="text-sm text-muted-foreground">Chargement du contact…</Pulse>
       </div>
+    );
+  }
 
-      {result.status === 'loading' && (
-        <Pulse className="text-xs text-slate-500">Chargement du contact…</Pulse>
-      )}
-      {result.status === 'error' && (
-        <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-xs text-red-800">
+  if (result.status === 'error') {
+    return (
+      <div className="space-y-6">
+        <BackLink />
+        <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           Impossible de charger ce contact : {result.message}
         </p>
-      )}
-      {result.status === 'success' && result.data.contact === null && (
-        <p className="rounded-lg border border-app-border bg-white p-6 text-xs text-slate-500">Contact introuvable.</p>
-      )}
-      {result.status === 'success' && result.data.contact && <ContactView contact={result.data.contact} />}
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
-function ContactView({ contact }: { contact: ContactDetails }) {
+  const contact = result.data.contact;
+  if (!contact) {
+    return (
+      <div className="space-y-6">
+        <BackLink />
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <UserX className="size-5" />
+            </span>
+            <p className="font-medium">Contact introuvable</p>
+            <p className="text-sm text-muted-foreground">Cette fiche n’existe pas ou a été supprimée.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const held = new Set(contact.roles.map((item) => item.role));
 
   return (
     <Stagger className="space-y-6">
-      <StaggerItem className="flex items-center justify-between rounded-lg border border-app-border bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-4">
-          <motion.div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-[#E6F4EA] text-xl font-bold text-brand"
-            initial={{ scale: 0.4, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ ...springs.bouncy, delay: 0.1 }}
-            whileHover={{ rotate: 6, scale: 1.06 }}
-          >
-            {initials(contact.full_name)}
-          </motion.div>
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold leading-tight text-slate-900">{contact.full_name}</h1>
-              <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-                {contact.kind === 'company' ? 'Société' : 'Personne'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 pt-0.5">
-              {CONTACT_ROLES.filter((role) => held.has(role.value)).map((role, index) => {
-                const Icon = ROLE_ICONS[role.value];
-                return (
-                  <motion.span
-                    key={role.value}
-                    className={
-                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ' +
-                      PILL_CLASSES[role.value]
-                    }
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ ...springs.bouncy, delay: 0.3 + index * 0.08 }}
-                  >
-                    <Icon className="h-3 w-3" aria-hidden />
-                    {role.label}
-                  </motion.span>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-        <button
-          type="button"
-          disabled
-          title="Bientôt disponible"
-          className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white opacity-60 shadow-sm"
-        >
-          <Pencil className="h-4 w-4" aria-hidden />
-          <span>Modifier</span>
-        </button>
+      <StaggerItem>
+        <BackLink />
       </StaggerItem>
 
-      <StaggerItem className="rounded-lg border border-app-border bg-white p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-          <ContactIcon className="h-4 w-4 text-brand" aria-hidden />
-          <h2 className="text-base font-bold text-slate-900">Coordonnées</h2>
-        </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <InfoRow label="Téléphone" icon={Phone}>
-            <span>{contact.phone ?? '—'}</span>
-          </InfoRow>
-          <InfoRow label="E-mail" icon={Mail}>
-            {contact.email ? (
-              <a href={'mailto:' + contact.email} className="truncate text-brand hover:underline">
-                {contact.email}
-              </a>
-            ) : (
-              <span>—</span>
-            )}
-          </InfoRow>
-          <InfoRow label={contact.kind === 'company' ? 'Matricule fiscal' : 'CIN (Identité)'} icon={IdCard}>
-            <span>{contact.national_id ?? '—'}</span>
-          </InfoRow>
-          <InfoRow label="Adresse" icon={MapPin}>
-            <span className="truncate">{contact.address ?? '—'}</span>
-          </InfoRow>
-        </div>
+      <StaggerItem>
+        <Card>
+          <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ ...springs.bouncy, delay: 0.1 }}
+              >
+                <Avatar className="size-16">
+                  <AvatarFallback className="bg-accent text-lg font-semibold text-accent-foreground">
+                    {initials(contact.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+              </motion.div>
+              <div className="space-y-2">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">{contact.full_name}</h1>
+                  <p className="text-sm text-muted-foreground">{contact.kind === 'company' ? 'Société' : 'Personne'}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {contact.roles.map((item) => (
+                    <RoleBadge key={item.role} role={item.role} />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0}>
+                  <Button variant="outline" disabled>
+                    <Pencil data-icon="inline-start" />
+                    Modifier
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Bientôt disponible</TooltipContent>
+            </Tooltip>
+          </CardContent>
+        </Card>
       </StaggerItem>
 
-      <Stagger className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <StaggerItem>
+        <Card>
+          <CardHeader>
+            <CardTitle>Coordonnées</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <InfoRow label="Téléphone" icon={Phone} value={contact.phone} href={contact.phone ? 'tel:' + contact.phone.replace(/\s/g, '') : undefined} copyLabel="le téléphone" />
+              <InfoRow label="E-mail" icon={Mail} value={contact.email} href={contact.email ? 'mailto:' + contact.email : undefined} copyLabel="l’e-mail" />
+              <InfoRow label={contact.kind === 'company' ? 'Matricule fiscal' : 'CIN (identité)'} icon={IdCard} value={contact.national_id} />
+              <InfoRow label="Adresse" icon={MapPin} value={contact.address} />
+            </dl>
+          </CardContent>
+        </Card>
+      </StaggerItem>
+
+      <Stagger className="grid gap-4 md:grid-cols-3">
         {CONTACT_ROLES.map((role) => {
-          const Icon = ROLE_ICONS[role.value];
+          const Icon = role.icon;
           const active = held.has(role.value);
           return (
             <StaggerItem key={role.value} className="h-full">
-              <HoverLift className="flex h-full flex-col justify-between rounded-lg border border-app-border bg-white p-5 shadow-sm">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        className={
-                          'flex h-7 w-7 items-center justify-center rounded-md ' +
-                          (active ? role.tile : 'bg-slate-50 text-slate-500')
-                        }
-                        whileHover={{ rotate: -10, scale: 1.12 }}
-                        transition={springs.bouncy}
-                      >
-                        <Icon className="h-4 w-4" aria-hidden />
-                      </motion.div>
-                      <h3 className="text-sm font-bold text-slate-900">{role.label}</h3>
-                    </div>
-                    <span className="relative flex h-2 w-2" title={active ? 'Actif' : 'Inactif'}>
-                      {active && (
-                        <motion.span
-                          className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 motion-reduce:hidden"
-                          animate={{ scale: [1, 2.4], opacity: [0.6, 0] }}
-                          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
-                        />
-                      )}
-                      <span
-                        className={'relative inline-flex h-2 w-2 rounded-full ' + (active ? 'bg-emerald-500' : 'bg-slate-300')}
-                      />
-                    </span>
-                  </div>
-                  {active ? (
-                    <div className="text-xs leading-relaxed text-slate-600">
-                      <p className="font-medium text-slate-800">Rôle actif</p>
-                      <p className="mt-0.5 text-slate-500">Les baux, unités et offres liés seront affichés ici.</p>
-                    </div>
-                  ) : (
-                    <div className="text-xs italic leading-relaxed text-slate-500">
-                      <p>{EMPTY_TEXT[role.value]}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 border-t border-slate-100 pt-4">
-                  {active ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-                      <span>Détails bientôt disponibles</span>
-                      <ChevronRight className="h-3 w-3" aria-hidden />
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium text-slate-500">Aucun historique</span>
-                  )}
-                </div>
+              <HoverLift className="h-full">
+                <Card className={'h-full ' + (active ? '' : 'bg-muted/40')}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <span className={'flex size-7 items-center justify-center rounded-md ' + (active ? role.tile : 'bg-muted text-muted-foreground')}>
+                        <Icon className="size-4" />
+                      </span>
+                      {role.label}
+                    </CardTitle>
+                    <CardDescription>{active ? 'Rôle actif' : 'Non applicable'}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground">
+                    {active ? EMPTY_TEXT[role.value] + ' L’historique apparaîtra ici avec les prochains modules.' : 'Ce contact n’a pas ce rôle.'}
+                  </CardContent>
+                </Card>
               </HoverLift>
             </StaggerItem>
           );
         })}
       </Stagger>
 
-      <StaggerItem className="rounded-lg border border-app-border bg-white p-5 shadow-sm">
-        <div className="mb-2 flex items-center gap-2 border-b border-slate-100 pb-2">
-          <FileText className="h-4 w-4 text-slate-500" aria-hidden />
-          <h2 className="text-sm font-bold text-slate-900">Notes</h2>
-        </div>
-        <p className="whitespace-pre-line text-xs leading-relaxed text-slate-600">{contact.notes || 'Aucune note.'}</p>
+      <StaggerItem>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="size-4 text-muted-foreground" />
+              Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NotesBody notes={contact.notes} />
+          </CardContent>
+        </Card>
       </StaggerItem>
     </Stagger>
+  );
+}
+
+function NotesBody({ notes }: { notes: string | null }): ReactNode {
+  return notes ? (
+    <p className="whitespace-pre-line text-sm leading-relaxed">{notes}</p>
+  ) : (
+    <p className="text-sm text-muted-foreground">Aucune note pour ce contact.</p>
   );
 }

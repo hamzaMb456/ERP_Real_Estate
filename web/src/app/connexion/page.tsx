@@ -3,19 +3,20 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
-import { Building, Check, Eye, EyeOff, Lock, Phone, ShieldCheck } from 'lucide-react';
+import { Building2, Check, Eye, EyeOff, Loader2, LockKeyhole } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
-import { pressable, staggerContainer, staggerItem } from '@/components/motion/primitives';
-import { motionTokens, springs } from '@/lib/motion-tokens';
+import { staggerContainer, staggerItem } from '@/components/motion/primitives';
+import { Button } from '@/components/ui/button';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
+import { motionTokens } from '@/lib/motion-tokens';
 
 const FEATURES = [
   'Loyers, paiements et relances au même endroit',
   'Maintenance et fournisseurs suivis de bout en bout',
   'Ventes et réservations centralisées',
 ];
-
-const INPUT =
-  'w-full h-[44px] rounded-lg border border-[#bdc9c1] bg-white text-base text-[#0e1f17] placeholder:text-[#6e7a73] transition-all duration-150 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2';
 
 export default function ConnexionPage() {
   const { session, ready, signIn } = useAuth();
@@ -45,169 +46,112 @@ export default function ConnexionPage() {
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col bg-white text-[#0e1f17] antialiased lg:flex-row">
-      <section className="relative flex w-full flex-col justify-between overflow-hidden bg-brand p-8 text-white sm:p-12 lg:w-1/2 lg:p-16">
-        <div aria-hidden className="grid-pattern pointer-events-none absolute inset-0 opacity-80" />
+    <div className="grid min-h-svh lg:grid-cols-2">
+      <aside className="relative hidden overflow-hidden bg-primary p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
+        <div aria-hidden className="grid-pattern pointer-events-none absolute inset-0" />
         <motion.div
           aria-hidden
-          className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-white opacity-5 blur-3xl motion-reduce:hidden"
+          className="pointer-events-none absolute -left-24 -top-24 size-96 rounded-full bg-white/10 blur-3xl motion-reduce:hidden"
           animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
           transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
         />
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-[#7bd8b1] opacity-10 blur-3xl motion-reduce:hidden"
-          animate={{ x: [0, -40, 0], y: [0, -30, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-        />
-
-        <header className="relative z-10 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/30 bg-white/10 shadow-sm backdrop-blur-sm">
-            <Building className="h-5 w-5" aria-hidden />
-          </div>
+        <div className="relative flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/25">
+            <Building2 className="size-5" />
+          </span>
           <div>
-            <span className="text-xl font-bold tracking-tight">Emerald ERP Immobilier</span>
-            <span className="block text-xs font-medium uppercase tracking-wide text-white/80">
-              Tunisie · Plateforme Gestion Foncière
-            </span>
+            <p className="text-lg font-semibold leading-tight">ERP Immobilier</p>
+            <p className="text-xs text-primary-foreground/70">Plateforme de gestion foncière · Tunisie</p>
           </div>
-        </header>
+        </div>
 
-        <div className="relative z-10 my-12 max-w-xl lg:my-auto">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-xs font-semibold tracking-wide text-white">
-            <span className="h-2 w-2 motion-safe:animate-pulse rounded-full bg-[#7bd8b1]" />
-            Solution de gestion immobilière d’entreprise
+        <div className="relative max-w-lg space-y-8">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-semibold leading-tight tracking-tight text-balance">
+              Gérez votre patrimoine immobilier en toute simplicité
+            </h1>
+            <p className="text-lg text-primary-foreground/80">
+              La plateforme unifiée pour les agences, promoteurs et syndics professionnels.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-            Gérez votre patrimoine immobilier en toute simplicité
-          </h1>
-          <p className="mt-4 text-base leading-relaxed text-white/90 sm:text-lg">
-            La plateforme unifiée conçue pour les cabinets d’administration de biens, promoteurs et syndics
-            professionnels en Tunisie.
-          </p>
-          <motion.ul
-            className="mt-10 space-y-5"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
+          <motion.ul className="space-y-4" variants={staggerContainer} initial="hidden" animate="visible">
             {FEATURES.map((feature) => (
-              <motion.li key={feature} variants={staggerItem} className="flex items-start gap-3.5">
-                <motion.div
-                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/20"
-                  whileHover={{ scale: 1.2, rotate: 8 }}
-                  transition={springs.bouncy}
-                >
-                  <Check className="h-3.5 w-3.5" aria-hidden />
-                </motion.div>
-                <div className="text-sm font-medium text-white sm:text-base">{feature}</div>
+              <motion.li key={feature} variants={staggerItem} className="flex items-center gap-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/25">
+                  <Check className="size-3.5" />
+                </span>
+                <span className="font-medium">{feature}</span>
               </motion.li>
             ))}
           </motion.ul>
         </div>
 
-        <footer className="relative z-10 flex flex-col justify-between gap-2 border-t border-white/15 pt-6 text-xs text-white/80 sm:flex-row sm:items-center">
-          <p className="flex items-center gap-1.5 font-medium">
-            <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-            Conforme aux réglementations et normes immobilières locales
-          </p>
-          <p>v3.4.2 · © 2025 Emerald ERP</p>
-        </footer>
-      </section>
+        <p className="relative text-xs text-primary-foreground/60">© 2025 Emerald ERP · Conforme aux normes immobilières locales</p>
+      </aside>
 
-      <section className="flex w-full flex-col justify-between bg-white p-6 sm:p-10 lg:w-1/2 lg:p-16">
-        <div className="flex w-full items-center justify-end">
-          <nav
-            aria-label="Sélecteur de langue"
-            className="inline-flex items-center rounded-lg border border-[#bdc9c1]/50 bg-[#e4f8eb] p-1"
-          >
-            <span aria-current="page" className="rounded bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
-              FR
-            </span>
-            <button type="button" aria-disabled="true" className="cursor-not-allowed px-3 py-1.5 text-xs font-medium text-[#3e4943]" dir="rtl" lang="ar" title="Bientôt disponible">
-              عربية
-            </button>
-            <button type="button" aria-disabled="true" className="cursor-not-allowed px-3 py-1.5 text-xs font-medium text-[#3e4943]" title="Bientôt disponible">
-              EN
-            </button>
-          </nav>
-        </div>
-
+      <main className="flex items-center justify-center p-6 sm:p-10">
         <motion.div
-          className="mx-auto my-auto w-full max-w-md py-8"
+          className="w-full max-w-sm space-y-8"
           initial={{ opacity: 0, y: motionTokens.distance.lg }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: motionTokens.duration.slow, ease: motionTokens.easing.smooth, delay: 0.15 }}
+          transition={{ duration: motionTokens.duration.slow, ease: motionTokens.easing.smooth }}
         >
-          <div className="mb-8 text-left">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Connexion</h2>
-            <p className="mt-2 text-sm text-[#3e4943] sm:text-base">Accédez à l’espace de votre organisation</p>
+          <div className="space-y-2">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground lg:hidden">
+              <Building2 className="size-5" />
+            </span>
+            <h2 className="text-2xl font-semibold tracking-tight">Connexion</h2>
+            <p className="text-sm text-muted-foreground">Accédez à l’espace de votre organisation.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-semibold">
-                Adresse e-mail professionnelle <span aria-hidden className="text-[#ba1a1a]">*</span>
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="nom@societe.tn"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className={INPUT + ' px-3.5 py-2.5'}
-              />
-              <p className="mt-1.5 text-xs text-[#3e4943]">Utilisez votre compte de domaine d’entreprise vérifié.</p>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-semibold">
-                Mot de passe <span aria-hidden className="text-[#ba1a1a]">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="email">Adresse e-mail professionnelle</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
                   required
-                  autoComplete="current-password"
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className={INPUT + ' py-2.5 pl-3.5 pr-12'}
+                  autoComplete="email"
+                  placeholder="nom@societe.tn"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  className="absolute inset-y-0 right-0 flex items-center rounded-r-lg pr-3.5 text-[#6e7a73] transition-colors hover:text-[#0e1f17] focus-visible:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center">
-                <input id="remember_me" name="remember_me" type="checkbox" className="h-4 w-4 rounded border-[#bdc9c1] accent-brand" />
-                <label htmlFor="remember_me" className="ml-2.5 block cursor-pointer select-none text-sm font-medium">
-                  Se souvenir de moi
-                </label>
-              </div>
-              <button type="button" aria-disabled="true" className="cursor-not-allowed font-semibold text-[#005d42]" title="Bientôt disponible">
-                Mot de passe oublié ?
-              </button>
-            </div>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="password">Mot de passe</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <LockKeyhole />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      onClick={() => setShowPassword((current) => !current)}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </FieldGroup>
 
             <AnimatePresence>
               {error && (
                 <motion.p
                   key={error}
                   role="alert"
-                  className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800"
+                  className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                   initial={{ opacity: 0, x: 0 }}
                   animate={{ opacity: 1, x: [0, -8, 8, -5, 5, 0] }}
                   exit={{ opacity: 0 }}
@@ -218,47 +162,15 @@ export default function ConnexionPage() {
               )}
             </AnimatePresence>
 
-            <motion.button
-              type="submit"
-              disabled={submitting}
-              className="flex h-[44px] w-full items-center justify-center rounded-lg bg-brand text-base font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-[#005d42] focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-60"
-              {...pressable}
-            >
-              {submitting ? <span className="motion-safe:animate-pulse">Connexion…</span> : 'Se connecter'}
-            </motion.button>
+            <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+              {submitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+              {submitting ? 'Connexion…' : 'Se connecter'}
+            </Button>
           </form>
 
-          <div className="relative my-8">
-            <div aria-hidden className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#bdc9c1]/60" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-3 font-medium tracking-wider text-[#3e4943]">Nouveau sur la plateforme ?</span>
-            </div>
-          </div>
-
-          <div className="text-center text-sm text-[#3e4943]">
-            <span>Pas encore de compte ? </span>
-            <button type="button" aria-disabled="true" className="cursor-not-allowed font-semibold text-[#005d42]" title="Bientôt disponible">
-              Créer un compte
-            </button>
-          </div>
+          <p className="text-center text-xs text-muted-foreground">Connexion sécurisée · Support Tunis : +216 71 890 000</p>
         </motion.div>
-
-        <footer className="flex w-full flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-[#bdc9c1]/40 pt-6 text-xs text-[#3e4943]">
-          <div className="inline-flex items-center gap-1.5 font-medium">
-            <Lock className="h-3.5 w-3.5" aria-hidden />
-            Connexion sécurisée SSL 256-bit
-          </div>
-          <span aria-hidden className="text-[#bdc9c1]">
-            •
-          </span>
-          <div className="inline-flex items-center gap-1.5 font-medium">
-            <Phone className="h-3.5 w-3.5" aria-hidden />
-            Support Tunis : <span className="font-mono text-[#0e1f17]">+216 71 890 000</span>
-          </div>
-        </footer>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
