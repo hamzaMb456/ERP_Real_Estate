@@ -3,8 +3,11 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, Building2, Save, User } from 'lucide-react';
+import { pressable } from '@/components/motion/primitives';
 import { CONTACT_ROLES, RolePill, type ContactRole } from '@/components/role-pill';
+import { springs } from '@/lib/motion-tokens';
 import { graphql } from '@/lib/graphql';
 
 const ADD_CONTACT = `
@@ -119,15 +122,22 @@ export default function NewContactPage() {
                 const Icon = option.icon;
                 const selected = kind === option.value;
                 return (
-                  <label
+                  <motion.label
                     key={option.value}
                     className={
-                      'flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-xs transition-colors ' +
-                      (selected
-                        ? 'border border-emerald-200 bg-white font-semibold text-brand shadow-sm'
-                        : 'font-medium text-slate-600 hover:text-slate-900')
+                      'relative flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-xs transition-colors ' +
+                      (selected ? 'font-semibold text-brand' : 'font-medium text-slate-600 hover:text-slate-900')
                     }
+                    whileTap={{ scale: 0.96 }}
+                    transition={springs.snappy}
                   >
+                    {selected && (
+                      <motion.span
+                        layoutId="contact-kind"
+                        className="absolute inset-0 rounded-md border border-emerald-200 bg-white shadow-sm"
+                        transition={springs.snappy}
+                      />
+                    )}
                     <input
                       type="radio"
                       name="contact_type"
@@ -136,9 +146,9 @@ export default function NewContactPage() {
                       onChange={() => setKind(option.value)}
                       className="sr-only"
                     />
-                    <Icon className="h-3.5 w-3.5" aria-hidden />
-                    {option.label}
-                  </label>
+                    <Icon className="relative z-10 h-3.5 w-3.5" aria-hidden />
+                    <span className="relative z-10">{option.label}</span>
+                  </motion.label>
                 );
               })}
             </div>
@@ -205,12 +215,16 @@ export default function NewContactPage() {
               {CONTACT_ROLES.map((role) => {
                 const selected = roles.includes(role.value);
                 return (
-                  <label
+                  <motion.label
                     key={role.value}
                     className={
-                      'relative flex cursor-pointer select-none flex-col rounded-lg p-4 transition-all ' +
+                      'relative flex cursor-pointer select-none flex-col rounded-lg p-4 transition-colors ' +
                       (selected ? ROLE_SELECTED[role.value] : 'border border-app-border bg-white hover:border-slate-400')
                     }
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    animate={{ scale: selected ? 1.02 : 1 }}
+                    transition={springs.snappy}
                   >
                     <div className="mb-2 flex items-start justify-between">
                       <RolePill role={role.value} />
@@ -222,30 +236,47 @@ export default function NewContactPage() {
                       />
                     </div>
                     <span className="mt-1 text-xs leading-relaxed text-slate-500">{role.description}</span>
-                  </label>
+                  </motion.label>
                 );
               })}
             </div>
           </div>
 
-          {error && (
-            <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
-              {error}
-            </p>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                key={error}
+                role="alert"
+                className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800"
+                initial={{ opacity: 0, x: 0 }}
+                animate={{ opacity: 1, x: [0, -8, 8, -5, 5, 0] }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.45 }}
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           <div className="flex items-center justify-end gap-3 border-t border-app-border pt-6">
             <Link href="/contacts" className="px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:text-slate-900">
               Annuler
             </Link>
-            <button
+            <motion.button
               type="submit"
               disabled={submitting}
-              className="flex h-11 items-center gap-2 rounded-lg bg-brand px-5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-60"
+              className="flex h-11 items-center gap-2 rounded-lg bg-brand px-5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-60"
+              {...pressable}
             >
-              <Save className="h-4 w-4" aria-hidden />
+              <motion.span
+                animate={submitting ? { rotate: 360 } : { rotate: 0 }}
+                transition={submitting ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
+                className="inline-flex"
+              >
+                <Save className="h-4 w-4" aria-hidden />
+              </motion.span>
               {submitting ? 'Enregistrement…' : 'Enregistrer le contact'}
-            </button>
+            </motion.button>
           </div>
         </form>
       </div>

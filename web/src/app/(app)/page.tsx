@@ -1,12 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { motion } from 'motion/react';
 import {
   Banknote,
   CalendarClock,
   ChartColumn,
   ChartPie,
-  ChevronRight,
   CircleAlert,
   CircleCheck,
   CreditCard,
@@ -21,6 +21,15 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
+import {
+  AnimatedNumber,
+  GrowBar,
+  HoverLift,
+  Reveal,
+  Stagger,
+  StaggerItem,
+} from '@/components/motion/primitives';
+import { springs } from '@/lib/motion-tokens';
 import { useGraphql } from '@/lib/use-graphql';
 
 const DASHBOARD_QUERY = `
@@ -35,10 +44,12 @@ const DASHBOARD_QUERY = `
 type DashboardUnit = { status: string; property: { branch: { id: string; name: string } | null } | null };
 
 const PENDING = 'Disponible avec le module';
+const formatPercent = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',') + ' %';
+const formatInt = (n: number) => String(Math.round(n));
 
 function ActionButton({ icon: Icon, label, primary }: { icon: LucideIcon; label: string; primary?: boolean }) {
   return (
-    <button
+    <motion.button
       type="button"
       disabled
       title="Bientôt disponible"
@@ -48,87 +59,80 @@ function ActionButton({ icon: Icon, label, primary }: { icon: LucideIcon; label:
           ? 'bg-emerald-700 font-semibold text-white'
           : 'border border-slate-200 bg-white font-medium text-slate-700')
       }
+      whileHover={{ y: -1 }}
+      transition={springs.snappy}
     >
       <Icon className={'h-[18px] w-[18px] ' + (primary ? '' : 'text-slate-500')} aria-hidden />
       <span>{label}</span>
-    </button>
+    </motion.button>
   );
 }
 
 function KpiCard({
   label,
   icon: Icon,
-  value,
+  numeric,
   unit,
   note,
   tone = 'default',
-  progress,
 }: {
   label: string;
   icon: LucideIcon;
-  value: string;
+  numeric?: { value: number; format: (n: number) => string } | null;
   unit?: string;
   note: ReactNode;
   tone?: 'default' | 'success' | 'danger';
-  progress?: number;
 }) {
   const border = tone === 'danger' ? 'border-red-200 bg-red-50/20' : 'border-slate-200';
   const labelColor = tone === 'danger' ? 'text-red-700' : tone === 'success' ? 'text-emerald-800' : 'text-slate-500';
   const iconColor = tone === 'danger' ? 'text-red-600' : tone === 'success' ? 'text-emerald-700' : 'text-slate-400';
   const valueColor = tone === 'danger' ? 'text-red-700' : tone === 'success' ? 'text-emerald-900' : 'text-slate-900';
   return (
-    <div className={'relative flex flex-col justify-between overflow-hidden rounded-xl border bg-white p-4 shadow-sm ' + border}>
-      {tone === 'success' && <div className="absolute left-0 right-0 top-0 h-1 bg-emerald-600" />}
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className={'text-xs font-semibold uppercase tracking-wider ' + labelColor}>{label}</span>
-          <Icon className={'h-[18px] w-[18px] ' + iconColor} aria-hidden />
-        </div>
-        <div className={'flex items-baseline gap-1 text-2xl font-bold tracking-tight tabular-nums ' + valueColor}>
-          {value}
-          {unit && <span className="text-xs font-medium text-slate-500">{unit}</span>}
-        </div>
-        {progress !== undefined && (
-          <div className="mt-1.5">
-            <div className="mb-1 flex justify-between text-[11px] text-slate-500">
-              <span>Part du parc</span>
-              <span className="font-semibold text-slate-700">{progress} %</span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-emerald-600" style={{ width: progress + '%' }} />
-            </div>
-          </div>
+    <StaggerItem className="h-full">
+      <HoverLift className={'relative flex h-full flex-col justify-between overflow-hidden rounded-xl border bg-white p-4 shadow-sm ' + border}>
+        {tone === 'success' && (
+          <motion.div
+            className="absolute left-0 right-0 top-0 h-1 origin-left bg-emerald-600"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.9, delay: 0.4 }}
+          />
         )}
-        <p className="mt-1 text-[11px] text-slate-500">{note}</p>
-      </div>
-    </div>
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className={'text-xs font-semibold uppercase tracking-wider ' + labelColor}>{label}</span>
+            <motion.span whileHover={{ rotate: -10, scale: 1.15 }} transition={springs.bouncy} className="inline-flex">
+              <Icon className={'h-[18px] w-[18px] ' + iconColor} aria-hidden />
+            </motion.span>
+          </div>
+          <div className={'flex items-baseline gap-1 text-2xl font-bold tracking-tight tabular-nums ' + valueColor}>
+            {numeric ? (
+              <AnimatedNumber value={numeric.value} format={numeric.format} />
+            ) : (
+              <span className="text-slate-300">—</span>
+            )}
+            {unit && <span className="text-xs font-medium text-slate-500">{unit}</span>}
+          </div>
+          <p className="mt-1 text-[11px] text-slate-500">{note}</p>
+        </div>
+      </HoverLift>
+    </StaggerItem>
   );
 }
 
-function SectionCard({
-  title,
-  icon: Icon,
-  aside,
-  children,
-}: {
-  title: string;
-  icon: LucideIcon;
-  aside?: string;
-  children: ReactNode;
-}) {
+function SectionCard({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: ReactNode }) {
   return (
-    <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div>
-        <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
+    <StaggerItem className="h-full">
+      <HoverLift className="flex h-full flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div>
+          <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-3">
             <Icon className="h-5 w-5 text-emerald-700" aria-hidden />
             <h3 className="text-sm font-bold text-slate-900">{title}</h3>
           </div>
-          {aside && <span className="text-xs text-slate-500">{aside}</span>}
+          {children}
         </div>
-        {children}
-      </div>
-    </div>
+      </HoverLift>
+    </StaggerItem>
   );
 }
 
@@ -139,13 +143,14 @@ function Empty({ children }: { children: ReactNode }) {
 export default function DashboardPage() {
   const result = useGraphql<{ units: DashboardUnit[] }>(DASHBOARD_QUERY);
   const units = result.status === 'success' ? result.data.units : [];
+  const ready = result.status === 'success';
   const total = units.length;
   const count = (status: string) => units.filter((unit) => unit.status === status).length;
   const rented = count('rented');
   const vacant = count('vacant');
   const maintenance = count('under_maintenance');
   const forSale = count('for_sale');
-  const occupancy = total === 0 ? 0 : Math.round((rented / total) * 1000) / 10;
+  const occupancy = total === 0 ? 0 : (rented / total) * 100;
 
   const byBranch = new Map<string, { name: string; total: number; rented: number }>();
   for (const unit of units) {
@@ -157,9 +162,6 @@ export default function DashboardPage() {
     byBranch.set(branch.id, entry);
   }
   const branches = [...byBranch.values()].sort((a, b) => b.rented / b.total - a.rented / a.total);
-
-  const loading = result.status === 'loading';
-  const value = (text: string) => (loading ? '…' : text);
 
   return (
     <div className="space-y-6">
@@ -174,35 +176,56 @@ export default function DashboardPage() {
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <ActionButton icon={CreditCard} label="Enregistrer un paiement" primary />
-        <ActionButton icon={FileText} label="Générer les factures du mois" />
-        <ActionButton icon={Wrench} label="Créer un ordre de travail" />
-        <ActionButton icon={Plus} label="Ajouter un bien" />
-      </div>
+      <Stagger className="flex flex-wrap items-center gap-3">
+        <StaggerItem>
+          <ActionButton icon={CreditCard} label="Enregistrer un paiement" primary />
+        </StaggerItem>
+        <StaggerItem>
+          <ActionButton icon={FileText} label="Générer les factures du mois" />
+        </StaggerItem>
+        <StaggerItem>
+          <ActionButton icon={Wrench} label="Créer un ordre de travail" />
+        </StaggerItem>
+        <StaggerItem>
+          <ActionButton icon={Plus} label="Ajouter un bien" />
+        </StaggerItem>
+      </Stagger>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          label="Taux d’occupation"
-          icon={ChartPie}
-          value={value(occupancy.toString().replace('.', ',') + ' %')}
-          note={loading ? '' : rented + ' / ' + total + ' unités louées'}
-        />
-        <KpiCard label="Loyers facturés ce mois" icon={Receipt} value="—" unit="TND" note={PENDING + ' Finance'} />
-        <KpiCard label="Loyers encaissés" icon={Banknote} value="—" unit="TND" note={PENDING + ' Finance'} tone="success" />
-        <KpiCard label="Loyers impayés" icon={TriangleAlert} value="—" unit="TND" note={PENDING + ' Finance'} tone="danger" />
-        <KpiCard
-          label="Unités vacantes"
-          icon={DoorOpen}
-          value={value(String(vacant))}
-          note={loading ? '' : 'dont ' + maintenance + ' en travaux'}
-        />
-        <KpiCard label="Baux à échéance (60 j)" icon={CalendarClock} value="—" note={PENDING + ' Baux'} />
-        <KpiCard label="Chèques en attente" icon={FileCheck} value="—" note={PENDING + ' Finance'} />
-        <KpiCard label="Revenus de la société" icon={Wallet} value="—" unit="TND" note={PENDING + ' Finance'} />
-      </div>
+      {!ready && result.status === 'loading' ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label="Chargement">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+            <motion.div
+              key={index}
+              className="h-28 rounded-xl bg-slate-100"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.4, repeat: Infinity, delay: index * 0.1, ease: 'easeInOut' }}
+            />
+          ))}
+        </div>
+      ) : (
+        <Stagger className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <KpiCard
+            label="Taux d’occupation"
+            icon={ChartPie}
+            numeric={{ value: occupancy, format: formatPercent }}
+            note={rented + ' / ' + total + ' unités louées'}
+          />
+          <KpiCard label="Loyers facturés ce mois" icon={Receipt} unit="TND" note={PENDING + ' Finance'} />
+          <KpiCard label="Loyers encaissés" icon={Banknote} unit="TND" note={PENDING + ' Finance'} tone="success" />
+          <KpiCard label="Loyers impayés" icon={TriangleAlert} unit="TND" note={PENDING + ' Finance'} tone="danger" />
+          <KpiCard
+            label="Unités vacantes"
+            icon={DoorOpen}
+            numeric={{ value: vacant, format: formatInt }}
+            note={'dont ' + maintenance + ' en travaux'}
+          />
+          <KpiCard label="Baux à échéance (60 j)" icon={CalendarClock} note={PENDING + ' Baux'} />
+          <KpiCard label="Chèques en attente" icon={FileCheck} note={PENDING + ' Finance'} />
+          <KpiCard label="Revenus de la société" icon={Wallet} unit="TND" note={PENDING + ' Finance'} />
+        </Stagger>
+      )}
 
-      <div className="flex flex-wrap gap-3 text-xs">
+      <Reveal className="flex flex-wrap gap-3 text-xs">
         <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <Wrench className="h-3.5 w-3.5 text-slate-500" aria-hidden />
           <span className="text-slate-600">Ordres de travail ouverts :</span>
@@ -210,33 +233,29 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <FileText className="h-3.5 w-3.5 text-slate-500" aria-hidden />
-          <span className="text-slate-600">Réservations de vente en cours :</span>
-          <strong className="text-slate-900">{loading ? '…' : forSale + ' unités à vendre'}</strong>
+          <span className="text-slate-600">Unités à vendre :</span>
+          <strong className="text-slate-900">{ready ? forSale : '…'}</strong>
         </div>
-      </div>
+      </Reveal>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <Reveal className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-start gap-2">
             <ChartColumn className="mt-0.5 h-4 w-4 text-emerald-700" aria-hidden />
             <div>
               <h2 className="text-sm font-bold text-slate-900">Facturé vs encaissé (12 derniers mois)</h2>
-              <p className="text-xs text-slate-500">
-                Évolution comparée de la facturation et du recouvrement mensuel.
-              </p>
+              <p className="text-xs text-slate-500">Évolution comparée de la facturation et du recouvrement mensuel.</p>
             </div>
           </div>
           <Empty>Les courbes apparaîtront dès que le module Finance enregistrera des factures et des paiements.</Empty>
-        </div>
+        </Reveal>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <Reveal className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm" delay={0.1}>
           <div className="mb-4 flex items-start gap-2">
             <ChartColumn className="mt-0.5 h-4 w-4 text-emerald-700" aria-hidden />
             <div>
               <h2 className="text-sm font-bold text-slate-900">Taux d’occupation par succursale</h2>
-              <p className="text-xs text-slate-500">
-                Performance commerciale des {branches.length} agences régionales
-              </p>
+              <p className="text-xs text-slate-500">Performance commerciale des {branches.length} agences régionales</p>
             </div>
           </div>
           <div className="space-y-3.5">
@@ -251,28 +270,32 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full rounded-full bg-emerald-700" style={{ width: rate + '%' }} />
+                    <GrowBar percent={rate} className="bg-emerald-700" />
                   </div>
                 </div>
               );
             })}
-            {!loading && branches.length === 0 && <Empty>Aucune unité rattachée à une succursale.</Empty>}
+            {ready && branches.length === 0 && <Empty>Aucune unité rattachée à une succursale.</Empty>}
           </div>
           <div className="mt-3.5 flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-500">
             <span>
-              Moyenne consolidée : <strong className="font-semibold text-emerald-800">{occupancy.toString().replace('.', ',')} %</strong>
+              Moyenne consolidée : <strong className="font-semibold text-emerald-800">{formatPercent(occupancy)}</strong>
             </span>
             <span className="text-[11px] text-slate-400">Seuil d’alerte : &lt; 85 %</span>
           </div>
-        </div>
+        </Reveal>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <Reveal className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-4 p-5 lg:flex-row lg:items-center">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-700">
+            <motion.div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-700"
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            >
               <CircleAlert className="h-[22px] w-[22px]" aria-hidden />
-            </div>
+            </motion.div>
             <div>
               <h2 className="text-base font-bold text-slate-900">Loyers en retard et dossiers pré-contentieux</h2>
               <p className="text-xs text-slate-500">Aucun dossier pour le moment</p>
@@ -290,9 +313,9 @@ export default function DashboardPage() {
         <div className="border-t border-slate-100 px-5">
           <Empty>Les loyers impayés seront listés ici avec le module Finance.</Empty>
         </div>
-      </div>
+      </Reveal>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+      <Stagger whenInView className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
         <SectionCard title="À approuver" icon={CircleCheck}>
           <Empty>Aucune demande en attente.</Empty>
         </SectionCard>
@@ -300,10 +323,10 @@ export default function DashboardPage() {
           <div className="space-y-2.5 pt-1">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-slate-600">Unités à vendre</span>
-              <span className="font-bold text-slate-800">{loading ? '…' : forSale}</span>
+              <span className="font-bold text-slate-800">{ready ? forSale : '…'}</span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-emerald-500" style={{ width: (total === 0 ? 0 : (forSale / total) * 100) + '%' }} />
+              <GrowBar percent={total === 0 ? 0 : (forSale / total) * 100} className="bg-emerald-500" />
             </div>
             <p className="pt-2 text-[11px] text-slate-400">Visites, offres et compromis : module Ventes à venir.</p>
           </div>
@@ -314,12 +337,7 @@ export default function DashboardPage() {
         <SectionCard title="Docs fournisseurs" icon={FileText}>
           <Empty>Aucun document à renouveler.</Empty>
         </SectionCard>
-      </div>
-
-      <p className="flex items-center gap-1 text-[11px] text-slate-400">
-        <ChevronRight className="h-3 w-3" aria-hidden />
-        Les cartes marquées « — » se rempliront au fur et à mesure du développement des modules.
-      </p>
+      </Stagger>
     </div>
   );
 }

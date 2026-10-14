@@ -1,8 +1,8 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { motion } from 'motion/react';
 import {
   ArrowLeft,
   ChevronRight,
@@ -18,7 +18,9 @@ import {
   ShoppingCart,
   type LucideIcon,
 } from 'lucide-react';
+import { HoverLift, MotionLink, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { CONTACT_ROLES, type ContactRole } from '@/components/role-pill';
+import { springs } from '@/lib/motion-tokens';
 import { useGraphql } from '@/lib/use-graphql';
 
 const CONTACT_QUERY = `
@@ -89,16 +91,27 @@ export default function ContactDetailPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
-        <Link
+        <MotionLink
           href="/contacts"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-dark"
+          whileHover={{ x: -3 }}
+          whileTap={{ scale: 0.97 }}
+          transition={springs.snappy}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
           <span>Retour aux contacts</span>
-        </Link>
+        </MotionLink>
       </div>
 
-      {result.status === 'loading' && <p className="text-xs text-slate-500">Chargement du contact…</p>}
+      {result.status === 'loading' && (
+        <motion.p
+          className="text-xs text-slate-500"
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          Chargement du contact…
+        </motion.p>
+      )}
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-xs text-red-800">
           Impossible de charger ce contact : {result.message}
@@ -116,12 +129,18 @@ function ContactView({ contact }: { contact: ContactDetails }) {
   const held = new Set(contact.roles.map((item) => item.role));
 
   return (
-    <>
-      <div className="flex items-center justify-between rounded-lg border border-app-border bg-white p-6 shadow-sm">
+    <Stagger className="space-y-6">
+      <StaggerItem className="flex items-center justify-between rounded-lg border border-app-border bg-white p-6 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-[#E6F4EA] text-xl font-bold text-brand">
+          <motion.div
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-[#E6F4EA] text-xl font-bold text-brand"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ ...springs.bouncy, delay: 0.1 }}
+            whileHover={{ rotate: 6, scale: 1.06 }}
+          >
             {initials(contact.full_name)}
-          </div>
+          </motion.div>
           <div className="space-y-1.5">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold leading-tight text-slate-900">{contact.full_name}</h1>
@@ -130,19 +149,22 @@ function ContactView({ contact }: { contact: ContactDetails }) {
               </span>
             </div>
             <div className="flex items-center gap-2 pt-0.5">
-              {CONTACT_ROLES.filter((role) => held.has(role.value)).map((role) => {
+              {CONTACT_ROLES.filter((role) => held.has(role.value)).map((role, index) => {
                 const Icon = ROLE_ICONS[role.value];
                 return (
-                  <span
+                  <motion.span
                     key={role.value}
                     className={
                       'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ' +
                       PILL_CLASSES[role.value]
                     }
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ ...springs.bouncy, delay: 0.3 + index * 0.08 }}
                   >
                     <Icon className="h-3 w-3" aria-hidden />
                     {role.label}
-                  </span>
+                  </motion.span>
                 );
               })}
             </div>
@@ -157,9 +179,9 @@ function ContactView({ contact }: { contact: ContactDetails }) {
           <Pencil className="h-4 w-4" aria-hidden />
           <span>Modifier</span>
         </button>
-      </div>
+      </StaggerItem>
 
-      <div className="rounded-lg border border-app-border bg-white p-6 shadow-sm">
+      <StaggerItem className="rounded-lg border border-app-border bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
           <ContactIcon className="h-4 w-4 text-brand" aria-hidden />
           <h2 className="text-base font-bold text-slate-900">Coordonnées</h2>
@@ -184,68 +206,77 @@ function ContactView({ contact }: { contact: ContactDetails }) {
             <span className="truncate">{contact.address ?? '—'}</span>
           </InfoRow>
         </div>
-      </div>
+      </StaggerItem>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <Stagger className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {CONTACT_ROLES.map((role) => {
           const Icon = ROLE_ICONS[role.value];
           const active = held.has(role.value);
           return (
-            <div
-              key={role.value}
-              className="flex flex-col justify-between rounded-lg border border-app-border bg-white p-5 shadow-sm"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={
-                        'flex h-7 w-7 items-center justify-center rounded-md ' +
-                        (active ? role.tile : 'bg-slate-50 text-slate-400')
-                      }
-                    >
-                      <Icon className="h-4 w-4" aria-hidden />
+            <StaggerItem key={role.value} className="h-full">
+              <HoverLift className="flex h-full flex-col justify-between rounded-lg border border-app-border bg-white p-5 shadow-sm">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        className={
+                          'flex h-7 w-7 items-center justify-center rounded-md ' +
+                          (active ? role.tile : 'bg-slate-50 text-slate-400')
+                        }
+                        whileHover={{ rotate: -10, scale: 1.12 }}
+                        transition={springs.bouncy}
+                      >
+                        <Icon className="h-4 w-4" aria-hidden />
+                      </motion.div>
+                      <h3 className="text-sm font-bold text-slate-900">{role.label}</h3>
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900">{role.label}</h3>
+                    <span className="relative flex h-2 w-2" title={active ? 'Actif' : 'Inactif'}>
+                      {active && (
+                        <motion.span
+                          className="absolute inline-flex h-full w-full rounded-full bg-emerald-400"
+                          animate={{ scale: [1, 2.4], opacity: [0.6, 0] }}
+                          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                        />
+                      )}
+                      <span
+                        className={'relative inline-flex h-2 w-2 rounded-full ' + (active ? 'bg-emerald-500' : 'bg-slate-300')}
+                      />
+                    </span>
                   </div>
-                  <span
-                    className={'h-2 w-2 rounded-full ' + (active ? 'bg-emerald-500' : 'bg-slate-300')}
-                    title={active ? 'Actif' : 'Inactif'}
-                  />
+                  {active ? (
+                    <div className="text-xs leading-relaxed text-slate-600">
+                      <p className="font-medium text-slate-800">Rôle actif</p>
+                      <p className="mt-0.5 text-slate-500">Les baux, unités et offres liés seront affichés ici.</p>
+                    </div>
+                  ) : (
+                    <div className="text-xs italic leading-relaxed text-slate-400">
+                      <p>{EMPTY_TEXT[role.value]}</p>
+                    </div>
+                  )}
                 </div>
-                {active ? (
-                  <div className="text-xs leading-relaxed text-slate-600">
-                    <p className="font-medium text-slate-800">Rôle actif</p>
-                    <p className="mt-0.5 text-slate-500">Les baux, unités et offres liés seront affichés ici.</p>
-                  </div>
-                ) : (
-                  <div className="text-xs italic leading-relaxed text-slate-400">
-                    <p>{EMPTY_TEXT[role.value]}</p>
-                  </div>
-                )}
-              </div>
-              <div className="mt-3 border-t border-slate-100 pt-4">
-                {active ? (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400">
-                    <span>Détails bientôt disponibles</span>
-                    <ChevronRight className="h-3 w-3" aria-hidden />
-                  </span>
-                ) : (
-                  <span className="text-xs font-medium text-slate-400">Aucun historique</span>
-                )}
-              </div>
-            </div>
+                <div className="mt-3 border-t border-slate-100 pt-4">
+                  {active ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+                      <span>Détails bientôt disponibles</span>
+                      <ChevronRight className="h-3 w-3" aria-hidden />
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium text-slate-400">Aucun historique</span>
+                  )}
+                </div>
+              </HoverLift>
+            </StaggerItem>
           );
         })}
-      </div>
+      </Stagger>
 
-      <div className="rounded-lg border border-app-border bg-white p-5 shadow-sm">
+      <StaggerItem className="rounded-lg border border-app-border bg-white p-5 shadow-sm">
         <div className="mb-2 flex items-center gap-2 border-b border-slate-100 pb-2">
           <FileText className="h-4 w-4 text-slate-400" aria-hidden />
           <h2 className="text-sm font-bold text-slate-900">Notes</h2>
         </div>
         <p className="whitespace-pre-line text-xs leading-relaxed text-slate-600">{contact.notes || 'Aucune note.'}</p>
-      </div>
-    </>
+      </StaggerItem>
+    </Stagger>
   );
 }

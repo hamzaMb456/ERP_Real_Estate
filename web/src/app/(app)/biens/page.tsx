@@ -1,9 +1,10 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import {
-  ChevronDown,
   ChevronRight,
+  ChevronDown,
   Download,
   Layers,
   List,
@@ -13,8 +14,10 @@ import {
   Upload,
   type LucideIcon,
 } from 'lucide-react';
+import { Stagger, StaggerItem, staggerItem } from '@/components/motion/primitives';
 import { StatusPill } from '@/components/status-pill';
 import { formatArea, formatTnd } from '@/lib/format';
+import { motionTokens, springs } from '@/lib/motion-tokens';
 import { useGraphql } from '@/lib/use-graphql';
 
 const PROPERTIES_QUERY = `
@@ -82,17 +85,29 @@ const STATUS_CHIPS: { value: StatusFilter; label: string }[] = [
   { value: 'under_maintenance', label: 'En travaux' },
 ];
 
+const rowsContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
+};
+
 const OUTLINE_BUTTON =
   'h-10 px-3.5 rounded-lg border border-app-border bg-white text-xs font-semibold text-[#0F2A20] flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-60';
 const SELECT =
-  'h-10 appearance-none rounded-lg border border-app-border bg-app-bg pl-3 pr-8 text-xs text-[#0F2A20] outline-none focus:ring-2 focus:ring-brand';
+  'h-10 appearance-none rounded-lg border border-app-border bg-app-bg pl-3 pr-8 text-xs text-[#0F2A20] outline-none transition-shadow focus:ring-2 focus:ring-brand';
 
 function ToolbarButton({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <button type="button" disabled title="Bientôt disponible" className={OUTLINE_BUTTON}>
+    <motion.button
+      type="button"
+      disabled
+      title="Bientôt disponible"
+      className={OUTLINE_BUTTON}
+      whileHover={{ y: -1 }}
+      transition={springs.snappy}
+    >
       <Icon className="h-3.5 w-3.5" aria-hidden />
       <span>{label}</span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -175,8 +190,8 @@ export default function BiensPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1360px] space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <Stagger className="mx-auto max-w-[1360px] space-y-6">
+      <StaggerItem className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[#0F2A20]">Biens et unités</h1>
           <p className="mt-0.5 text-sm text-[#52645A]">
@@ -200,40 +215,54 @@ export default function BiensPage() {
           <ToolbarButton icon={Download} label="Exporter vers Excel" />
           <ToolbarButton icon={Upload} label="Importer depuis Excel" />
           <ToolbarButton icon={Layers} label="Ajouter plusieurs unités" />
-          <button
+          <motion.button
             type="button"
             disabled
             title="Bientôt disponible"
             className="ml-2 flex h-10 items-center gap-1.5 rounded-lg bg-brand px-4 text-xs font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            whileHover={{ y: -1 }}
+            transition={springs.snappy}
           >
             <Plus className="h-3.5 w-3.5" aria-hidden />
             <span>Ajouter un bien</span>
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </StaggerItem>
 
-      <div className="flex items-center gap-2.5 overflow-x-auto pb-1 pt-2">
-        {STATUS_CHIPS.map((chip) => (
-          <button
-            key={chip.value}
-            type="button"
-            aria-pressed={status === chip.value}
-            onClick={() => setStatus(chip.value)}
-            className={
-              'inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-brand ' +
-              (status === chip.value
-                ? 'bg-brand font-semibold text-white shadow-sm'
-                : 'border border-app-border bg-white font-medium text-[#52645A] transition-colors hover:bg-[#ECFDF5] hover:text-[#0F2A20]')
-            }
-          >
-            <span>
-              {chip.label} ({countStatus(chip.value)})
-            </span>
-          </button>
-        ))}
-      </div>
+      <StaggerItem className="flex items-center gap-2.5 overflow-x-auto pb-1 pt-2">
+        {STATUS_CHIPS.map((chip) => {
+          const active = status === chip.value;
+          return (
+            <motion.button
+              key={chip.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setStatus(chip.value)}
+              className={
+                'relative inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-brand ' +
+                (active
+                  ? 'font-semibold text-white'
+                  : 'border border-app-border bg-white font-medium text-[#52645A] transition-colors hover:bg-[#ECFDF5] hover:text-[#0F2A20]')
+              }
+              whileTap={{ scale: motionTokens.scale.press }}
+              transition={springs.snappy}
+            >
+              {active && (
+                <motion.span
+                  layoutId="status-chip"
+                  className="absolute inset-0 rounded-full bg-brand shadow-sm"
+                  transition={springs.snappy}
+                />
+              )}
+              <span className="relative z-10">
+                {chip.label} ({countStatus(chip.value)})
+              </span>
+            </motion.button>
+          );
+        })}
+      </StaggerItem>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-app-border bg-white p-3.5 text-sm shadow-sm">
+      <StaggerItem className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-app-border bg-white p-3.5 text-sm shadow-sm">
         <div className="flex flex-1 flex-wrap items-center gap-3">
           <div className="relative min-w-[260px] flex-1">
             <input
@@ -241,7 +270,7 @@ export default function BiensPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Rechercher par nom, adresse ou référence"
-              className="h-10 w-full rounded-lg border border-app-border bg-app-bg pl-3.5 pr-8 text-xs text-[#0F2A20] outline-none placeholder:text-[#52645A] focus:border-brand focus:ring-2 focus:ring-brand"
+              className="h-10 w-full rounded-lg border border-app-border bg-app-bg pl-3.5 pr-8 text-xs text-[#0F2A20] outline-none transition-shadow placeholder:text-[#52645A] focus:border-brand focus:ring-2 focus:ring-brand"
             />
           </div>
           <SelectBox label="Ville" value={city} onChange={setCity}>
@@ -279,32 +308,58 @@ export default function BiensPage() {
             />
             <span className="text-xs text-[#52645A]">Afficher les biens archivés</span>
           </label>
-          <button type="button" onClick={reset} className="text-xs font-semibold text-brand hover:underline focus:outline-none">
-            Réinitialiser
-          </button>
-        </div>
-      </div>
-
-      {selected.length > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-[#A7F3D0] bg-[#ECFDF5] px-4 py-2.5 text-xs text-[#0F2A20]">
-          <div className="flex items-center gap-2.5">
-            <span className="h-2 w-2 rounded-full bg-brand" />
-            <span className="font-semibold">
-              {selected.length} {selected.length > 1 ? 'biens sélectionnés' : 'bien sélectionné'}
-            </span>
-          </div>
-          <button
+          <motion.button
             type="button"
-            onClick={() => setSelected([])}
-            title="Désélectionner"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-[#52645A] transition-colors hover:bg-white hover:text-[#0F2A20]"
+            onClick={reset}
+            className="text-xs font-semibold text-brand hover:underline focus:outline-none"
+            whileTap={{ scale: 0.95 }}
           >
-            ✕
-          </button>
+            Réinitialiser
+          </motion.button>
+        </div>
+      </StaggerItem>
+
+      <AnimatePresence>
+        {selected.length > 0 && (
+          <motion.div
+            key="selection"
+            className="flex items-center justify-between rounded-lg border border-[#A7F3D0] bg-[#ECFDF5] px-4 py-2.5 text-xs text-[#0F2A20]"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: motionTokens.duration.fast }}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="h-2 w-2 rounded-full bg-brand" />
+              <span className="font-semibold">
+                {selected.length} {selected.length > 1 ? 'biens sélectionnés' : 'bien sélectionné'}
+              </span>
+            </div>
+            <motion.button
+              type="button"
+              onClick={() => setSelected([])}
+              title="Désélectionner"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-[#52645A] transition-colors hover:bg-white hover:text-[#0F2A20]"
+              whileTap={{ scale: 0.9 }}
+            >
+              ✕
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {result.status === 'loading' && (
+        <div className="space-y-2" aria-label="Chargement des biens">
+          {[0, 1, 2].map((index) => (
+            <motion.div
+              key={index}
+              className="h-14 rounded-lg bg-slate-100"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.4, repeat: Infinity, delay: index * 0.12, ease: 'easeInOut' }}
+            />
+          ))}
         </div>
       )}
-
-      {result.status === 'loading' && <p className="text-sm text-[#52645A]">Chargement des biens…</p>}
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
           Impossible de charger les biens : {result.message}
@@ -312,7 +367,7 @@ export default function BiensPage() {
       )}
 
       {result.status === 'success' && (
-        <div className="overflow-x-auto rounded-lg border border-app-border bg-white shadow-sm">
+        <StaggerItem className="overflow-x-auto rounded-lg border border-app-border bg-white shadow-sm">
           <table className="w-full min-w-[960px] table-fixed border-collapse text-left text-xs">
             <colgroup>
               <col style={{ width: '4%' }} />
@@ -336,7 +391,13 @@ export default function BiensPage() {
                 <th className="px-3 py-3 text-center" scope="col">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-app-border">
+            <motion.tbody
+              key={status + city + type + branch + needle + String(showArchived)}
+              className="divide-y divide-app-border"
+              variants={rowsContainer}
+              initial="hidden"
+              animate="visible"
+            >
               {rows.map(({ property, units }) => {
                 const open = expanded[property.id] ?? true;
                 const rented = units.filter((unit) => unit.status === 'rented');
@@ -344,7 +405,7 @@ export default function BiensPage() {
                 const rentTotal = rented.reduce((sum, unit) => sum + Number(unit.rent_amount ?? 0), 0);
                 return (
                   <Fragment key={property.id}>
-                    <tr className="bg-[#F8FCF9] transition-colors hover:bg-[#F2FAF5]">
+                    <motion.tr variants={staggerItem} className="bg-[#F8FCF9] transition-colors hover:bg-[#F2FAF5]">
                       <td className="px-3 py-3.5 text-center align-middle">
                         <input
                           type="checkbox"
@@ -356,15 +417,18 @@ export default function BiensPage() {
                       </td>
                       <td className="px-3 py-3.5 align-middle">
                         <div className="flex items-center gap-2">
-                          <button
+                          <motion.button
                             type="button"
                             aria-expanded={open}
                             aria-label={(open ? 'Replier ' : 'Déplier ') + property.name}
                             onClick={() => setExpanded((current) => ({ ...current, [property.id]: !open }))}
                             className="flex h-6 w-6 items-center justify-center rounded text-brand outline-none transition-colors hover:bg-[#EAFEF1] focus:ring-2 focus:ring-brand"
+                            whileTap={{ scale: 0.85 }}
                           >
-                            {open ? <ChevronDown className="h-4 w-4" aria-hidden /> : <ChevronRight className="h-4 w-4" aria-hidden />}
-                          </button>
+                            <motion.span animate={{ rotate: open ? 90 : 0 }} transition={springs.snappy} className="inline-flex">
+                              <ChevronRight className="h-4 w-4" aria-hidden />
+                            </motion.span>
+                          </motion.button>
                           <div className="truncate">
                             <div className="flex items-center gap-2">
                               <span className="truncate text-sm font-bold text-[#0F2A20]">{property.name}</span>
@@ -405,37 +469,46 @@ export default function BiensPage() {
                           </span>
                         </div>
                       </td>
-                    </tr>
-                    {open &&
-                      units.map((unit) => (
-                        <tr key={unit.id} className="bg-white transition-colors hover:bg-[#F9FCFA]">
-                          <td className="px-3 py-3 text-center" />
-                          <td className="px-3 py-3 align-middle">
-                            <div className="pl-10">
-                              <div className="font-semibold text-[#0F2A20]">{UNIT_TYPES[unit.type] ?? unit.type} {unit.code}</div>
-                              <div className="mt-0.5 text-[11px] text-[#52645A]">
-                                {[unit.floor === null ? null : 'Étage ' + unit.floor, unit.rooms === null ? null : unit.rooms + ' pièces', unit.surface_m2 === null ? null : formatArea(unit.surface_m2)]
-                                  .filter(Boolean)
-                                  .join(' · ')}
+                    </motion.tr>
+                    <AnimatePresence initial={false}>
+                      {open &&
+                        units.map((unit, index) => (
+                          <motion.tr
+                            key={unit.id}
+                            className="bg-white transition-colors hover:bg-[#F9FCFA]"
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: motionTokens.duration.fast, delay: index * 0.04 }}
+                          >
+                            <td className="px-3 py-3 text-center" />
+                            <td className="px-3 py-3 align-middle">
+                              <div className="pl-10">
+                                <div className="font-semibold text-[#0F2A20]">{UNIT_TYPES[unit.type] ?? unit.type} {unit.code}</div>
+                                <div className="mt-0.5 text-[11px] text-[#52645A]">
+                                  {[unit.floor === null ? null : 'Étage ' + unit.floor, unit.rooms === null ? null : unit.rooms + ' pièces', unit.surface_m2 === null ? null : formatArea(unit.surface_m2)]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3" />
-                          <td className="px-3 py-3" />
-                          <td className="px-3 py-3 align-middle">
-                            <StatusPill status={unit.status} />
-                          </td>
-                          <td className="px-3 py-3 align-middle text-[#52645A]">—</td>
-                          <td className="px-3 py-3 text-right align-middle font-semibold tabular-nums text-[#0F2A20]">
-                            {formatTnd(unit.rent_amount)}
-                          </td>
-                          <td className="px-3 py-3 text-center align-middle">
-                            <span className="cursor-not-allowed px-1 py-1 text-xs font-semibold text-brand opacity-60" title="Bientôt disponible">
-                              Voir
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="px-3 py-3" />
+                            <td className="px-3 py-3" />
+                            <td className="px-3 py-3 align-middle">
+                              <StatusPill status={unit.status} />
+                            </td>
+                            <td className="px-3 py-3 align-middle text-[#52645A]">—</td>
+                            <td className="px-3 py-3 text-right align-middle font-semibold tabular-nums text-[#0F2A20]">
+                              {formatTnd(unit.rent_amount)}
+                            </td>
+                            <td className="px-3 py-3 text-center align-middle">
+                              <span className="cursor-not-allowed px-1 py-1 text-xs font-semibold text-brand opacity-60" title="Bientôt disponible">
+                                Voir
+                              </span>
+                            </td>
+                          </motion.tr>
+                        ))}
+                    </AnimatePresence>
                   </Fragment>
                 );
               })}
@@ -446,10 +519,10 @@ export default function BiensPage() {
                   </td>
                 </tr>
               )}
-            </tbody>
+            </motion.tbody>
           </table>
-        </div>
+        </StaggerItem>
       )}
-    </div>
+    </Stagger>
   );
 }
