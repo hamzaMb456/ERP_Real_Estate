@@ -1,7 +1,7 @@
 'use client';
 
 import { StatusPill } from '@/components/status-pill';
-import { formatTnd } from '@/lib/format';
+import { formatArea, formatTnd } from '@/lib/format';
 import { useGraphql } from '@/lib/use-graphql';
 
 const PROPERTIES_QUERY = `
@@ -100,7 +100,7 @@ export default function BiensPage() {
                       <td className="px-5 py-3 tabular-nums">{unit.floor ?? '—'}</td>
                       <td className="px-5 py-3 tabular-nums">{unit.rooms ?? '—'}</td>
                       <td className="px-5 py-3 tabular-nums">
-                        {unit.surface_m2 === null ? '—' : Number(unit.surface_m2) + ' m²'}
+                        {formatArea(unit.surface_m2)}
                       </td>
                       <td className="px-5 py-3 text-right tabular-nums">{formatTnd(unit.rent_amount)}</td>
                       <td className="px-5 py-3">

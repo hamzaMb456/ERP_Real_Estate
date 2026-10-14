@@ -14,6 +14,21 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+function describeSignInError(code: string | undefined, serverMessage: string | undefined, status: number): string {
+  switch (code) {
+    case 'invalid-email-password':
+      return 'Mot de passe incorrect, ou aucun compte avec cette adresse e-mail.';
+    case 'unverified-user':
+      return "Votre adresse e-mail n'est pas encore vérifiée. Ouvrez le lien reçu par e-mail, puis réessayez.";
+    case 'disabled-user':
+      return 'Ce compte est désactivé. Contactez votre administrateur.';
+    case 'invalid-request':
+      return "Adresse e-mail ou mot de passe mal formé. Vérifiez les deux champs.";
+    default:
+      return 'Connexion impossible (' + (code ?? 'erreur ' + status) + ')' + (serverMessage ? ' : ' + serverMessage : '.');
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<StoredSession | null>(null);
   const [ready, setReady] = useState(false);
@@ -45,7 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       if (error instanceof FetchError) {
-        throw new Error('E-mail ou mot de passe incorrect.');
+        const body = error.body as { error?: string; message?: string } | null;
+        throw new Error(describeSignInError(body?.error, body?.message, error.status));
+      }
+      if (error instanceof TypeError) {
+        throw new Error('Serveur injoignable. Vérifiez votre connexion Internet et réessayez.');
       }
       throw error;
     }
