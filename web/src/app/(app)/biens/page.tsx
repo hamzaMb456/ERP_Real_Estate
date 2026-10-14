@@ -1,9 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'motion/react';
-import { Building2, ChevronDown, MapPin, Plus, Search, SearchX } from 'lucide-react';
+import { Building2, ChevronDown, Map as MapIcon, MapPin, Plus, Search, SearchX } from 'lucide-react';
 import { StatusBadge } from '@/components/domain/badges';
+import { StorageImage } from '@/components/files/storage-image';
+import { PROPERTY_TYPES, UNIT_TYPES } from '@/components/domain/labels';
 import { SkeletonList, Stagger, StaggerItem, staggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -15,8 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatArea, formatTnd } from '@/lib/format';
+import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 
 const PROPERTIES_QUERY = `
@@ -29,6 +32,7 @@ const PROPERTIES_QUERY = `
       city
       archived_at
       branch { id name }
+      files(where: { is_cover: { _eq: true } }, limit: 1) { storage_file_id }
       units(order_by: { code: asc }) {
         id
         code
@@ -39,6 +43,7 @@ const PROPERTIES_QUERY = `
         rent_amount
         status
         archived_at
+        current_owners { contact { id full_name } }
       }
     }
   }
@@ -54,6 +59,7 @@ type Unit = {
   rent_amount: number | string | null;
   status: string;
   archived_at: string | null;
+  current_owners: { contact: { id: string; full_name: string } }[];
 };
 
 type Property = {
@@ -64,16 +70,9 @@ type Property = {
   city: string | null;
   archived_at: string | null;
   branch: { id: string; name: string } | null;
+  files: { storage_file_id: string }[];
   units: Unit[];
 };
-
-const UNIT_TYPES: Record<string, string> = {
-  apartment: 'Appartement',
-  office: 'Bureau',
-  shop: 'Commerce',
-  parking: 'Parking',
-};
-const PROPERTY_TYPES: Record<string, string> = { building: 'Immeuble', house: 'Maison', plot: 'Terrain' };
 
 type StatusFilter = 'all' | 'rented' | 'vacant' | 'for_sale' | 'under_maintenance';
 const STATUS_CHIPS: { value: StatusFilter; label: string }[] = [
@@ -95,6 +94,8 @@ export default function BiensPage() {
   const [branch, setBranch] = useState('all');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [showArchived, setShowArchived] = useState(false);
+  const [owner, setOwner] = useState('all');
+  const canEdit = useCanEdit();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const properties = useMemo(() => (result.status === 'success' ? result.data.properties : []), [result]);
@@ -103,6 +104,14 @@ export default function BiensPage() {
   const branches = [
     ...new Map(properties.flatMap((property) => (property.branch ? [[property.branch.id, property.branch.name] as const] : []))),
   ];
+
+  const owners = [
+    ...new Map(
+      properties.flatMap((property) =>
+        property.units.flatMap((unit) => unit.current_owners.map((item) => [item.contact.id, item.contact.full_name] as const)),
+      ),
+    ),
+  ].sort((a, b) => a[1].localeCompare(b[1], 'fr'));
 
   const needle = search.trim().toLowerCase();
   const rows = properties
@@ -119,15 +128,21 @@ export default function BiensPage() {
     )
     .map((property) => ({
       property,
-      units: property.units.filter((unit) => (showArchived || !unit.archived_at) && (status === 'all' || unit.status === status)),
+      units: property.units.filter(
+        (unit) =>
+          (showArchived || !unit.archived_at) &&
+          (status === 'all' || unit.status === status) &&
+          (owner === 'all' || unit.current_owners.some((item) => item.contact.id === owner)),
+      ),
     }))
-    .filter(({ units }) => status === 'all' || units.length > 0);
+    .filter(({ units }) => (status === 'all' && owner === 'all') || units.length > 0);
 
   const allUnits = properties.flatMap((property) => property.units.filter((unit) => showArchived || !unit.archived_at));
   const countStatus = (value: StatusFilter) =>
     value === 'all' ? allUnits.length : allUnits.filter((unit) => unit.status === value).length;
   const activeProperties = properties.filter((property) => showArchived || !property.archived_at);
-  const hasFilters = search !== '' || city !== 'all' || type !== 'all' || branch !== 'all' || status !== 'all' || showArchived;
+  const hasFilters =
+    search !== '' || city !== 'all' || type !== 'all' || branch !== 'all' || status !== 'all' || owner !== 'all' || showArchived;
 
   function reset() {
     setSearch('');
@@ -135,6 +150,7 @@ export default function BiensPage() {
     setType('all');
     setBranch('all');
     setStatus('all');
+    setOwner('all');
     setShowArchived(false);
   }
 
@@ -149,15 +165,22 @@ export default function BiensPage() {
               : 'Chargement du parc immobilier…'
           }
           actions={
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button aria-disabled="true" className="cursor-not-allowed opacity-60" onClick={(event) => event.preventDefault()}>
-                  <Plus data-icon="inline-start" />
-                  Ajouter un bien
+            <>
+              <Button asChild variant="outline">
+                <Link href="/biens/carte">
+                  <MapIcon data-icon="inline-start" />
+                  Carte
+                </Link>
+              </Button>
+              {canEdit && (
+                <Button asChild>
+                  <Link href="/biens/nouveau">
+                    <Plus data-icon="inline-start" />
+                    Ajouter un bien
+                  </Link>
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Bientôt disponible</TooltipContent>
-            </Tooltip>
+              )}
+            </>
           }
         />
       </StaggerItem>
@@ -233,6 +256,19 @@ export default function BiensPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={owner} onValueChange={setOwner}>
+                <SelectTrigger className="w-48" aria-label="Propriétaire">
+                  <SelectValue placeholder="Propriétaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les propriétaires</SelectItem>
+                  {owners.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="flex items-center gap-2">
                 <Checkbox id="archived" checked={showArchived} onCheckedChange={(checked) => setShowArchived(checked === true)} />
                 <Label htmlFor="archived" className="text-sm font-normal text-muted-foreground">
@@ -286,12 +322,23 @@ export default function BiensPage() {
                   <CardHeader className="border-b bg-muted/30 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                          <Building2 className="size-5" />
-                        </span>
+                        {property.files[0] ? (
+                          <StorageImage
+                            fileId={property.files[0].storage_file_id}
+                            width={96}
+                            alt={'Photo de ' + property.name}
+                            className="size-10 shrink-0 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                            <Building2 className="size-5" />
+                          </span>
+                        )}
                         <div className="min-w-0">
                           <h2 className="truncate text-base font-semibold">
-                            {property.name}
+                            <Link href={'/biens/' + property.id} className="hover:text-primary hover:underline">
+                              {property.name}
+                            </Link>
                             {property.archived_at && (
                               <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Archivé</span>
                             )}
@@ -331,6 +378,7 @@ export default function BiensPage() {
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
                           <TableHead className="pl-4">Unité</TableHead>
+                          <TableHead className="hidden lg:table-cell">Propriétaire</TableHead>
                           <TableHead className="hidden md:table-cell">Étage</TableHead>
                           <TableHead className="hidden md:table-cell">Pièces</TableHead>
                           <TableHead className="hidden sm:table-cell">Surface</TableHead>
@@ -342,8 +390,17 @@ export default function BiensPage() {
                         {units.map((unit) => (
                           <MotionRow key={unit.id} variants={staggerItem}>
                             <TableCell className="pl-4">
-                              <span className="font-medium">{unit.code}</span>
+                              <Link href={'/biens/' + property.id + '/unites/' + unit.id} className="font-medium hover:text-primary hover:underline">
+                                {unit.code}
+                              </Link>
                               <span className="ml-2 text-xs text-muted-foreground">{UNIT_TYPES[unit.type] ?? unit.type}</span>
+                            </TableCell>
+                            <TableCell className="hidden text-sm lg:table-cell">
+                              {unit.current_owners.length === 0 ? (
+                                <span className="text-xs font-medium text-warning">Aucun</span>
+                              ) : (
+                                unit.current_owners.map((item) => item.contact.full_name).join(', ')
+                              )}
                             </TableCell>
                             <TableCell className="hidden tabular-nums md:table-cell">{unit.floor ?? '—'}</TableCell>
                             <TableCell className="hidden tabular-nums md:table-cell">{unit.rooms ?? '—'}</TableCell>
@@ -356,7 +413,7 @@ export default function BiensPage() {
                         ))}
                         {units.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                            <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
                               Aucune unité à afficher pour ce filtre.
                             </TableCell>
                           </TableRow>

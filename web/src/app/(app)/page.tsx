@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Cell, Pie, PieChart } from 'recharts';
-import { ArrowUpRight, Building2, DoorOpen, KeyRound, Landmark, Plus, Users } from 'lucide-react';
+import { ArrowUpRight, Building2, ClipboardList, DoorOpen, KeyRound, Landmark, Plus, Users } from 'lucide-react';
 import { StatusBadge } from '@/components/domain/badges';
 import { AnimatedNumber, GrowBar, HoverLift, Reveal, SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
@@ -25,6 +25,7 @@ const DASHBOARD_QUERY = `
       units(where: { archived_at: { _is_null: true } }) { status rent_amount }
     }
     contacts_aggregate { aggregate { count } }
+    record_gaps_aggregate { aggregate { count } }
   }
 `;
 
@@ -32,6 +33,7 @@ type DashboardData = {
   units: { status: string; property: { branch: { id: string; name: string } | null } | null }[];
   properties: { id: string; name: string; city: string | null; units: { status: string; rent_amount: number | string | null }[] }[];
   contacts_aggregate: { aggregate: { count: number } };
+  record_gaps_aggregate: { aggregate: { count: number } };
 };
 
 const STATUS_CONFIG = {
@@ -108,7 +110,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { units, properties, contacts_aggregate } = result.data;
+  const { units, properties, contacts_aggregate, record_gaps_aggregate } = result.data;
   const total = units.length;
   const count = (status: string) => units.filter((unit) => unit.status === status).length;
   const rented = count('rented');
@@ -146,6 +148,19 @@ export default function DashboardPage() {
           </Button>
         }
       />
+
+      {record_gaps_aggregate.aggregate.count > 0 && (
+        <Link
+          href="/biens/fiches-incompletes"
+          className="flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm transition-colors hover:bg-warning/15"
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <ClipboardList className="size-4 text-warning" aria-hidden />
+            Fiches incomplètes : {record_gaps_aggregate.aggregate.count}
+          </span>
+          <span className="text-muted-foreground">Compléter →</span>
+        </Link>
+      )}
 
       <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi label="Taux d’occupation" icon={KeyRound} value={occupancy} format={formatPercent} hint={rented + ' unités louées sur ' + total} />

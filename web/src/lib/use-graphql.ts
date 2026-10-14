@@ -10,8 +10,9 @@ export type QueryState<T> =
 
 type Settled<T> = { key: string; state: Exclude<QueryState<T>, { status: 'loading' }> };
 
-export function useGraphql<T>(query: string, variables?: Record<string, unknown>): QueryState<T> {
-  const key = query + JSON.stringify(variables ?? {});
+/** `reloadKey` forces a refetch when it changes; it is never sent to the server. */
+export function useGraphql<T>(query: string, variables?: Record<string, unknown>, reloadKey = 0): QueryState<T> {
+  const key = query + JSON.stringify(variables ?? {}) + '#' + reloadKey;
   const [settled, setSettled] = useState<Settled<T> | null>(null);
 
   useEffect(() => {

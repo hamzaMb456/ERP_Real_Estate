@@ -1,0 +1,105 @@
+'use client';
+
+import Link from 'next/link';
+import { Building2, CheckCircle2, DoorOpen, Users } from 'lucide-react';
+import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { PageHeader } from '@/components/page-header';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { gapLabel, gapLink, groupGaps, type GapEntity, type GapRow } from '@/lib/gaps';
+import { useGraphql } from '@/lib/use-graphql';
+
+const QUERY = `
+  query RecordGaps {
+    record_gaps(order_by: [{ entity_type: asc }, { entity_label: asc }]) {
+      entity_type entity_id property_id entity_label property_label gap_code
+    }
+  }
+`;
+
+const SECTIONS: { entity: GapEntity; title: string; icon: typeof Building2 }[] = [
+  { entity: 'property', title: 'Biens', icon: Building2 },
+  { entity: 'unit', title: 'Unités', icon: DoorOpen },
+  { entity: 'contact', title: 'Contacts', icon: Users },
+];
+
+export default function IncompleteRecordsPage() {
+  const result = useGraphql<{ record_gaps: GapRow[] }>(QUERY);
+
+  return (
+    <Stagger className="space-y-6">
+      <StaggerItem>
+        <PageHeader
+          title="Fiches incomplètes"
+          description="Les informations manquantes sur les biens, unités et contacts. Chaque ligne mène à l’endroit exact où la compléter."
+        />
+      </StaggerItem>
+
+      {result.status === 'loading' && <SkeletonList count={3} className="space-y-3" itemClassName="h-24 rounded-xl bg-muted" label="Chargement…" />}
+      {result.status === 'error' && (
+        <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          Impossible de charger les fiches incomplètes : {result.message}
+        </p>
+      )}
+
+      {result.status === 'success' && result.data.record_gaps.length === 0 && (
+        <StaggerItem>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
+              <CheckCircle2 className="size-8 text-success" aria-hidden />
+              <p className="font-medium">Toutes les fiches sont complètes</p>
+              <p className="text-sm text-muted-foreground">Rien à compléter pour le moment.</p>
+            </CardContent>
+          </Card>
+        </StaggerItem>
+      )}
+
+      {result.status === 'success' &&
+        result.data.record_gaps.length > 0 &&
+        (() => {
+          const groups = groupGaps(result.data.record_gaps);
+          return SECTIONS.filter((section) => groups[section.entity].length > 0).map((section) => {
+            const Icon = section.icon;
+            return (
+              <StaggerItem key={section.entity}>
+                <Card className="gap-0 py-0">
+                  <CardHeader className="border-b py-4">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Icon className="size-4 text-muted-foreground" aria-hidden />
+                      {section.title}
+                    </CardTitle>
+                    <CardDescription>{groups[section.entity].length} fiche(s) à compléter</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <ul className="divide-y">
+                      {groups[section.entity].map((group) => (
+                        <li key={group.entityId} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{group.label}</p>
+                            {group.context && <p className="text-xs text-muted-foreground">{group.context}</p>}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {group.gaps.map((gap) => (
+                              <Button key={gap.gap_code} asChild variant="outline" size="sm" className="h-7">
+                                <Link href={gapLink(gap)}>
+                                  <Badge variant="secondary" className="mr-1 bg-warning/15 text-warning">
+                                    !
+                                  </Badge>
+                                  {gapLabel(gap.gap_code)} · Compléter
+                                </Link>
+                              </Button>
+                            ))}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </StaggerItem>
+            );
+          });
+        })()}
+    </Stagger>
+  );
+}

@@ -30,6 +30,7 @@ export const NAV_GROUPS: NavGroup[] = [
           { label: 'Biens et unités', href: '/biens' },
           { label: 'Carte des biens', href: '/biens/carte' },
           { label: 'Parties communes', href: '/biens/parties-communes' },
+          { label: 'Fiches incomplètes', href: '/biens/fiches-incompletes' },
           { label: 'Biens archivés', href: '/biens/archives' },
         ],
       },
@@ -101,7 +102,7 @@ export function sectionOf(pathname: string): string {
 
 export type Crumb = { label: string; href?: string };
 
-const SEGMENT_LABELS: Record<string, string> = { nouveau: 'Nouveau' };
+const SEGMENT_LABELS: Record<string, string> = { nouveau: 'Nouveau', modifier: 'Modifier' };
 
 export function buildCrumbs(pathname: string): Crumb[] {
   const section = NAVIGATION.find((item) => item.href === sectionOf(pathname));

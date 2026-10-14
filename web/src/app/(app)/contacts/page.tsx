@@ -13,6 +13,8 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { Table, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useGraphql } from '@/lib/use-graphql';
 
 const CONTACTS_QUERY = `
@@ -23,7 +25,10 @@ const CONTACTS_QUERY = `
       full_name
       email
       phone
+      archived_at
+      is_organization
       roles { role }
+      current_ownerships_aggregate { aggregate { count } }
     }
   }
 `;
@@ -34,7 +39,10 @@ type Contact = {
   full_name: string;
   email: string | null;
   phone: string | null;
+  archived_at: string | null;
+  is_organization: boolean;
   roles: { role: ContactRole }[];
+  current_ownerships_aggregate: { aggregate: { count: number } | null };
 };
 
 const PAGE_SIZE = 10;
@@ -60,8 +68,10 @@ export default function ContactsPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<ContactRole | 'all'>('all');
   const [page, setPage] = useState(1);
+  const [showArchived, setShowArchived] = useState(false);
 
-  const all = result.status === 'success' ? result.data.contacts : [];
+  const loaded = result.status === 'success' ? result.data.contacts : [];
+  const all = loaded.filter((contact) => showArchived || !contact.archived_at);
   const countFor = (role: ContactRole) => all.filter((contact) => contact.roles.some((item) => item.role === role)).length;
   const needle = search.trim().toLowerCase();
   const filtered = all.filter(
@@ -114,6 +124,20 @@ export default function ContactsPage() {
                 ))}
               </TabsList>
             </Tabs>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="contacts-archived"
+                  checked={showArchived}
+                  onCheckedChange={(checked) => {
+                    setShowArchived(checked === true);
+                    setPage(1);
+                  }}
+                />
+                <Label htmlFor="contacts-archived" className="text-sm font-normal text-muted-foreground">
+                  Afficher les archivés
+                </Label>
+              </div>
             <InputGroup className="md:w-72">
               <InputGroupAddon>
                 <Search />
@@ -128,6 +152,7 @@ export default function ContactsPage() {
                 aria-label="Rechercher un contact"
               />
             </InputGroup>
+            </div>
           </div>
 
           {result.status === 'loading' && (
@@ -149,6 +174,7 @@ export default function ContactsPage() {
                       <TableHead>Rôles</TableHead>
                       <TableHead className="hidden lg:table-cell">E-mail</TableHead>
                       <TableHead className="hidden sm:table-cell">Téléphone</TableHead>
+                      <TableHead className="hidden text-right md:table-cell">Unités</TableHead>
                       <TableHead className="pr-4 text-right">
                         <span className="sr-only">Actions</span>
                       </TableHead>
@@ -176,6 +202,8 @@ export default function ContactsPage() {
                                 <span className="block truncate font-medium group-hover:text-primary">{contact.full_name}</span>
                                 <span className="block text-xs text-muted-foreground">
                                   {contact.kind === 'company' ? 'Société' : 'Personne'}
+                                  {contact.is_organization && ' · votre société'}
+                                  {contact.archived_at && ' · archivé'}
                                 </span>
                               </span>
                             </Link>
@@ -189,6 +217,9 @@ export default function ContactsPage() {
                           </TableCell>
                           <TableCell className="hidden text-muted-foreground lg:table-cell">{contact.email ?? '—'}</TableCell>
                           <TableCell className="hidden font-mono text-xs tabular-nums sm:table-cell">{contact.phone ?? '—'}</TableCell>
+                          <TableCell className="hidden text-right tabular-nums md:table-cell">
+                            {contact.current_ownerships_aggregate.aggregate?.count || '—'}
+                          </TableCell>
                           <TableCell className="pr-4 text-right">
                             <Button asChild variant="ghost" size="sm">
                               <Link href={'/contacts/' + contact.id} aria-label={'Ouvrir la fiche de ' + contact.full_name}>

@@ -1,33 +1,37 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'motion/react';
-import { ArrowLeft, Copy, FileText, IdCard, Mail, MapPin, Pencil, Phone, UserX } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowLeft, Copy, FileText, IdCard, Loader2, Mail, MapPin, Pencil, Phone, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import { CONTACT_ROLES, RoleBadge, type ContactRole } from '@/components/domain/badges';
 import { HoverLift, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { ContactOwnedUnits } from '@/components/ownership/contact-owned-units';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { toFrenchError } from '@/lib/errors';
+import { graphql } from '@/lib/graphql';
 import { springs } from '@/lib/motion-tokens';
+import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 
 const CONTACT_QUERY = `
   query Contact($id: uuid!) {
     contact: contacts_by_pk(id: $id) {
-      id
-      kind
-      full_name
-      email
-      phone
-      national_id
-      address
-      notes
+      id kind full_name email phone national_id address notes is_organization archived_at
       roles { role }
     }
+  }
+`;
+
+const SET_ARCHIVED = `
+  mutation SetContactArchived($id: uuid!, $archived_at: timestamptz) {
+    update_contacts_by_pk(pk_columns: { id: $id }, _set: { archived_at: $archived_at }) { id }
   }
 `;
 
@@ -40,13 +44,14 @@ type ContactDetails = {
   national_id: string | null;
   address: string | null;
   notes: string | null;
+  is_organization: boolean;
+  archived_at: string | null;
   roles: { role: ContactRole }[];
 };
 
-const EMPTY_TEXT: Record<ContactRole, string> = {
-  owner: 'Aucune unité en gestion pour le moment.',
-  renter: 'Aucun bail pour le moment.',
-  buyer: 'Aucune offre ni réservation pour le moment.',
+const LATER_MODULE: Record<Exclude<ContactRole, 'owner'>, string> = {
+  renter: 'Les baux de ce locataire apparaîtront ici avec le module Baux.',
+  buyer: 'Les offres et achats apparaîtront ici avec le module Ventes.',
 };
 
 function initials(name: string): string {
@@ -126,7 +131,10 @@ function BackLink() {
 
 export default function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const result = useGraphql<{ contact: ContactDetails | null }>(CONTACT_QUERY, { id });
+  const canEdit = useCanEdit();
+  const [reload, setReload] = useState(0);
+  const [archiving, setArchiving] = useState(false);
+  const result = useGraphql<{ contact: ContactDetails | null }>(CONTACT_QUERY, { id }, reload);
 
   if (result.status === 'loading') {
     return (
@@ -166,7 +174,22 @@ export default function ContactDetailPage() {
     );
   }
 
-  const held = new Set(contact.roles.map((item) => item.role));
+  const current = contact;
+  const archived = current.archived_at !== null;
+  const held = new Set(current.roles.map((item) => item.role));
+
+  async function toggleArchive() {
+    setArchiving(true);
+    try {
+      await graphql(SET_ARCHIVED, { id: current.id, archived_at: archived ? null : new Date().toISOString() });
+      toast.success(archived ? 'Contact restauré' : 'Contact archivé', { description: current.full_name });
+      setReload((value) => value + 1);
+    } catch (error) {
+      toast.error('Action impossible', { description: toFrenchError(error) });
+    } finally {
+      setArchiving(false);
+    }
+  }
 
   return (
     <Stagger className="space-y-6">
@@ -178,38 +201,49 @@ export default function ContactDetailPage() {
         <Card>
           <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ ...springs.bouncy, delay: 0.1 }}
-              >
+              <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...springs.bouncy, delay: 0.1 }}>
                 <Avatar className="size-16">
-                  <AvatarFallback className="bg-accent text-lg font-semibold text-accent-foreground">
-                    {initials(contact.full_name)}
-                  </AvatarFallback>
+                  <AvatarFallback className="bg-accent text-lg font-semibold text-accent-foreground">{initials(current.full_name)}</AvatarFallback>
                 </Avatar>
               </motion.div>
               <div className="space-y-2">
                 <div>
-                  <h1 className="text-2xl font-semibold tracking-tight">{contact.full_name}</h1>
-                  <p className="text-sm text-muted-foreground">{contact.kind === 'company' ? 'Société' : 'Personne'}</p>
+                  <h1 className="text-2xl font-semibold tracking-tight">{current.full_name}</h1>
+                  <p className="text-sm text-muted-foreground">
+                    {current.kind === 'company' ? 'Société' : 'Personne'}
+                    {current.is_organization && ' · votre société'}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {contact.roles.map((item) => (
+                  {current.roles.map((item) => (
                     <RoleBadge key={item.role} role={item.role} />
                   ))}
+                  {archived && <Badge variant="secondary">Archivé</Badge>}
                 </div>
               </div>
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" aria-disabled="true" className="cursor-not-allowed opacity-60" onClick={(event) => event.preventDefault()}>
-                  <Pencil data-icon="inline-start" />
-                  Modifier
+            {canEdit && (
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline">
+                  <Link href={'/contacts/' + current.id + '/modifier'}>
+                    <Pencil data-icon="inline-start" />
+                    Modifier
+                  </Link>
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Bientôt disponible</TooltipContent>
-            </Tooltip>
+                {!current.is_organization && (
+                  <Button variant="outline" onClick={() => void toggleArchive()} disabled={archiving}>
+                    {archiving ? (
+                      <Loader2 data-icon="inline-start" className="animate-spin" />
+                    ) : archived ? (
+                      <ArchiveRestore data-icon="inline-start" />
+                    ) : (
+                      <Archive data-icon="inline-start" />
+                    )}
+                    {archived ? 'Restaurer' : 'Archiver'}
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </StaggerItem>
@@ -221,21 +255,21 @@ export default function ContactDetailPage() {
           </CardHeader>
           <CardContent>
             <dl className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <InfoRow label="Téléphone" icon={Phone} value={contact.phone} href={contact.phone ? 'tel:' + contact.phone.replace(/\s/g, '') : undefined} copyLabel="le téléphone" />
-              <InfoRow label="E-mail" icon={Mail} value={contact.email} href={contact.email ? 'mailto:' + contact.email : undefined} copyLabel="l’e-mail" />
-              <InfoRow label={contact.kind === 'company' ? 'Matricule fiscal' : 'CIN (identité)'} icon={IdCard} value={contact.national_id} />
-              <InfoRow label="Adresse" icon={MapPin} value={contact.address} />
+              <InfoRow label="Téléphone" icon={Phone} value={current.phone} href={current.phone ? 'tel:' + current.phone.replace(/\s/g, '') : undefined} copyLabel="le téléphone" />
+              <InfoRow label="E-mail" icon={Mail} value={current.email} href={current.email ? 'mailto:' + current.email : undefined} copyLabel="l’e-mail" />
+              <InfoRow label={current.kind === 'company' ? 'Matricule fiscal' : 'CIN (identité)'} icon={IdCard} value={current.national_id} />
+              <InfoRow label="Adresse" icon={MapPin} value={current.address} />
             </dl>
           </CardContent>
         </Card>
       </StaggerItem>
 
-      <Stagger className="grid gap-4 md:grid-cols-3">
+      <Stagger className="grid gap-4 lg:grid-cols-3">
         {CONTACT_ROLES.map((role) => {
           const Icon = role.icon;
           const active = held.has(role.value);
           return (
-            <StaggerItem key={role.value} className="h-full">
+            <StaggerItem key={role.value} className={role.value === 'owner' ? 'h-full lg:col-span-3' : 'h-full'}>
               <HoverLift className="h-full">
                 <Card className={'h-full ' + (active ? '' : 'bg-muted/40')}>
                   <CardHeader>
@@ -248,7 +282,9 @@ export default function ContactDetailPage() {
                     <CardDescription>{active ? 'Rôle actif' : 'Non applicable'}</CardDescription>
                   </CardHeader>
                   <CardContent className="text-sm text-muted-foreground">
-                    {active ? EMPTY_TEXT[role.value] + ' L’historique apparaîtra ici avec les prochains modules.' : 'Ce contact n’a pas ce rôle.'}
+                    {!active && 'Ce contact n’a pas ce rôle.'}
+                    {active && role.value === 'owner' && <ContactOwnedUnits contactId={current.id} />}
+                    {active && role.value !== 'owner' && LATER_MODULE[role.value]}
                   </CardContent>
                 </Card>
               </HoverLift>
@@ -266,18 +302,14 @@ export default function ContactDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <NotesBody notes={contact.notes} />
+            {current.notes ? (
+              <p className="whitespace-pre-line text-sm leading-relaxed">{current.notes}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucune note pour ce contact.</p>
+            )}
           </CardContent>
         </Card>
       </StaggerItem>
     </Stagger>
-  );
-}
-
-function NotesBody({ notes }: { notes: string | null }): ReactNode {
-  return notes ? (
-    <p className="whitespace-pre-line text-sm leading-relaxed">{notes}</p>
-  ) : (
-    <p className="text-sm text-muted-foreground">Aucune note pour ce contact.</p>
   );
 }
