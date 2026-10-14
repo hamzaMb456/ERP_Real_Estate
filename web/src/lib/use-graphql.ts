@@ -3,17 +3,18 @@
 import { useEffect, useState } from 'react';
 import { graphql } from '@/lib/graphql';
 
-type QueryState<T> =
+export type QueryState<T> =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'success'; data: T };
 
-export function useGraphql<T>(query: string): QueryState<T> {
+export function useGraphql<T>(query: string, variables?: Record<string, unknown>): QueryState<T> {
   const [state, setState] = useState<QueryState<T>>({ status: 'loading' });
+  const variablesKey = JSON.stringify(variables ?? {});
 
   useEffect(() => {
     let active = true;
-    graphql<T>(query)
+    graphql<T>(query, JSON.parse(variablesKey) as Record<string, unknown>)
       .then((data) => active && setState({ status: 'success', data }))
       .catch((error: unknown) =>
         active &&
@@ -25,7 +26,7 @@ export function useGraphql<T>(query: string): QueryState<T> {
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [query, variablesKey]);
 
   return state;
 }
