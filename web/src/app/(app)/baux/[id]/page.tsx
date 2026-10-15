@@ -8,6 +8,7 @@ import { LEASE_QUERY, type LeaseDetails } from '@/components/leases/lease-detail
 import { LeaseActions } from '@/components/leases/lease-actions';
 import { LeaseOverviewTab } from '@/components/leases/lease-overview-tab';
 import { LeaseFlagBadges, LeaseStatusBadge } from '@/components/leases/lease-status-badge';
+import { RentsTab } from '@/components/leases/rents-tab';
 import { Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -115,7 +116,7 @@ export default function LeaseDetailPage() {
             <LeaseOverviewTab lease={lease} canEdit={canEdit} onChanged={refresh} />
           </TabsContent>
           <TabsContent value="loyers" className="pt-4">
-            <p className="text-sm text-muted-foreground">Chargement…</p>
+            <RentsTab lease={lease} canEdit={canEdit} onChanged={refresh} />
           </TabsContent>
           <TabsContent value="documents" className="pt-4">
             <p className="text-sm text-muted-foreground">Chargement…</p>
