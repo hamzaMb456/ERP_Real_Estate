@@ -507,4 +507,77 @@ begin
 end;
 $$;
 
--- <<< PART 3 (task 5): views
+-- Current rent per leased unit: the latest row starting on or before today; when none has started yet,
+-- the earliest row. The next change is the first row after both today and the current row.
+create view public.current_lease_rents as
+with ranked as (
+  select r.*,
+         row_number() over (
+           partition by r.lease_id, r.unit_id
+           order by (r.effective_from <= public.today_tunis()) desc,
+                    case when r.effective_from <= public.today_tunis() then r.effective_from end desc nulls last,
+                    r.effective_from asc
+         ) as rn
+  from public.lease_rents r
+)
+select k.organization_id, k.lease_id, k.unit_id, k.effective_from, k.rent_amount, k.charges_amount,
+       nx.effective_from as next_change_on, nx.rent_amount as next_rent_amount, nx.charges_amount as next_charges_amount
+from ranked k
+left join lateral (
+  select n.effective_from, n.rent_amount, n.charges_amount
+  from public.lease_rents n
+  where n.lease_id = k.lease_id and n.unit_id = k.unit_id
+    and n.effective_from > greatest(k.effective_from, public.today_tunis())
+  order by n.effective_from
+  limit 1
+) nx on true
+where k.rn = 1;
+
+-- One row per lease for the list, the fiche and the dashboard, with every flag already computed.
+create view public.lease_overview as
+select l.id, l.organization_id, l.number, l.status, l.start_date, l.end_date, l.payment_day, l.deposit_amount,
+       l.signed_at, l.registered_at, l.registration_receipt, l.ended_on, l.end_reason, l.archived_at,
+       coalesce(u.unit_count, 0) as unit_count,
+       u.unit_codes,
+       r.renter_names,
+       coalesce(c.total_rent, 0) as total_rent,
+       coalesce(c.total_charges, 0) as total_charges,
+       (l.status = 'active' and l.end_date >= public.today_tunis()
+         and l.end_date <= public.today_tunis() + public.lease_rule('ending_soon_days')) as is_ending_soon,
+       (l.status = 'active' and l.end_date < public.today_tunis()
+         and l.end_date + public.lease_rule('grace_days') >= public.today_tunis()) as in_grace,
+       case when l.status = 'active' and l.end_date < public.today_tunis()
+            then greatest(l.end_date + public.lease_rule('grace_days') - public.today_tunis(), 0) end as grace_days_left,
+       l.signed_at + public.lease_rule('registration_days') as registration_deadline,
+       case
+         when l.status = 'draft' or l.signed_at is null then 'not_applicable'
+         when l.registered_at is not null then 'registered'
+         when l.status in ('ended', 'expired') then 'not_applicable'
+         when public.today_tunis() > l.signed_at + public.lease_rule('registration_days') then 'overdue'
+         when public.today_tunis() >= l.signed_at + public.lease_rule('registration_days') - public.lease_rule('registration_warning_days') then 'due_soon'
+         else 'pending'
+       end as registration_state
+from public.leases l
+left join lateral (
+  select count(*)::integer as unit_count, string_agg(un.code, ', ' order by un.code) as unit_codes
+  from public.lease_units lu join public.units un on un.id = lu.unit_id
+  where lu.lease_id = l.id
+) u on true
+left join lateral (
+  select string_agg(co.full_name, ', ' order by co.full_name) as renter_names
+  from public.lease_parties lp join public.contacts co on co.id = lp.contact_id
+  where lp.lease_id = l.id and lp.role = 'renter'
+) r on true
+left join lateral (
+  select sum(cr.rent_amount) as total_rent, sum(cr.charges_amount) as total_charges
+  from public.current_lease_rents cr
+  where cr.lease_id = l.id
+) c on true;
+
+-- The active lease(s) of each unit, with the renters and the current rent.
+create view public.unit_current_lease as
+select o.organization_id, lu.unit_id, o.id as lease_id, o.number, o.start_date, o.end_date, o.renter_names,
+       o.in_grace, o.is_ending_soon, cr.rent_amount, cr.charges_amount
+from public.lease_units lu
+join public.lease_overview o on o.id = lu.lease_id and o.status = 'active'
+left join public.current_lease_rents cr on cr.lease_id = lu.lease_id and cr.unit_id = lu.unit_id;

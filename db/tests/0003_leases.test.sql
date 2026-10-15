@@ -365,6 +365,60 @@ begin
 
   -- <<< NEXT TESTS (task 4) go above this line
 
+  -- 15. Views. Leases without units are enough for the flags.
+  select unit_count || '/' || unit_codes || '/' || renter_names || '/' || total_rent::text || '/' || total_charges::text
+  into v_text from lease_overview where id = l3;
+  if v_text <> '1/L-1/Locataire Un/800.000/50.000' then raise exception 'FAIL 15a: overview of l3 is %', v_text; end if;
+
+  insert into leases (id, organization_id, status, start_date, end_date, signed_at) values
+    (l14, org, 'active', v_today - 100, v_today + 20, v_today - 10),   -- ending soon, registration pending
+    (l15, org, 'active', v_today - 300, v_today - 3,  v_today - 300),  -- grace week
+    (l16, org, 'active', v_today - 60,  v_today + 300, v_today - 55),  -- registration due in 5 days
+    (l17, org, 'active', v_today - 80,  v_today + 300, v_today - 70);  -- registration overdue
+  insert into leases (id, organization_id, status, start_date, end_date, signed_at, registered_at) values
+    (l18, org, 'active', v_today - 80, v_today + 300, v_today - 70, v_today - 65);
+  insert into leases (id, organization_id, start_date, end_date) values (l19, org, v_today, v_today + 100);
+
+  select is_ending_soon::text || '/' || in_grace::text || '/' || registration_state into v_text from lease_overview where id = l14;
+  if v_text <> 'true/false/pending' then raise exception 'FAIL 15b: l14 is %', v_text; end if;
+  select is_ending_soon::text || '/' || in_grace::text || '/' || grace_days_left::text into v_text from lease_overview where id = l15;
+  if v_text <> 'false/true/4' then raise exception 'FAIL 15b: l15 is %', v_text; end if;
+  select registration_state || '/' || registration_deadline::text into v_text from lease_overview where id = l16;
+  if v_text <> 'due_soon/' || (v_today + 5)::text then raise exception 'FAIL 15c: l16 is %', v_text; end if;
+  select registration_state into v_text from lease_overview where id = l17;
+  if v_text <> 'overdue' then raise exception 'FAIL 15c: l17 is %', v_text; end if;
+  select registration_state into v_text from lease_overview where id = l18;
+  if v_text <> 'registered' then raise exception 'FAIL 15c: l18 is %', v_text; end if;
+  select registration_state into v_text from lease_overview where id = l19;
+  if v_text <> 'not_applicable' then raise exception 'FAIL 15c: the draft l19 is %', v_text; end if;
+  select registration_state into v_text from lease_overview where id = l8;
+  if v_text <> 'not_applicable' then raise exception 'FAIL 15c: the ended, unregistered l8 is %', v_text; end if;
+
+  -- 15d. Current and next rent: l7 has 700 now, 750 from +11 days, 780 from +20 days.
+  select rent_amount::text || '/' || next_change_on::text || '/' || next_rent_amount::text into v_text
+  from current_lease_rents where lease_id = l7 and unit_id = u2;
+  if v_text <> '700.000/' || (v_today + 11)::text || '/750.000' then raise exception 'FAIL 15d: l7 rent is %', v_text; end if;
+  -- a lease that has not started yet shows its first rent as current, with no "next change" of its own
+  select rent_amount::text || '/' || coalesce(next_change_on::text, 'none') into v_text
+  from current_lease_rents where lease_id = l5 and unit_id = u1;
+  if v_text <> '500.000/none' then raise exception 'FAIL 15d: l5 rent is %', v_text; end if;
+
+  -- 15e. The unit sees its active lease.
+  select number into n from unit_current_lease where unit_id = u6 and lease_id = l1;
+  if n is null then raise exception 'FAIL 15e: unit_current_lease misses l1 on u6'; end if;
+  select count(*) into n from unit_current_lease where unit_id = u2;
+  if n <> 1 then raise exception 'FAIL 15e: u2 has % current leases', n; end if;
+
+  -- 15f. Nothing reads the server clock directly: "today" is Tunisia (the session runs in UTC).
+  if position('Africa/Tunis' in pg_get_functiondef('public.today_tunis()'::regprocedure)) = 0 then
+    raise exception 'FAIL 15f: today_tunis does not use Africa/Tunis';
+  end if;
+  foreach v_text in array array['public.lease_overview', 'public.current_lease_rents', 'public.unit_current_lease'] loop
+    if pg_get_viewdef(v_text::regclass) ilike '%current_date%' or pg_get_viewdef(v_text::regclass) like '%now()%' then
+      raise exception 'FAIL 15f: % reads the server clock', v_text;
+    end if;
+  end loop;
+
   -- <<< NEXT TESTS (task 5) go above this line
 
 
