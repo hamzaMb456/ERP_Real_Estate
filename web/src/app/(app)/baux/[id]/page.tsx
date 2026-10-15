@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft, SearchX } from 'lucide-react';
 import { LEASE_QUERY, type LeaseDetails } from '@/components/leases/lease-details';
 import { LeaseActions } from '@/components/leases/lease-actions';
+import { LeaseDocuments } from '@/components/leases/lease-documents';
 import { LeaseOverviewTab } from '@/components/leases/lease-overview-tab';
 import { LeaseFlagBadges, LeaseStatusBadge } from '@/components/leases/lease-status-badge';
 import { RentsTab } from '@/components/leases/rents-tab';
@@ -119,7 +120,7 @@ export default function LeaseDetailPage() {
             <RentsTab lease={lease} canEdit={canEdit} onChanged={refresh} />
           </TabsContent>
           <TabsContent value="documents" className="pt-4">
-            <p className="text-sm text-muted-foreground">Chargement…</p>
+            <LeaseDocuments leaseId={lease.id} />
           </TabsContent>
         </Tabs>
       </StaggerItem>

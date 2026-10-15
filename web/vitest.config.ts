@@ -22,6 +22,7 @@ export default defineConfig({
         'src/lib/dates.ts',
         'src/lib/show-error.ts',
         'src/lib/leases.ts',
+        'src/lib/lease-files.ts',
       ],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },

@@ -11,8 +11,8 @@ const LINK_FILE = `
   }
 `;
 
-export async function uploadToBucket(file: File): Promise<string> {
-  const response = await nhost.storage.uploadFiles({ 'bucket-id': BUCKET, 'file[]': [file] });
+export async function uploadToBucket(file: File, bucket: string = BUCKET): Promise<string> {
+  const response = await nhost.storage.uploadFiles({ 'bucket-id': bucket, 'file[]': [file] });
   const id = response.body.processedFiles[0]?.id;
   if (!id) throw new Error('Le fichier n’a pas pu être envoyé.');
   return id;
@@ -45,9 +45,25 @@ export async function downloadStoredFile(id: string, fileName: string): Promise<
 }
 
 export const storageDeps: UploadDeps = {
-  upload: uploadToBucket,
+  upload: (file) => uploadToBucket(file),
   remove: deleteStoredFile,
   link: async (object) => {
     await graphql(LINK_FILE, { object });
+  },
+};
+
+export const LEASE_BUCKET = 'lease-files';
+
+const LINK_LEASE_FILE = `
+  mutation LinkLeaseFile($object: lease_files_insert_input!) {
+    insert_lease_files_one(object: $object) { id }
+  }
+`;
+
+export const leaseStorageDeps: UploadDeps = {
+  upload: (file) => uploadToBucket(file, LEASE_BUCKET),
+  remove: deleteStoredFile,
+  link: async (object) => {
+    await graphql(LINK_LEASE_FILE, { object });
   },
 };
