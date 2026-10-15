@@ -1,4 +1,4 @@
-import { daysBetween } from '@/lib/dates';
+import { daysBetween, todayTunis } from '@/lib/dates';
 import type { EndReason, LeaseDraftInput, LeaseOverviewRow, LeaseStatus, RegistrationState } from '@/lib/lease-types';
 import { formatDateFr } from '@/lib/ownership';
 
@@ -121,7 +121,13 @@ export function planRenewalRents(rows: RentRowInput[], current: CurrentRent[]): 
   return { rents: changed.length > 0 ? changed : null };
 }
 
-export type RegistrationInfo = { tone: 'neutral' | 'warning' | 'danger' | 'success'; text: string };
+/** The dates the « Terminer le bail » dialog accepts. A lease that has not started can be cancelled from its start date. */
+export function endDateBounds(startDate: string, today: string): { min: string; max: string | undefined; initial: string } {
+  if (startDate > today) return { min: startDate, max: undefined, initial: startDate };
+  return { min: startDate, max: today, initial: today };
+}
+
+export type RegistrationInfo ={ tone: 'neutral' | 'warning' | 'danger' | 'success'; text: string };
 
 /** The sentence of the registration card. The state and the deadline come from the database view. */
 export function describeRegistration(
@@ -162,7 +168,16 @@ export const LEASE_TABS: { value: LeaseTab; label: string }[] = [
 
 export const LEASE_TAB_VALUES = LEASE_TABS.map((item) => item.value);
 
-export function matchesLeaseTab(row: Pick<LeaseOverviewRow, 'status' | 'is_ending_soon' | 'in_grace'>, tab: LeaseTab): boolean {
+/** Active, ended more than the grace week ago, and not yet expired: nothing in the database flags it, so we do. */
+export function isPastGrace(row: { status?: LeaseStatus; end_date: string; in_grace: boolean }, today: string): boolean {
+  return row.status === 'active' && row.end_date < today && !row.in_grace;
+}
+
+export function matchesLeaseTab(
+  row: Pick<LeaseOverviewRow, 'status' | 'is_ending_soon' | 'in_grace' | 'end_date'>,
+  tab: LeaseTab,
+  today: string = todayTunis(),
+): boolean {
   switch (tab) {
     case 'all':
       return true;
@@ -171,7 +186,7 @@ export function matchesLeaseTab(row: Pick<LeaseOverviewRow, 'status' | 'is_endin
     case 'draft':
       return row.status === 'draft';
     case 'renew':
-      return row.is_ending_soon || row.in_grace;
+      return row.is_ending_soon || row.in_grace || isPastGrace(row, today);
     case 'ended':
       return row.status === 'ended' || row.status === 'expired';
   }
@@ -189,13 +204,15 @@ export type LeaseFlag = { key: string; label: string; tone: LeaseFlagTone };
 type FlagRow = Pick<
   LeaseOverviewRow,
   'is_ending_soon' | 'in_grace' | 'grace_days_left' | 'registration_state' | 'registration_deadline' | 'end_date'
->;
+> & { status?: LeaseStatus };
 
 /** The badges next to a lease's status: ending soon, grace week, registration. All thresholds come from the database flags. */
 export function leaseFlags(row: FlagRow, today: string): LeaseFlag[] {
   const flags: LeaseFlag[] = [];
   if (row.in_grace) {
     flags.push({ key: 'grace', label: `Échu · à renouveler (${row.grace_days_left ?? 0} j)`, tone: 'warning' });
+  } else if (isPastGrace(row, today)) {
+    flags.push({ key: 'overdue', label: 'Échu · à terminer', tone: 'danger' });
   } else if (row.is_ending_soon) {
     const days = daysBetween(today, row.end_date);
     const label = days <= 0 ? 'Fin aujourd’hui' : days === 1 ? 'Fin demain' : `Fin dans ${days} jours`;

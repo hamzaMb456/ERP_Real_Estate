@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Cell, Pie, PieChart } from 'recharts';
 import { ArrowUpRight, Building2, ClipboardList, DoorOpen, FileBadge, FileClock, KeyRound, Landmark, Plus, Users } from 'lucide-react';
@@ -9,11 +10,12 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { todayTunis } from '@/lib/dates';
 import { formatTnd } from '@/lib/format';
 import { useGraphql } from '@/lib/use-graphql';
 
 const DASHBOARD_QUERY = `
-  query Dashboard {
+  query Dashboard($today: date!) {
     units(where: { archived_at: { _is_null: true } }) {
       status
       property { branch { id name } }
@@ -26,7 +28,7 @@ const DASHBOARD_QUERY = `
     }
     contacts_aggregate { aggregate { count } }
     record_gaps_aggregate { aggregate { count } }
-    leases_to_renew: lease_overview_aggregate(where: { _or: [{ is_ending_soon: { _eq: true } }, { in_grace: { _eq: true } }] }) { aggregate { count } }
+    leases_to_renew: lease_overview_aggregate(where: { _or: [{ is_ending_soon: { _eq: true } }, { in_grace: { _eq: true } }, { status: { _eq: "active" }, end_date: { _lt: $today } }] }) { aggregate { count } }
     registrations_due: lease_overview_aggregate(where: { registration_state: { _in: ["due_soon", "overdue"] } }) { aggregate { count } }
   }
 `;
@@ -87,7 +89,8 @@ function Kpi({
 }
 
 export default function DashboardPage() {
-  const result = useGraphql<DashboardData>(DASHBOARD_QUERY);
+  const [today] = useState(todayTunis);
+  const result = useGraphql<DashboardData>(DASHBOARD_QUERY, { today });
 
   if (result.status === 'error') {
     return (

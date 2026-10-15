@@ -29,7 +29,7 @@ export function LeaseStatusBadge({ status }: { status: LeaseStatus }) {
 type FlagRow = Pick<
   LeaseOverviewRow,
   'is_ending_soon' | 'in_grace' | 'grace_days_left' | 'registration_state' | 'registration_deadline' | 'end_date'
->;
+> & { status?: LeaseStatus };
 
 export function LeaseFlagBadges({ row }: { row: FlagRow }) {
   const flags = leaseFlags(row, todayTunis());

@@ -23,6 +23,7 @@ declare
   u3 uuid := 'b0000000-0000-4000-8000-000000000013'; u4 uuid := 'b0000000-0000-4000-8000-000000000014';
   u5 uuid := 'b0000000-0000-4000-8000-000000000015'; u6 uuid := 'b0000000-0000-4000-8000-000000000016';
   u7 uuid := 'b0000000-0000-4000-8000-000000000017'; u8 uuid := 'b0000000-0000-4000-8000-000000000018';
+  u9 uuid := 'b0000000-0000-4000-8000-000000000019';
   c1 uuid := 'b0000000-0000-4000-8000-000000000021'; c2 uuid := 'b0000000-0000-4000-8000-000000000022';
   c3 uuid := 'b0000000-0000-4000-8000-000000000023';
   l1  uuid := 'b0000000-0000-4000-8000-000000000101'; l2  uuid := 'b0000000-0000-4000-8000-000000000102';
@@ -37,6 +38,7 @@ declare
   l19 uuid := 'b0000000-0000-4000-8000-000000000119'; l20 uuid := 'b0000000-0000-4000-8000-000000000120';
   l21 uuid := 'b0000000-0000-4000-8000-000000000121'; l22 uuid := 'b0000000-0000-4000-8000-000000000122';
   l23 uuid := 'b0000000-0000-4000-8000-000000000123'; l24 uuid := 'b0000000-0000-4000-8000-000000000124';
+  l25 uuid := 'b0000000-0000-4000-8000-000000000125';
   s_ok     json;
   s_viewer json;
   s_other  json;
@@ -513,6 +515,25 @@ begin
   if position('partition by r.organization_id' in lower(pg_get_viewdef('public.current_lease_rents'::regclass))) = 0 then
     raise exception 'FAIL 23d: current_lease_rents ranks rows across organizations';
   end if;
+
+  -- 24. A lease activated for a future start can still be cancelled (wrong unit, renter withdrew): it ends on its start date.
+  insert into units (id, organization_id, property_id, code) values (u9, org, prop, 'L-9');
+  perform pg_temp.mk_lease(l25, org, u9, c1, v_today + 20, v_today + 400);
+  perform 1 from public.activate_lease(l25, v_today, s_ok);
+  select status into v_text from units where id = u9;
+  if v_text <> 'rented' then raise exception 'FAIL 24a: unit status is %', v_text; end if;
+  begin
+    perform 1 from public.end_lease(l25, v_today + 19, 'other', s_ok);
+    raise exception 'FAIL 24b: an end date before the start was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_end_before_start' then raise exception 'FAIL 24b: wrong error: %', sqlerrm; end if;
+  end;
+  perform 1 from public.end_lease(l25, v_today + 20, 'terminated_by_renter', s_ok);
+  select status || '/' || ended_on::text into v_text from leases where id = l25;
+  if v_text <> 'ended/' || (v_today + 20)::text then raise exception 'FAIL 24c: lease is %', v_text; end if;
+  select status into v_text from units where id = u9;
+  if v_text <> 'vacant' then raise exception 'FAIL 24c: unit status is %', v_text; end if;
 
   -- <<< NEXT TESTS (task 5) go above this line
 

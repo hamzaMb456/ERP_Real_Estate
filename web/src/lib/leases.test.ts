@@ -3,6 +3,7 @@ import type { LeaseDraftInput, LeaseOverviewRow } from './lease-types';
 import {
   buildLeaseObjects,
   describeRegistration,
+  endDateBounds,
   formatLeaseNumber,
   leaseFlags,
   leasePeriod,
@@ -133,12 +134,21 @@ describe('tabs and search', () => {
       row({ id: 'e', status: 'ended' }),
       row({ id: 'f', status: 'expired' }),
     ];
-    const ids = (tab: Parameters<typeof matchesLeaseTab>[1]) => rows.filter((r) => matchesLeaseTab(r, tab)).map((r) => r.id);
+    const ids = (tab: Parameters<typeof matchesLeaseTab>[1]) => rows.filter((r) => matchesLeaseTab(r, tab, '2026-10-15')).map((r) => r.id);
     expect(ids('all')).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
     expect(ids('active')).toEqual(['a', 'c', 'd']);
     expect(ids('draft')).toEqual(['b']);
     expect(ids('renew')).toEqual(['c', 'd']);
     expect(ids('ended')).toEqual(['e', 'f']);
+  });
+
+  it('keeps an active lease that is past its grace week in « À renouveler »', () => {
+    const today = '2026-10-15';
+    const pastGrace = row({ end_date: '2026-10-01' });
+    expect(matchesLeaseTab(pastGrace, 'renew', today)).toBe(true);
+    expect(matchesLeaseTab(pastGrace, 'active', today)).toBe(true);
+    expect(matchesLeaseTab(row({ end_date: '2026-10-01', status: 'ended' }), 'renew', today)).toBe(false);
+    expect(matchesLeaseTab(row({ end_date: '2026-10-15' }), 'renew', today)).toBe(false);
   });
 
   it('finds a lease by number, unit or renter, ignoring case', () => {
@@ -173,6 +183,12 @@ describe('leaseFlags', () => {
     expect(leaseFlags(row({ in_grace: true, grace_days_left: 4, end_date: '2026-10-12' }), today)).toEqual([
       { key: 'grace', label: 'Échu · à renouveler (4 j)', tone: 'warning' },
     ]);
+  });
+
+  it('flags an active lease that is past its grace week, and only that one', () => {
+    expect(leaseFlags(row({ end_date: '2026-10-01' }), today)).toEqual([{ key: 'overdue', label: 'Échu · à terminer', tone: 'danger' }]);
+    expect(leaseFlags(row({ end_date: '2026-10-01', status: 'ended' }), today)).toEqual([]);
+    expect(leaseFlags(row({ in_grace: true, grace_days_left: 4, end_date: '2026-10-12' }), today).map((f) => f.key)).toEqual(['grace']);
   });
 
   it('warns about the registration only in the last days or when overdue (see also describeRegistration)', () => {
@@ -255,5 +271,19 @@ describe('describeRegistration', () => {
       'Disponible après l’activation du bail.',
     );
     expect(describeRegistration({ ...base, status: 'ended', registration_state: 'not_applicable' }, today).text).toBe('Bail non enregistré.');
+  });
+});
+
+describe('endDateBounds', () => {
+  it('lets a started lease end between its start and today', () => {
+    expect(endDateBounds('2026-01-01', '2026-10-15')).toEqual({ min: '2026-01-01', max: '2026-10-15', initial: '2026-10-15' });
+  });
+
+  it('lets a lease that has not started be cancelled from its start date', () => {
+    expect(endDateBounds('2026-11-01', '2026-10-15')).toEqual({ min: '2026-11-01', max: undefined, initial: '2026-11-01' });
+  });
+
+  it('treats a lease starting today as started', () => {
+    expect(endDateBounds('2026-10-15', '2026-10-15')).toEqual({ min: '2026-10-15', max: '2026-10-15', initial: '2026-10-15' });
   });
 });

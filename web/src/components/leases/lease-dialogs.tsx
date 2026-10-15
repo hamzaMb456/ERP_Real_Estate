@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { addDays, todayTunis } from '@/lib/dates';
 import { graphql } from '@/lib/graphql';
 import type { EndReason } from '@/lib/lease-types';
-import { END_REASON_LABELS, ENDABLE_REASONS, planRenewalRents } from '@/lib/leases';
+import { END_REASON_LABELS, ENDABLE_REASONS, endDateBounds, planRenewalRents } from '@/lib/leases';
 import { formatDateFr } from '@/lib/ownership';
 
 const ACTIVATE = `
@@ -115,8 +115,8 @@ export function RenewDialog({ lease, trigger, onDone }: { lease: RenewLease; tri
 type EndLease = Pick<LeaseDetails, 'id' | 'start_date'>;
 
 export function EndDialog({ lease, trigger, onDone }: { lease: EndLease; trigger: ReactNode; onDone: () => void }) {
-  const today = todayTunis();
-  const [endedOn, setEndedOn] = useState(today);
+  const bounds = endDateBounds(lease.start_date, todayTunis());
+  const [endedOn, setEndedOn] = useState(bounds.initial);
   const [reason, setReason] = useState<EndReason>('terminated_by_renter');
   return (
     <LeaseActionDialog
@@ -133,8 +133,8 @@ export function EndDialog({ lease, trigger, onDone }: { lease: EndLease; trigger
     >
       <Field>
         <FieldLabel htmlFor="end-date">Date de départ</FieldLabel>
-        <Input id="end-date" type="date" required min={lease.start_date} max={today} value={endedOn} onChange={(event) => setEndedOn(event.target.value)} className="w-48" />
-        <FieldDescription>Au plus tard aujourd’hui.</FieldDescription>
+        <Input id="end-date" type="date" required min={bounds.min} max={bounds.max} value={endedOn} onChange={(event) => setEndedOn(event.target.value)} className="w-48" />
+        <FieldDescription>{bounds.max ? 'Au plus tard aujourd’hui.' : 'Le bail n’a pas encore commencé : il sera annulé à sa date de début.'}</FieldDescription>
       </Field>
       <Field>
         <FieldLabel htmlFor="end-reason">Motif</FieldLabel>

@@ -480,7 +480,10 @@ begin
   if p_ended_on is null or p_ended_on < v_lease.start_date then
     raise exception 'lease_end_before_start' using errcode = '23514';
   end if;
-  if p_ended_on > public.today_tunis() then raise exception 'lease_end_in_future' using errcode = '23514'; end if;
+  -- A lease that has not started yet can be cancelled (it ends on its start date); one that started cannot end in the future.
+  if p_ended_on > public.today_tunis() and v_lease.start_date <= public.today_tunis() then
+    raise exception 'lease_end_in_future' using errcode = '23514';
+  end if;
   -- Leaving after the end date (grace week) must not run into a lease that already follows this one.
   perform public.assert_no_lease_overlap(v_lease.id, v_lease.start_date, p_ended_on);
 

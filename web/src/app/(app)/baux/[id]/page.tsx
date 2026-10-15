@@ -80,6 +80,7 @@ export default function LeaseDetailPage() {
 
   const renters = lease.parties.filter((party) => party.role === 'renter').map((party) => party.contact.full_name);
   const flagRow = {
+    status: lease.status,
     is_ending_soon: lease.overview?.is_ending_soon ?? false,
     in_grace: lease.overview?.in_grace ?? false,
     grace_days_left: lease.overview?.grace_days_left ?? null,

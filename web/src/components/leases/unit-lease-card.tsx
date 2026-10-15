@@ -64,7 +64,7 @@ export function UnitLeaseCard({ unitId, canCreate }: { unitId: string; canCreate
                 <p className="text-muted-foreground">{row.renter_names ?? '—'}</p>
                 <p className="text-xs text-muted-foreground">{leasePeriod(row)}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  <LeaseFlagBadges row={{ ...row, grace_days_left: null, registration_state: 'registered', registration_deadline: null }} />
+                  <LeaseFlagBadges row={{ ...row, status: 'active', grace_days_left: null, registration_state: 'registered', registration_deadline: null }} />
                 </div>
               </div>
               <p className="font-medium tabular-nums">{row.rent_amount === null ? '—' : formatTnd(row.rent_amount)}</p>

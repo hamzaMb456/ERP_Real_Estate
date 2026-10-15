@@ -54,3 +54,13 @@ Vitest 4 would not start on this machine (rolldown native binding missing). Fix,
 ## Next step
 
 Write **Plan B** (migration `0004`: calendar `appointments`, `notifications`, `calendar_feed`, `staff_members`; the daily Nhost function for expiry, reminders and Google e-mail; FullCalendar), against the real interfaces built here. Ask the user before starting. Plans C (rent requests, `0005`) and D (inspections and deposit, `0006`) follow.
+
+## Final review (done)
+
+An independent review of the whole branch found 0 Critical, 3 Important (fixed, each test first) and 10 Minor (deferred, listed below).
+
+Fixed: a lease activated for a future start can now be cancelled (`end_lease` accepts an end date from the start date when the lease has not started; the dialog follows); an active lease past its grace week now shows « Échu · à terminer », stays in « À renouveler » and counts in the dashboard tile; `/baux/demandes` (sidebar) is a fixed placeholder route again.
+
+If `0003_leases.sql` was applied to the live database BEFORE this fix, re-run only the `create or replace function public.end_lease(...)` block of the file (it is idempotent); the rest is unchanged.
+
+Deferred minors: « 1.250 » typed for 1 250 TND reads as 1.250; the edit route `/baux/[id]/modifier` is not gated by `useCanEdit`; document dates use the UTC day; errcodes 42501/P0002 may show English « database query error » for stale ids; the rents tab shows « renewal » in English; the grace-week renewal message omits the « after today » rule; an active lease's occupied period ends at `end_date` (not at the end of grace); the form cannot prepare a back-to-back lease on a rented unit; lock order between the daily expiry and staff actions (add `order by unit_id` in `leases_sync_units`); a future registration date is accepted; a lease cancelled before it started keeps its start day occupied.

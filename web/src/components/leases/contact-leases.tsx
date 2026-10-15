@@ -47,7 +47,7 @@ function LeaseRows({ rows }: { rows: Row[] }) {
           </div>
           <div className="flex flex-wrap gap-1.5">
             <LeaseStatusBadge status={lease.status} />
-            {lease.overview && <LeaseFlagBadges row={{ ...lease.overview, end_date: lease.end_date }} />}
+            {lease.overview && <LeaseFlagBadges row={{ ...lease.overview, end_date: lease.end_date, status: lease.status }} />}
           </div>
         </li>
       ))}

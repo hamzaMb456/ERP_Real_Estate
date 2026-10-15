@@ -5,7 +5,8 @@ import { RegistrationCard } from '@/components/leases/registration-card';
 import { TermsTimeline } from '@/components/leases/terms-timeline';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatTnd } from '@/lib/format';
-import { END_REASON_LABELS } from '@/lib/leases';
+import { todayTunis } from '@/lib/dates';
+import { END_REASON_LABELS, isPastGrace } from '@/lib/leases';
 import { formatDateFr } from '@/lib/ownership';
 
 type Props = { lease: LeaseDetails; canEdit: boolean; onChanged: () => void };
@@ -30,6 +31,15 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
           <p>
             Ce bail est échu depuis le {formatDateFr(lease.end_date)}. Renouvelez-le ou terminez-le : il expirera automatiquement dans{' '}
             {lease.overview.grace_days_left ?? 0} jour(s) et ses unités seront libérées.
+          </p>
+        </div>
+      )}
+
+      {isPastGrace({ status: lease.status, end_date: lease.end_date, in_grace: lease.overview?.in_grace ?? false }, todayTunis()) && (
+        <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+          <p>
+            Ce bail est échu depuis le {formatDateFr(lease.end_date)} et la semaine de grâce est passée. Renouvelez-le ou terminez-le : son unité reste marquée louée tant que le bail est actif.
           </p>
         </div>
       )}
