@@ -34,7 +34,9 @@ declare
   l13 uuid := 'b0000000-0000-4000-8000-000000000113'; l14 uuid := 'b0000000-0000-4000-8000-000000000114';
   l15 uuid := 'b0000000-0000-4000-8000-000000000115'; l16 uuid := 'b0000000-0000-4000-8000-000000000116';
   l17 uuid := 'b0000000-0000-4000-8000-000000000117'; l18 uuid := 'b0000000-0000-4000-8000-000000000118';
-  l19 uuid := 'b0000000-0000-4000-8000-000000000119';
+  l19 uuid := 'b0000000-0000-4000-8000-000000000119'; l20 uuid := 'b0000000-0000-4000-8000-000000000120';
+  l21 uuid := 'b0000000-0000-4000-8000-000000000121'; l22 uuid := 'b0000000-0000-4000-8000-000000000122';
+  l23 uuid := 'b0000000-0000-4000-8000-000000000123'; l24 uuid := 'b0000000-0000-4000-8000-000000000124';
   s_ok     json;
   s_viewer json;
   s_other  json;
@@ -418,6 +420,99 @@ begin
       raise exception 'FAIL 15f: % reads the server clock', v_text;
     end if;
   end loop;
+
+  -- 16-23. Findings of the database review.
+  -- 16. Ending a lease in its grace week cannot overlap the lease that already follows it.
+  perform pg_temp.mk_lease(l20, org, u8, c1, v_today - 30, v_today - 3);
+  perform 1 from public.activate_lease(l20, v_today - 30, s_ok);
+  perform pg_temp.mk_lease(l21, org, u8, c2, v_today - 2, v_today + 100);
+  perform 1 from public.activate_lease(l21, v_today - 2, s_ok);
+  begin
+    perform 1 from public.end_lease(l20, v_today, 'other', s_ok);
+    raise exception 'FAIL 16: ending after the next lease started was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> format('lease_overlap:%s', (select number from leases where id = l21)) then
+      raise exception 'FAIL 16: wrong error: %', sqlerrm;
+    end if;
+  end;
+
+  -- 17. An archived draft cannot be activated.
+  perform pg_temp.mk_lease(l22, org, u3, c1, v_today, v_today + 100);
+  update leases set archived_at = now() where id = l22;
+  begin
+    perform 1 from public.activate_lease(l22, null, s_ok);
+    raise exception 'FAIL 17: an archived draft was activated';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_draft' then raise exception 'FAIL 17: wrong error: %', sqlerrm; end if;
+  end;
+
+  -- 18. The signature date cannot be in the future.
+  perform pg_temp.mk_lease(l23, org, u3, c1, v_today, v_today + 100);
+  begin
+    perform 1 from public.activate_lease(l23, v_today + 1, s_ok);
+    raise exception 'FAIL 18: a signature in the future was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_signed_in_future' then raise exception 'FAIL 18: wrong error: %', sqlerrm; end if;
+  end;
+
+  -- 19. A draft whose start moved after its first rent cannot be activated.
+  perform pg_temp.mk_lease(l24, org, u3, c1, v_today + 10, v_today + 300);
+  update leases set start_date = v_today + 20, end_date = v_today + 400 where id = l24;
+  begin
+    perform 1 from public.activate_lease(l24, null, s_ok);
+    raise exception 'FAIL 19: a rent dated before the start was accepted at activation';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_rent_before_start' then raise exception 'FAIL 19: wrong error: %', sqlerrm;
+    end if;
+  end;
+
+  -- 20. No rent can be added to an ended lease.
+  begin
+    insert into lease_rents (organization_id, lease_id, unit_id, effective_from, rent_amount) values (org, l8, u3, v_today, 100);
+    raise exception 'FAIL 20: a rent was added to an ended lease';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_active' then raise exception 'FAIL 20: wrong error: %', sqlerrm; end if;
+  end;
+
+  -- 21. An ended lease cannot be switched back to active with a plain update.
+  begin
+    update leases set status = 'active' where id = l8;
+    raise exception 'FAIL 21: an ended lease was reactivated directly';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_draft' then raise exception 'FAIL 21: wrong error: %', sqlerrm; end if;
+  end;
+
+  -- 22. The lease functions trust the session argument, so only the Hasura roles may run them.
+  select count(*) into n
+  from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+  where p.oid in (
+      'public.activate_lease(uuid,date,json)'::regprocedure,
+      'public.renew_lease(uuid,date,jsonb,text,json)'::regprocedure,
+      'public.end_lease(uuid,date,text,json)'::regprocedure,
+      'public.change_rent(uuid,uuid,date,numeric,numeric,text,json)'::regprocedure,
+      'public.expire_overdue_leases()'::regprocedure)
+    and a.grantee = 0 and a.privilege_type = 'EXECUTE';
+  if n <> 0 then raise exception 'FAIL 22: % lease functions are executable by PUBLIC', n; end if;
+
+  -- 23. Locks and plans that the review asked for are in place (concurrency cannot be run inside one transaction).
+  if position('for update' in lower(pg_get_functiondef('public.sync_unit_status(uuid)'::regprocedure))) = 0 then
+    raise exception 'FAIL 23a: sync_unit_status does not lock the unit row';
+  end if;
+  if position('lease_unit:' in pg_get_functiondef('public.assert_no_lease_overlap(uuid,date,date)'::regprocedure)) = 0 then
+    raise exception 'FAIL 23b: the overlap lock shares its key space with the ownership lock';
+  end if;
+  if position('for share' in lower(pg_get_functiondef('public.check_lease_draft_children()'::regprocedure))) = 0 then
+    raise exception 'FAIL 23c: the draft guard reads the lease status without a lock';
+  end if;
+  if position('partition by r.organization_id' in lower(pg_get_viewdef('public.current_lease_rents'::regclass))) = 0 then
+    raise exception 'FAIL 23d: current_lease_rents ranks rows across organizations';
+  end if;
 
   -- <<< NEXT TESTS (task 5) go above this line
 

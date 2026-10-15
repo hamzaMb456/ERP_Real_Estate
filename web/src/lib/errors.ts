@@ -24,6 +24,7 @@ const LEASE_MESSAGES: [needle: string, sentence: string][] = [
   ['lease_rent_before_start', 'Le loyer ne peut pas commencer avant le début du bail.'],
   ['lease_draft_only', 'Les unités d’un bail ne peuvent être modifiées que tant qu’il est en brouillon.'],
   ['lease_unit_not_found', 'Cette unité ne fait pas partie du bail.'],
+  ['lease_signed_in_future', 'La date de signature ne peut pas être dans le futur.'],
   ['leases_registration_check', 'La date d’enregistrement ne peut pas précéder la signature.'],
   ['lease_rents_lease_id_unit_id_effective_from_key', 'Un loyer existe déjà à cette date pour cette unité.'],
 ];

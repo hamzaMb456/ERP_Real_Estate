@@ -81,6 +81,12 @@ begin
   if coalesce(current_setting('erp.lease_action', true), '') = 'on' then
     return new;
   end if;
+  -- The number and the organization never change; a lease that is no longer a draft keeps its status.
+  if new.number is distinct from old.number
+     or new.organization_id is distinct from old.organization_id
+     or (old.status <> 'draft' and new.status is distinct from old.status) then
+    raise exception 'lease_not_draft' using errcode = '23514';
+  end if;
   if old.status <> 'draft' and (
        new.start_date  is distinct from old.start_date
     or new.end_date    is distinct from old.end_date
@@ -122,10 +128,11 @@ declare
   v_status text;
 begin
   -- NEW does not exist in a delete trigger and OLD does not exist in an insert trigger: branch on tg_op.
+  -- FOR SHARE: a concurrent activation (which updates the lease row) must finish before we read its status.
   if tg_op = 'DELETE' then
-    select status into v_status from public.leases where id = old.lease_id;
+    select status into v_status from public.leases where id = old.lease_id for share;
   else
-    select status into v_status from public.leases where id = new.lease_id;
+    select status into v_status from public.leases where id = new.lease_id for share;
   end if;
   -- No row means the lease itself is being deleted (cascade): nothing to protect.
   if v_status is not null and v_status <> 'draft' then
@@ -200,8 +207,16 @@ returns trigger
 language plpgsql
 set search_path = public, pg_temp
 as $$
+declare
+  v_status text;
+  v_start  date;
 begin
-  if new.effective_from < (select start_date from public.leases where id = new.lease_id) then
+  select status, start_date into v_status, v_start from public.leases where id = new.lease_id;
+  -- Rents are added to drafts and running leases (the lease functions set the flag for their own inserts).
+  if v_status not in ('draft', 'active') and coalesce(current_setting('erp.lease_action', true), '') <> 'on' then
+    raise exception 'lease_not_active' using errcode = '23514';
+  end if;
+  if new.effective_from < v_start then
     raise exception 'lease_rent_before_start' using errcode = '23514';
   end if;
   return new;
@@ -286,6 +301,10 @@ as $$
 declare
   v_target text;
 begin
+  -- Serialise with other transactions that change the same unit: without this lock, ending one lease while
+  -- another is being activated could overwrite the new 'rented' with 'vacant'. The exists() below then
+  -- runs in a later statement, so it sees the other transaction's committed work.
+  perform 1 from public.units where id = p_unit for update;
   v_target := case when exists (
       select 1 from public.lease_units lu join public.leases l on l.id = lu.lease_id
       where lu.unit_id = p_unit and l.status = 'active'
@@ -343,7 +362,8 @@ as $$
 declare
   v_number integer;
 begin
-  perform pg_advisory_xact_lock(hashtextextended(lu.unit_id::text, 0))
+  -- A prefix of our own: the ownership trigger of 0002 locks on the bare unit id.
+  perform pg_advisory_xact_lock(hashtextextended('lease_unit:' || lu.unit_id::text, 0))
   from (select unit_id from public.lease_units where lease_id = p_lease order by unit_id) lu;
 
   select l.number into v_number
@@ -374,7 +394,12 @@ declare
 begin
   select * into v_lease from public.leases where id = p_lease_id and organization_id = v_org for update;
   if not found then raise exception 'lease_not_found' using errcode = 'P0002'; end if;
-  if v_lease.status <> 'draft' then raise exception 'lease_not_draft' using errcode = '23514'; end if;
+  if v_lease.status <> 'draft' or v_lease.archived_at is not null then
+    raise exception 'lease_not_draft' using errcode = '23514';
+  end if;
+  if p_signed_on is not null and p_signed_on > public.today_tunis() then
+    raise exception 'lease_signed_in_future' using errcode = '23514';
+  end if;
   if not exists (select 1 from public.lease_parties where lease_id = v_lease.id and role = 'renter') then
     raise exception 'lease_needs_renter' using errcode = '23514';
   end if;
@@ -387,6 +412,10 @@ begin
       and not exists (select 1 from public.lease_rents r where r.lease_id = lu.lease_id and r.unit_id = lu.unit_id)
   ) then
     raise exception 'lease_needs_rent' using errcode = '23514';
+  end if;
+  -- The start date of a draft can be edited after its first rents were entered.
+  if exists (select 1 from public.lease_rents where lease_id = v_lease.id and effective_from < v_lease.start_date) then
+    raise exception 'lease_rent_before_start' using errcode = '23514';
   end if;
   perform public.assert_no_lease_overlap(v_lease.id, v_lease.start_date, v_lease.end_date);
 
@@ -452,6 +481,8 @@ begin
     raise exception 'lease_end_before_start' using errcode = '23514';
   end if;
   if p_ended_on > public.today_tunis() then raise exception 'lease_end_in_future' using errcode = '23514'; end if;
+  -- Leaving after the end date (grace week) must not run into a lease that already follows this one.
+  perform public.assert_no_lease_overlap(v_lease.id, v_lease.start_date, p_ended_on);
 
   perform set_config('erp.lease_action', 'on', true);
   update public.leases
@@ -499,7 +530,7 @@ begin
   with expired as (
     update public.leases
     set status = 'expired', ended_on = end_date, end_reason = 'expired_auto'
-    where status = 'active' and end_date + public.lease_rule('grace_days') < public.today_tunis()
+    where status = 'active' and end_date < public.today_tunis() - public.lease_rule('grace_days')
     returning *
   )
   select * from expired;
@@ -507,13 +538,36 @@ begin
 end;
 $$;
 
+-- The lease functions trust the session json they receive from Hasura, so only the Hasura database role
+-- (and the owner) may run them: by default Postgres lets every role execute a function.
+do $$
+declare
+  v_fn   text;
+  v_role text;
+begin
+  foreach v_fn in array array[
+    'public.activate_lease(uuid,date,json)',
+    'public.renew_lease(uuid,date,jsonb,text,json)',
+    'public.end_lease(uuid,date,text,json)',
+    'public.change_rent(uuid,uuid,date,numeric,numeric,text,json)',
+    'public.expire_overdue_leases()'
+  ] loop
+    execute format('revoke execute on function %s from public', v_fn);
+    foreach v_role in array array['nhost_hasura', 'postgres'] loop
+      if exists (select 1 from pg_roles where rolname = v_role) then
+        execute format('grant execute on function %s to %I', v_fn, v_role);
+      end if;
+    end loop;
+  end loop;
+end $$;
+
 -- Current rent per leased unit: the latest row starting on or before today; when none has started yet,
 -- the earliest row. The next change is the first row after both today and the current row.
 create view public.current_lease_rents as
 with ranked as (
   select r.*,
          row_number() over (
-           partition by r.lease_id, r.unit_id
+           partition by r.organization_id, r.lease_id, r.unit_id
            order by (r.effective_from <= public.today_tunis()) desc,
                     case when r.effective_from <= public.today_tunis() then r.effective_from end desc nulls last,
                     r.effective_from asc
