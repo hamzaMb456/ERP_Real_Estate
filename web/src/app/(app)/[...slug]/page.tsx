@@ -1,24 +1,20 @@
 import { notFound } from 'next/navigation';
-import { Construction } from 'lucide-react';
-import { NAVIGATION, findTrail } from '@/lib/navigation';
+import { PlaceholderCard } from '@/components/placeholder-card';
+import { NAVIGATION } from '@/lib/navigation';
 
-const KNOWN_PATHS = new Set(
-  NAVIGATION.flatMap((item) => [item.href, ...(item.children?.map((child) => child.href) ?? [])]),
-);
+function findLabel(pathname: string): string | null {
+  for (const item of NAVIGATION) {
+    if (item.href === pathname && !item.children) return item.label;
+    const child = item.children?.find((entry) => entry.href === pathname);
+    if (child) return child.label;
+  }
+  return null;
+}
 
 export default async function PlaceholderPage({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
-  const pathname = '/' + slug.join('/');
-  if (!KNOWN_PATHS.has(pathname)) notFound();
-  const title = findTrail(pathname).at(-1) ?? 'Page';
+  const label = findLabel('/' + slug.join('/'));
+  if (!label) notFound();
 
-  return (
-    <div className="flex flex-col items-start gap-3 rounded-lg border border-line bg-white p-8">
-      <Construction size={24} aria-hidden className="text-primary" />
-      <h1 className="text-xl font-semibold text-ink">{title}</h1>
-      <p className="max-w-prose text-sm text-muted">
-        Cette page est prévue dans les maquettes et sera développée dans une prochaine étape.
-      </p>
-    </div>
-  );
+  return <PlaceholderCard label={label} />;
 }

@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { AppHeader } from '@/components/app-header';
+import { AppSidebar } from '@/components/app-sidebar';
 import { useAuth } from '@/components/auth-provider';
-import { Sidebar } from '@/components/sidebar';
-import { Topbar } from '@/components/topbar';
+import { PageTransition, Pulse, ScrollProgress } from '@/components/motion/primitives';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, ready } = useAuth();
   const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (ready && !session) router.replace('/connexion');
@@ -16,19 +19,30 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!ready || !session) {
     return (
-      <div className="flex h-screen items-center justify-center text-sm text-muted" role="status">
-        Chargement…
+      <div className="flex h-svh items-center justify-center text-sm text-muted-foreground" role="status">
+        <Pulse>Chargement…</Pulse>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-page">
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
-      </div>
-    </div>
+    <SidebarProvider>
+      <a
+        href="#contenu"
+        className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
+      >
+        Aller au contenu
+      </a>
+      <AppSidebar />
+      <SidebarInset className="h-svh overflow-hidden">
+        <AppHeader />
+        <ScrollProgress container={scrollRef} />
+        <div ref={scrollRef} id="contenu" tabIndex={-1} className="flex-1 overflow-y-auto outline-none">
+          <div className="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
+            <PageTransition>{children}</PageTransition>
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
