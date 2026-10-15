@@ -53,7 +53,14 @@ Money is `numeric(12,3)` (TND). Every table has `organization_id` with composite
 `(id, organization_id)` as in Project 1. `updated_at` triggers as in Project 1. Migrations are applied by
 the user in the Nhost SQL Console (clipboard, UTF-8) and reviewed by the `database-reviewer` agent.
 
-### 3.1 Migration `0003_leases.sql` (slice 1)
+Migrations are split by plan: `0003_leases.sql` (core: `lease_rule`, `today_tunis`, leases, units, parties,
+rents, terms, files, guard triggers, unit-status sync, lease functions, views `lease_overview`,
+`current_lease_rents`, `unit_current_lease`), `0004_calendar_notifications.sql` (appointments,
+participants, notifications, `staff_members`, `calendar_feed`, `generate_daily_notifications`),
+`0005_rent_requests.sql`, `0006_inspections_deposit.sql`. In section 3.1 the `appointments`,
+`appointment_participants`, `notifications` and `calendar_feed` definitions belong to `0004`.
+
+### 3.1 Migration `0003_leases.sql` (Plan A: core leases)
 
 **`lease_rule(name text) returns integer`** (immutable): `grace_days` 7, `ending_soon_days` 60,
 `registration_days` 60, `registration_warning_days` 10. Also `today_tunis()` returning
@@ -175,8 +182,10 @@ the web can map them to French messages (§9).
 | `expire_overdue_leases()` | **admin only** (no role permission): active leases with `end_date + grace_days < today_tunis()` become `expired` (`ended_on = end_date`, reason `expired_auto`); syncs unit status; returns the ids. |
 | `generate_daily_notifications()` | **admin only**: inserts notifications (deduplicated) for ending soon, grace week, expired, registration due and overdue, and appointments planned for tomorrow; deletes notifications older than 90 days. |
 
-**Creating a lease** is one nested GraphQL insert (lease + units + parties + first rents) in a single
-transaction. **Converting a request** sends, in one request (Hasura runs the root fields of a mutation
+**Creating a lease** is one GraphQL request with four insert fields (lease, units, parties, first rents)
+that Hasura runs in order in one transaction (nested inserts are not used: the relationships are
+manual, with composite keys). A draft is edited the same way: delete its units and parties, update the
+lease, insert them again. **Converting a request** sends, in one request (Hasura runs the root fields of a mutation
 in one transaction), the optional contact insert, the draft lease insert with client-generated UUIDs,
 and `convert_rent_request`.
 
@@ -194,17 +203,17 @@ GitHub — nothing is pushed without the user's decision).
   `appointments` update of `starts_at`, `ends_at`, `location` or `status`: sends an invitation or an
   update (or a cancellation) to participants with an email when `notify_by_email` is on, and sets each
   participant's `email_status`.
-- Event triggers retry 3 times (60 s apart). Handlers are idempotent and check a shared
-  `X-Webhook-Secret` header set in the trigger metadata; requests without it get 401.
-- Email: `nodemailer` over Google SMTP. `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`,
-  `SMTP_FROM` and `WEBHOOK_SECRET` are Nhost project secrets entered by the user in the Nhost dashboard;
+- Event triggers retry 3 times (60 s apart). Handlers are idempotent and check the Nhost-provided
+  `x-nhost-webhook-secret` header (value from `NHOST_WEBHOOK_SECRET`); requests without it get 401.
+- Email: `nodemailer` over Google SMTP. `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` and
+  `SMTP_FROM` are Nhost project secrets entered by the user in the Nhost dashboard;
   they are never in the repository or in chat. A Google account with an app password is required.
 - Triggers are created by `scripts/apply-hasura-triggers.mjs` (admin secret from the environment, run by
   the user), through the Hasura metadata API, additively; Hasura metadata is never replaced wholesale.
 - Staff list for "staff in charge" and notification recipients: users of the organization from
   `auth.users`, matched on `metadata.organization_id` (the claim source used for `X-Hasura-Org-Id`)
-  with roles `org_admin` or `manager`. The plan verifies in step 1 that Hasura can expose this
-  (displayName, id) read-only; if not, a small `staff_members` view is added.
+  with roles `org_admin` or `manager`. A `staff_members` view over `auth.users` (organization, user id,
+  display name, email, role) is created in `0004` and tracked in Hasura.
 
 ## 6. Permissions (`scripts/apply-hasura-permissions.mjs`, additive)
 
