@@ -1,6 +1,7 @@
 # Project 2 — Leases (Baux), rent requests, inspections, deposit, calendar (design)
 
 Date: 2026-10-15 · Branch: `claude/continuation-bdded2` · Depends on: Project 1 (core records)
+Status: **Plan A built** (core leases, migration 0003; see `docs/superpowers/handoffs/2026-10-15-leases-plan-a.md`). Plans B, C, D not written yet.
 Sources: `docs/reference/05-scope-matrix.md` §4.5, UML "Renters and leases" (buttons 1–31),
 glossary (Lease, Renter, Guarantor, Rent Request, Security Deposit), Stitch pages 3–6.
 

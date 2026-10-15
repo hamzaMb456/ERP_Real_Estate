@@ -1,33 +1,10 @@
-import { expect, test, type Page } from '@playwright/test';
-
-const EMAIL = process.env.E2E_EMAIL;
-const PASSWORD = process.env.E2E_PASSWORD;
+import { expect, test } from '@playwright/test';
+import { EMAIL, PASSWORD, isoInDays, pickContact, signIn } from './helpers';
 
 test.skip(!EMAIL || !PASSWORD, 'Set E2E_EMAIL and E2E_PASSWORD in web/.env.test.local');
 
 // 1×1 transparent PNG.
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
-
-function isoInDays(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-async function signIn(page: Page) {
-  await page.goto('/connexion');
-  await page.getByLabel('Adresse e-mail professionnelle').fill(EMAIL as string);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(PASSWORD as string);
-  await page.getByRole('button', { name: 'Se connecter' }).click();
-  // The first sign-in compiles the dashboard route in dev and calls Nhost: allow more than the default 5 s.
-  await expect(page).not.toHaveURL(/connexion/, { timeout: 30_000 });
-}
-
-async function pickContact(page: Page, name: string) {
-  await page.getByRole('combobox').filter({ hasText: 'Choisir un contact' }).first().click();
-  await page.getByPlaceholder('Rechercher un contact…').fill(name);
-  await page.getByRole('option', { name: new RegExp(name) }).first().click();
-}
 
 test('bien → units → owner for all → transfer → contact → photo → pin → incomplete list', async ({ page }) => {
   const bienName = `E2E Résidence ${Date.now().toString().slice(-6)}`;
