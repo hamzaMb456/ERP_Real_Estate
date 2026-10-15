@@ -21,6 +21,7 @@ export default defineConfig({
         'src/lib/gaps.ts',
         'src/lib/dates.ts',
         'src/lib/show-error.ts',
+        'src/lib/leases.ts',
       ],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },
