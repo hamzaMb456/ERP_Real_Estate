@@ -1,5 +1,5 @@
 import { daysBetween } from '@/lib/dates';
-import type { EndReason, LeaseDraftInput, LeaseOverviewRow, LeaseStatus } from '@/lib/lease-types';
+import type { EndReason, LeaseDraftInput, LeaseOverviewRow, LeaseStatus, RegistrationState } from '@/lib/lease-types';
 import { formatDateFr } from '@/lib/ownership';
 
 export const LEASE_STATUS_LABELS: Record<LeaseStatus, string> = {
@@ -100,6 +100,54 @@ export function buildLeaseObjects(leaseId: string, input: LeaseDraftInput) {
       charges_amount: parseMoney(unit.charges) ?? 0,
     })),
   };
+}
+
+export type RentRowInput = { unitId: string; rent: string; charges: string };
+export type CurrentRent = { unit_id: string; rent_amount: number | string; charges_amount: number | string };
+export type RenewalRent = { unit_id: string; rent_amount: number; charges_amount: number };
+
+/** The rents to send with a renewal: only the units whose rent or charges differ from the current ones. */
+export function planRenewalRents(rows: RentRowInput[], current: CurrentRent[]): { rents: RenewalRent[] | null } | { error: string } {
+  const changed: RenewalRent[] = [];
+  for (const row of rows) {
+    const rent = parseMoney(row.rent);
+    const charges = row.charges.trim() === '' ? 0 : parseMoney(row.charges);
+    if (rent === null || charges === null) return { error: 'Les loyers et charges doivent être des montants valides.' };
+    const now = current.find((item) => item.unit_id === row.unitId);
+    if (!now || Number(now.rent_amount) !== rent || Number(now.charges_amount) !== charges) {
+      changed.push({ unit_id: row.unitId, rent_amount: rent, charges_amount: charges });
+    }
+  }
+  return { rents: changed.length > 0 ? changed : null };
+}
+
+export type RegistrationInfo = { tone: 'neutral' | 'warning' | 'danger' | 'success'; text: string };
+
+/** The sentence of the registration card. The state and the deadline come from the database view. */
+export function describeRegistration(
+  row: {
+    status: LeaseStatus;
+    registration_state: RegistrationState;
+    registration_deadline: string | null;
+    registered_at: string | null;
+    registration_receipt: string | null;
+  },
+  today: string,
+): RegistrationInfo {
+  const deadline = row.registration_deadline ? formatDateFr(row.registration_deadline) : '';
+  if (row.registration_state === 'registered' && row.registered_at) {
+    const receipt = row.registration_receipt ? ` · Reçu ${row.registration_receipt}` : '';
+    return { tone: 'success', text: `Enregistré le ${formatDateFr(row.registered_at)}${receipt}` };
+  }
+  if (row.status === 'draft') return { tone: 'neutral', text: 'Disponible après l’activation du bail.' };
+  if (row.registration_state === 'overdue') return { tone: 'danger', text: `En retard : à enregistrer avant le ${deadline}.` };
+  if (row.registration_state === 'due_soon' && row.registration_deadline) {
+    const days = daysBetween(today, row.registration_deadline);
+    const left = days <= 0 ? 'dernier jour' : days === 1 ? 'plus que 1 jour' : `plus que ${days} jours`;
+    return { tone: 'warning', text: `À enregistrer avant le ${deadline} : ${left}.` };
+  }
+  if (row.registration_state === 'pending') return { tone: 'neutral', text: `À enregistrer avant le ${deadline}.` };
+  return { tone: 'neutral', text: 'Bail non enregistré.' };
 }
 
 export type LeaseTab = 'all' | 'active' | 'draft' | 'renew' | 'ended';

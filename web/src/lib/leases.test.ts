@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { LeaseDraftInput, LeaseOverviewRow } from './lease-types';
 import {
   buildLeaseObjects,
+  describeRegistration,
   formatLeaseNumber,
   leaseFlags,
   leasePeriod,
   matchesLeaseSearch,
   matchesLeaseTab,
   parseMoney,
+  planRenewalRents,
   validateLeaseDraft,
 } from './leases';
 
@@ -173,7 +175,7 @@ describe('leaseFlags', () => {
     ]);
   });
 
-  it('warns about the registration only in the last days or when overdue', () => {
+  it('warns about the registration only in the last days or when overdue (see also describeRegistration)', () => {
     expect(leaseFlags(row({ registration_state: 'pending', registration_deadline: '2026-12-01' }), today)).toEqual([]);
     expect(leaseFlags(row({ registration_state: 'due_soon', registration_deadline: '2026-10-20' }), today)).toEqual([
       { key: 'registration', label: 'Enregistrement avant le 20/10/2026', tone: 'warning' },
@@ -181,5 +183,77 @@ describe('leaseFlags', () => {
     expect(leaseFlags(row({ registration_state: 'overdue', registration_deadline: '2026-10-01' }), today)).toEqual([
       { key: 'registration', label: 'Enregistrement en retard (échéance 01/10/2026)', tone: 'danger' },
     ]);
+  });
+});
+
+describe('planRenewalRents', () => {
+  const current = [{ unit_id: 'u1', rent_amount: 900, charges_amount: 40 }];
+
+  it('sends nothing when no rent changed', () => {
+    expect(planRenewalRents([{ unitId: 'u1', rent: '900', charges: '40' }], current)).toEqual({ rents: null });
+  });
+
+  it('sends only the units whose rent or charges changed, reading comma decimals', () => {
+    expect(planRenewalRents([{ unitId: 'u1', rent: '925,5', charges: '40' }], current)).toEqual({
+      rents: [{ unit_id: 'u1', rent_amount: 925.5, charges_amount: 40 }],
+    });
+    expect(planRenewalRents([{ unitId: 'u1', rent: '900', charges: '' }], current)).toEqual({
+      rents: [{ unit_id: 'u1', rent_amount: 900, charges_amount: 0 }],
+    });
+  });
+
+  it('refuses an amount that is not a number', () => {
+    expect(planRenewalRents([{ unitId: 'u1', rent: 'x', charges: '' }], current)).toEqual({
+      error: 'Les loyers et charges doivent être des montants valides.',
+    });
+  });
+});
+
+describe('describeRegistration', () => {
+  const today = '2026-10-15';
+  const base = {
+    status: 'active' as const,
+    registration_state: 'pending' as const,
+    registration_deadline: '2026-12-01',
+    registered_at: null,
+    registration_receipt: null,
+  };
+
+  it('shows a registered lease with its receipt', () => {
+    expect(
+      describeRegistration({ ...base, registration_state: 'registered', registered_at: '2026-09-01', registration_receipt: 'REC-12' }, today),
+    ).toEqual({ tone: 'success', text: 'Enregistré le 01/09/2026 · Reçu REC-12' });
+    expect(describeRegistration({ ...base, registration_state: 'registered', registered_at: '2026-09-01' }, today).text).toBe(
+      'Enregistré le 01/09/2026',
+    );
+  });
+
+  it('stays calm while the deadline is far', () => {
+    expect(describeRegistration(base, today)).toEqual({ tone: 'neutral', text: 'À enregistrer avant le 01/12/2026.' });
+  });
+
+  it('warns in the last days and counts them', () => {
+    const due = { ...base, registration_state: 'due_soon' as const, registration_deadline: '2026-10-20' };
+    expect(describeRegistration(due, today)).toEqual({ tone: 'warning', text: 'À enregistrer avant le 20/10/2026 : plus que 5 jours.' });
+    expect(describeRegistration({ ...due, registration_deadline: '2026-10-16' }, today).text).toBe(
+      'À enregistrer avant le 16/10/2026 : plus que 1 jour.',
+    );
+    expect(describeRegistration({ ...due, registration_deadline: '2026-10-15' }, today).text).toBe(
+      'À enregistrer avant le 15/10/2026 : dernier jour.',
+    );
+  });
+
+  it('flags a late registration', () => {
+    expect(describeRegistration({ ...base, registration_state: 'overdue', registration_deadline: '2026-10-01' }, today)).toEqual({
+      tone: 'danger',
+      text: 'En retard : à enregistrer avant le 01/10/2026.',
+    });
+  });
+
+  it('explains the draft and the unregistered ended lease', () => {
+    expect(describeRegistration({ ...base, status: 'draft', registration_state: 'not_applicable', registration_deadline: null }, today).text).toBe(
+      'Disponible après l’activation du bail.',
+    );
+    expect(describeRegistration({ ...base, status: 'ended', registration_state: 'not_applicable' }, today).text).toBe('Bail non enregistré.');
   });
 });
