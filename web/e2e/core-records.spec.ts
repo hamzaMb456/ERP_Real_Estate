@@ -19,7 +19,8 @@ async function signIn(page: Page) {
   await page.getByLabel('Adresse e-mail professionnelle').fill(EMAIL as string);
   await page.getByLabel('Mot de passe', { exact: true }).fill(PASSWORD as string);
   await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).not.toHaveURL(/connexion/);
+  // The first sign-in compiles the dashboard route in dev and calls Nhost: allow more than the default 5 s.
+  await expect(page).not.toHaveURL(/connexion/, { timeout: 30_000 });
 }
 
 async function pickContact(page: Page, name: string) {
@@ -81,14 +82,19 @@ test('bien → units → owner for all → transfer → contact → photo → pi
 
   // 6. Upload a photo on the bien.
   await page.goto(bienUrl + '#photos');
+  // Wait for the hydrated, loaded empty state: a file set earlier would be lost before the handler exists.
+  await expect(page.getByText('Aucune photo pour le moment')).toBeVisible();
   await page.locator('input[type=file]').setInputFiles({ name: 'facade-e2e.png', mimeType: 'image/png', buffer: PNG });
   await expect(page.getByText('Facade e2e')).toBeVisible();
 
   // 7. Place the pin and save.
   await page.goto(bienUrl + '/modifier');
   await page.locator('.leaflet-container').click({ position: { x: 160, y: 120 } });
+  await expect(page.getByText(/Position\s*:/)).toBeVisible();
   await page.getByRole('button', { name: 'Enregistrer les modifications' }).click();
-  await expect(page.getByRole('heading', { name: bienName })).toBeVisible();
+  // The edit page heading also contains the bien name, so wait for the save toast and the redirect instead.
+  await expect(page.getByText('Bien mis à jour')).toBeVisible();
+  await expect(page).toHaveURL(bienUrl);
 
   // 8. The "position" gap is gone for this bien.
   await page.goto('/biens/fiches-incompletes');
