@@ -11,7 +11,8 @@
 const HASURA_URL =
   process.env.HASURA_URL ?? 'https://rxcugiymqkyghsuixmhi.hasura.eu-central-1.nhost.run';
 const SECRET = process.env.HASURA_ADMIN_SECRET;
-if (!SECRET) {
+const DRY_RUN = process.argv.includes('--dry-run');
+if (!SECRET && !DRY_RUN) {
   console.error('Set HASURA_ADMIN_SECRET first.');
   process.exit(1);
 }
@@ -22,14 +23,18 @@ const orgFilter = (column) => ({ [column]: { _eq: ORG_VAR } });
 const source = 'default';
 const table = (name) => ({ schema: 'public', name });
 const storageFiles = { schema: 'storage', name: 'files' };
-const BUCKET = 'property-files';
+const BUCKETS = ['property-files', 'lease-files'];
 
 // Roles: org_admin (everything inside the organization), manager (day-to-day work), viewer (read only).
 const ROLES = ['org_admin', 'manager', 'viewer'];
 const WRITERS = ['org_admin', 'manager'];
 
 // Tables and views created after 0001 that Hasura must track (0001 tables were tracked in the dashboard).
-const TRACK = ['ownerships', 'property_files', 'common_areas', 'current_ownerships', 'property_owners', 'record_gaps'];
+const TRACK = [
+  'ownerships', 'property_files', 'common_areas', 'current_ownerships', 'property_owners', 'record_gaps',
+  'leases', 'lease_units', 'lease_parties', 'lease_rents', 'lease_terms', 'lease_files',
+  'lease_overview', 'current_lease_rents', 'unit_current_lease',
+];
 
 const OWNERSHIP_COLUMNS = [
   'id', 'organization_id', 'unit_id', 'contact_id', 'share_percent', 'starts_on', 'ends_on', 'notes',
@@ -61,6 +66,29 @@ const SELECT_COLUMNS = {
     'is_cover', 'sort_order', 'created_at', 'updated_at',
   ],
   common_areas: ['id', 'organization_id', 'property_id', 'name', 'kind', 'notes', 'created_at', 'updated_at'],
+  leases: [
+    'id', 'organization_id', 'number', 'status', 'start_date', 'end_date', 'payment_day', 'deposit_amount',
+    'signed_at', 'registered_at', 'registration_receipt', 'ended_on', 'end_reason', 'archived_at', 'created_at', 'updated_at',
+  ],
+  lease_units: ['organization_id', 'lease_id', 'unit_id', 'created_at'],
+  lease_parties: ['organization_id', 'lease_id', 'contact_id', 'role', 'created_at'],
+  lease_rents: ['id', 'organization_id', 'lease_id', 'unit_id', 'effective_from', 'rent_amount', 'charges_amount', 'reason', 'created_at'],
+  lease_terms: ['id', 'organization_id', 'lease_id', 'kind', 'start_date', 'end_date', 'recorded_on', 'note', 'created_at'],
+  lease_files: ['id', 'organization_id', 'lease_id', 'storage_file_id', 'category', 'title', 'created_at', 'updated_at'],
+  lease_overview: [
+    'id', 'organization_id', 'number', 'status', 'start_date', 'end_date', 'payment_day', 'deposit_amount',
+    'signed_at', 'registered_at', 'registration_receipt', 'ended_on', 'end_reason', 'archived_at',
+    'unit_count', 'unit_codes', 'renter_names', 'total_rent', 'total_charges',
+    'is_ending_soon', 'in_grace', 'grace_days_left', 'registration_deadline', 'registration_state',
+  ],
+  current_lease_rents: [
+    'organization_id', 'lease_id', 'unit_id', 'effective_from', 'rent_amount', 'charges_amount',
+    'next_change_on', 'next_rent_amount', 'next_charges_amount',
+  ],
+  unit_current_lease: [
+    'organization_id', 'unit_id', 'lease_id', 'number', 'start_date', 'end_date', 'renter_names',
+    'in_grace', 'is_ending_soon', 'rent_amount', 'charges_amount',
+  ],
 };
 
 // organization_id is never writable by clients: insert sets it from the JWT (preset), update excludes it.
@@ -102,6 +130,24 @@ const WRITE_COLUMNS = {
     update: ['name', 'kind', 'notes'],
     canDelete: true,
   },
+  leases: {
+    roles: WRITERS,
+    insert: ['id', 'start_date', 'end_date', 'payment_day', 'deposit_amount'],
+    update: ['start_date', 'end_date', 'payment_day', 'deposit_amount', 'registered_at', 'registration_receipt', 'archived_at'],
+  },
+  lease_units: { roles: WRITERS, insert: ['lease_id', 'unit_id'], update: null, canDelete: true },
+  lease_parties: { roles: WRITERS, insert: ['lease_id', 'contact_id', 'role'], update: null, canDelete: true },
+  lease_rents: {
+    roles: WRITERS,
+    insert: ['lease_id', 'unit_id', 'effective_from', 'rent_amount', 'charges_amount', 'reason'],
+    update: null,
+  },
+  lease_files: {
+    roles: WRITERS,
+    insert: ['lease_id', 'storage_file_id', 'category', 'title'],
+    update: ['category', 'title'],
+    canDelete: true,
+  },
 };
 
 const tableOrgColumn = (name) => (name === 'organizations' ? 'id' : 'organization_id');
@@ -130,6 +176,22 @@ const RELATIONSHIPS = [
   { type: 'array', table: 'properties', name: 'files', to: 'property_files', map: { id: 'property_id' } },
   { type: 'array', table: 'units', name: 'files', to: 'property_files', map: { id: 'unit_id' } },
   { type: 'array', table: 'properties', name: 'common_areas', to: 'common_areas', map: { id: 'property_id' } },
+  { type: 'array', table: 'leases', name: 'units', to: 'lease_units', map: { id: 'lease_id' } },
+  { type: 'object', table: 'lease_units', name: 'unit', to: 'units', map: { unit_id: 'id' } },
+  { type: 'object', table: 'lease_units', name: 'lease', to: 'leases', map: { lease_id: 'id' } },
+  { type: 'array', table: 'leases', name: 'parties', to: 'lease_parties', map: { id: 'lease_id' } },
+  { type: 'object', table: 'lease_parties', name: 'contact', to: 'contacts', map: { contact_id: 'id' } },
+  { type: 'object', table: 'lease_parties', name: 'lease', to: 'leases', map: { lease_id: 'id' } },
+  { type: 'array', table: 'leases', name: 'rents', to: 'lease_rents', map: { id: 'lease_id' } },
+  { type: 'object', table: 'lease_rents', name: 'unit', to: 'units', map: { unit_id: 'id' } },
+  { type: 'array', table: 'leases', name: 'terms', to: 'lease_terms', map: { id: 'lease_id' } },
+  { type: 'array', table: 'leases', name: 'files', to: 'lease_files', map: { id: 'lease_id' } },
+  { type: 'object', table: 'leases', name: 'overview', to: 'lease_overview', map: { id: 'id' } },
+  { type: 'array', table: 'leases', name: 'current_rents', to: 'current_lease_rents', map: { id: 'lease_id' } },
+  { type: 'object', table: 'current_lease_rents', name: 'unit', to: 'units', map: { unit_id: 'id' } },
+  { type: 'array', table: 'units', name: 'lease_units', to: 'lease_units', map: { id: 'unit_id' } },
+  { type: 'array', table: 'units', name: 'current_lease', to: 'unit_current_lease', map: { id: 'unit_id' } },
+  { type: 'array', table: 'contacts', name: 'lease_parties', to: 'lease_parties', map: { id: 'contact_id' } },
 ];
 
 const tracks = TRACK.map((name) => ({ type: 'pg_track_table', args: { source, table: table(name) } }));
@@ -218,8 +280,13 @@ const FILE_COLUMNS = [
   'id', 'bucket_id', 'name', 'size', 'mime_type', 'etag', 'is_uploaded', 'uploaded_by_user_id',
   'metadata', 'created_at', 'updated_at',
 ];
-const linkedToOrg = { property_links: { organization_id: { _eq: ORG_VAR } } };
-const ownUpload = { _and: [{ bucket_id: { _eq: BUCKET } }, { uploaded_by_user_id: { _eq: USER_VAR } }] };
+const linkedToOrg = {
+  _or: [
+    { property_links: { organization_id: { _eq: ORG_VAR } } },
+    { lease_links: { organization_id: { _eq: ORG_VAR } } },
+  ],
+};
+const ownUpload = { _and: [{ bucket_id: { _in: BUCKETS } }, { uploaded_by_user_id: { _eq: USER_VAR } }] };
 
 // Permissions that use property_links must be dropped before the relationship itself, or re-runs fail.
 for (const role of ROLES) {
@@ -228,6 +295,7 @@ for (const role of ROLES) {
   }
 }
 drops.push({ type: 'pg_drop_relationship', args: { source, table: storageFiles, relationship: 'property_links' } });
+drops.push({ type: 'pg_drop_relationship', args: { source, table: storageFiles, relationship: 'lease_links' } });
 creates.push({
   type: 'pg_create_array_relationship',
   args: {
@@ -235,6 +303,15 @@ creates.push({
     table: storageFiles,
     name: 'property_links',
     using: { manual_configuration: { remote_table: table('property_files'), column_mapping: { id: 'storage_file_id' } } },
+  },
+});
+creates.push({
+  type: 'pg_create_array_relationship',
+  args: {
+    source,
+    table: storageFiles,
+    name: 'lease_links',
+    using: { manual_configuration: { remote_table: table('lease_files'), column_mapping: { id: 'storage_file_id' } } },
   },
 });
 creates.push({
@@ -252,7 +329,7 @@ for (const role of WRITERS) {
       source, table: storageFiles, role,
       permission: {
         columns: ['id', 'bucket_id', 'name', 'size', 'mime_type', 'etag', 'is_uploaded', 'metadata'],
-        check: { bucket_id: { _eq: BUCKET } },
+        check: { bucket_id: { _in: BUCKETS } },
         set: { uploaded_by_user_id: USER_VAR.toLowerCase() },
       },
     },
@@ -268,6 +345,44 @@ for (const role of WRITERS) {
     type: 'pg_create_delete_permission',
     args: { source, table: storageFiles, role, permission: { filter: { _or: [linkedToOrg, ownUpload] } } },
   });
+}
+
+// Lease functions are exposed as mutations. The writers' functions receive the Hasura session
+// (hasura_session) so the database can check the caller's organization and role itself.
+// expire_overdue_leases has no role permission: only the admin secret (the daily job) can call it.
+const WRITER_FUNCTIONS = ['activate_lease', 'renew_lease', 'end_lease', 'change_rent'];
+const ADMIN_FUNCTIONS = ['expire_overdue_leases'];
+const fn = (name) => ({ schema: 'public', name });
+for (const name of [...WRITER_FUNCTIONS, ...ADMIN_FUNCTIONS]) {
+  for (const role of WRITERS) drops.push({ type: 'pg_drop_function_permission', args: { source, function: fn(name), role } });
+  drops.push({ type: 'pg_untrack_function', args: { source, function: fn(name) } });
+  creates.push({
+    type: 'pg_track_function',
+    args: {
+      source,
+      function: fn(name),
+      configuration: { exposed_as: 'mutation', ...(WRITER_FUNCTIONS.includes(name) ? { session_argument: 'hasura_session' } : {}) },
+    },
+  });
+}
+for (const name of WRITER_FUNCTIONS) {
+  for (const role of WRITERS) {
+    creates.push({ type: 'pg_create_function_permission', args: { source, function: fn(name), role } });
+  }
+}
+
+// Every tracked table needs select columns, or nobody could read it.
+for (const name of TRACK) {
+  if (!SELECT_COLUMNS[name]) throw new Error(`TRACK has ${name} but SELECT_COLUMNS does not.`);
+}
+
+if (DRY_RUN) {
+  const permissions = creates.filter((entry) => entry.type.endsWith('_permission')).length;
+  console.log(
+    `Dry run: ${TRACK.length} tracked tables/views, ${RELATIONSHIPS.length + 2} relationships, ` +
+      `${permissions} permissions, ${WRITER_FUNCTIONS.length + ADMIN_FUNCTIONS.length} functions. Nothing sent.`,
+  );
+  process.exit(0);
 }
 
 async function metadata(body) {
@@ -303,5 +418,5 @@ if (!result.ok) {
   console.error('Failed:', result.status, JSON.stringify(result.json, null, 2));
   process.exit(1);
 }
-const relationshipCount = RELATIONSHIPS.length + 1;
-console.log(`Applied ${relationshipCount} relationships and ${creates.length - relationshipCount} permissions.`);
+const relationshipCount = RELATIONSHIPS.length + 2;
+console.log(`Applied ${relationshipCount} relationships and ${creates.length - relationshipCount} permissions and function entries.`);

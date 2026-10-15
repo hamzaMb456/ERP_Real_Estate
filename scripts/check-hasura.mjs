@@ -13,7 +13,11 @@ if (!SECRET) {
   process.exit(1);
 }
 
-const EXPECTED = ['ownerships', 'property_files', 'common_areas', 'current_ownerships', 'property_owners', 'record_gaps'];
+const EXPECTED = [
+  'ownerships', 'property_files', 'common_areas', 'current_ownerships', 'property_owners', 'record_gaps',
+  'leases', 'lease_units', 'lease_parties', 'lease_rents', 'lease_terms', 'lease_files',
+  'lease_overview', 'current_lease_rents', 'unit_current_lease',
+];
 const DEMO_ORG = '11111111-1111-4111-8111-111111111111';
 
 async function post(path, body, headers = {}) {
@@ -40,7 +44,12 @@ console.log('Inconsistent metadata objects:', JSON.stringify(inconsistent.json.i
 
 const asManager = await post(
   '/v1/graphql',
-  { query: '{ record_gaps_aggregate { aggregate { count } } units(limit: 1) { code common_share } }' },
+  { query: '{ record_gaps_aggregate { aggregate { count } } units(limit: 1) { code common_share } lease_overview(limit: 1) { number status registration_state } }' },
   { 'x-hasura-role': 'manager', 'x-hasura-org-id': DEMO_ORG },
 );
 console.log('Query as manager:', JSON.stringify(asManager.json.errors ?? asManager.json.data));
+
+const functions = (meta.json.sources?.[0]?.functions ?? []).map((f) => f.function.name);
+for (const name of ['activate_lease', 'renew_lease', 'end_lease', 'change_rent', 'expire_overdue_leases']) {
+  console.log(`  function ${name}: ${functions.includes(name) ? 'tracked' : 'NOT tracked'}`);
+}
