@@ -10,6 +10,7 @@ import { UNIT_STATUSES, UNIT_TYPES } from '@/components/domain/labels';
 import { UnitDialog, type UnitFormUnit } from '@/components/domain/unit-dialog';
 import { DocumentList } from '@/components/files/document-list';
 import { PhotoGallery } from '@/components/files/photo-gallery';
+import { UnitLeaseCard } from '@/components/leases/unit-lease-card';
 import { HoverLift, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { UnitOwnersTab } from '@/components/ownership/unit-owners-tab';
 import { PageHeader } from '@/components/page-header';
@@ -205,10 +206,13 @@ export default function UnitDetailPage() {
               <Fact icon={DoorOpen} label="Pièces" value={current.rooms === null ? '—' : String(current.rooms)} />
               <Fact icon={Layers} label="Étage" value={current.floor === null ? '—' : String(current.floor)} />
             </div>
+            <UnitLeaseCard unitId={current.id} canCreate={canEdit && !archived} />
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Statut de l’unité</CardTitle>
-                <CardDescription>Le statut suivra automatiquement les baux et les ventes. En attendant, vous pouvez le corriger ici.</CardDescription>
+                <CardDescription>
+                  Le statut suit les baux : loué dès qu’un bail est actif, disponible sinon. Les ventes viendront avec le module Ventes. Vous pouvez le corriger ici en cas d’exception.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Select value={current.status} disabled={saving || archived || !canEdit} onValueChange={(value) => void update({ status: value }, 'Statut mis à jour')}>

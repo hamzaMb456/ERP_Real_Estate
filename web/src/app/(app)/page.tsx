@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Cell, Pie, PieChart } from 'recharts';
-import { ArrowUpRight, Building2, ClipboardList, DoorOpen, KeyRound, Landmark, Plus, Users } from 'lucide-react';
+import { ArrowUpRight, Building2, ClipboardList, DoorOpen, FileBadge, FileClock, KeyRound, Landmark, Plus, Users } from 'lucide-react';
 import { StatusBadge } from '@/components/domain/badges';
 import { AnimatedNumber, GrowBar, HoverLift, Reveal, SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
@@ -26,6 +26,8 @@ const DASHBOARD_QUERY = `
     }
     contacts_aggregate { aggregate { count } }
     record_gaps_aggregate { aggregate { count } }
+    leases_to_renew: lease_overview_aggregate(where: { _or: [{ is_ending_soon: { _eq: true } }, { in_grace: { _eq: true } }] }) { aggregate { count } }
+    registrations_due: lease_overview_aggregate(where: { registration_state: { _in: ["due_soon", "overdue"] } }) { aggregate { count } }
   }
 `;
 
@@ -34,6 +36,8 @@ type DashboardData = {
   properties: { id: string; name: string; city: string | null; units: { status: string; rent_amount: number | string | null }[] }[];
   contacts_aggregate: { aggregate: { count: number } };
   record_gaps_aggregate: { aggregate: { count: number } };
+  leases_to_renew: { aggregate: { count: number } };
+  registrations_due: { aggregate: { count: number } };
 };
 
 const STATUS_CONFIG = {
@@ -110,7 +114,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { units, properties, contacts_aggregate, record_gaps_aggregate } = result.data;
+  const { units, properties, contacts_aggregate, record_gaps_aggregate, leases_to_renew, registrations_due } = result.data;
   const total = units.length;
   const count = (status: string) => units.filter((unit) => unit.status === status).length;
   const rented = count('rented');
@@ -160,6 +164,35 @@ export default function DashboardPage() {
           </span>
           <span className="text-muted-foreground">Compléter →</span>
         </Link>
+      )}
+
+      {(leases_to_renew.aggregate.count > 0 || registrations_due.aggregate.count > 0) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {leases_to_renew.aggregate.count > 0 && (
+            <Link
+              href="/baux#renew"
+              className="flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm transition-colors hover:bg-warning/15"
+            >
+              <span className="flex items-center gap-2 font-medium">
+                <FileClock className="size-4 text-warning" aria-hidden />
+                Baux à renouveler : {leases_to_renew.aggregate.count}
+              </span>
+              <span className="text-muted-foreground">Voir →</span>
+            </Link>
+          )}
+          {registrations_due.aggregate.count > 0 && (
+            <Link
+              href="/baux#active"
+              className="flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm transition-colors hover:bg-warning/15"
+            >
+              <span className="flex items-center gap-2 font-medium">
+                <FileBadge className="size-4 text-warning" aria-hidden />
+                Enregistrements à faire : {registrations_due.aggregate.count}
+              </span>
+              <span className="text-muted-foreground">Voir →</span>
+            </Link>
+          )}
+        </div>
       )}
 
       <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

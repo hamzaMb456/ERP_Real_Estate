@@ -8,6 +8,7 @@ import { Archive, ArchiveRestore, ArrowLeft, Copy, FileText, IdCard, Loader2, Ma
 import { toast } from 'sonner';
 import { CONTACT_ROLES, RoleBadge, type ContactRole } from '@/components/domain/badges';
 import { HoverLift, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
+import { ContactGuaranteedLeases, ContactRenterLeases } from '@/components/leases/contact-leases';
 import { ContactOwnedUnits } from '@/components/ownership/contact-owned-units';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -49,10 +50,7 @@ type ContactDetails = {
   roles: { role: ContactRole }[];
 };
 
-const LATER_MODULE: Record<Exclude<ContactRole, 'owner'>, string> = {
-  renter: 'Les baux de ce locataire apparaîtront ici avec le module Baux.',
-  buyer: 'Les offres et achats apparaîtront ici avec le module Ventes.',
-};
+const BUYER_LATER_MODULE = 'Les offres et achats apparaîtront ici avec le module Ventes.';
 
 function initials(name: string): string {
   return name
@@ -284,7 +282,8 @@ export default function ContactDetailPage() {
                   <CardContent className="text-sm text-muted-foreground">
                     {!active && 'Ce contact n’a pas ce rôle.'}
                     {active && role.value === 'owner' && <ContactOwnedUnits contactId={current.id} />}
-                    {active && role.value !== 'owner' && LATER_MODULE[role.value]}
+                    {active && role.value === 'renter' && <ContactRenterLeases contactId={current.id} />}
+                    {active && role.value === 'buyer' && BUYER_LATER_MODULE}
                   </CardContent>
                 </Card>
               </HoverLift>
@@ -292,6 +291,10 @@ export default function ContactDetailPage() {
           );
         })}
       </Stagger>
+
+      <StaggerItem>
+        <ContactGuaranteedLeases contactId={current.id} />
+      </StaggerItem>
 
       <StaggerItem>
         <Card>
