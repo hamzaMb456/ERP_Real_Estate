@@ -112,6 +112,8 @@ export const LEASE_TABS: { value: LeaseTab; label: string }[] = [
   { value: 'ended', label: 'Terminés' },
 ];
 
+export const LEASE_TAB_VALUES = LEASE_TABS.map((item) => item.value);
+
 export function matchesLeaseTab(row: Pick<LeaseOverviewRow, 'status' | 'is_ending_soon' | 'in_grace'>, tab: LeaseTab): boolean {
   switch (tab) {
     case 'all':
