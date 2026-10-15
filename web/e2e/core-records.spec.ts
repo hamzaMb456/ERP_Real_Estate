@@ -17,7 +17,7 @@ function isoInDays(days: number): string {
 async function signIn(page: Page) {
   await page.goto('/connexion');
   await page.getByLabel('Adresse e-mail professionnelle').fill(EMAIL as string);
-  await page.getByLabel('Mot de passe').fill(PASSWORD as string);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(PASSWORD as string);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).not.toHaveURL(/connexion/);
 }

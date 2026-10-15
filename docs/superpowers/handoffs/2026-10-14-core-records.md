@@ -47,7 +47,8 @@ Read this first in a new session. Branch `claude/continuation-bdded2`
 ## How things are applied (user runs; agent never types secrets)
 
 - SQL: Nhost dashboard → Database → SQL Console. The agent can put a file in the user's
-  clipboard: `Get-Content -Raw <file> | Set-Clipboard` (PowerShell).
+  clipboard: `Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard` (PowerShell 5.1 — without
+  `-Encoding UTF8` accents turn into mojibake, e.g. "intÃ©rieur").
 - Metadata: `$env:HASURA_ADMIN_SECRET = "<secret>"` then
   `node <worktree>\scripts\apply-hasura-permissions.mjs`, check with `scripts\check-hasura.mjs`.
   Run them by full path from the worktree — the main checkout has older copies until merged.
