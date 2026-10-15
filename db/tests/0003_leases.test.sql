@@ -137,9 +137,236 @@ begin
     if sqlerrm <> 'lease_rent_before_start' then raise exception 'FAIL 6: wrong error: %', sqlerrm; end if;
   end;
 
+  -- 7. Activation rules (a, b, c: what is missing; d: success; e: a second activation).
+  insert into leases (id, organization_id, start_date, end_date) values (l3, org, v_today, v_today + 364);
+  begin
+    perform 1 from public.activate_lease(l3, null, s_ok);
+    raise exception 'FAIL 7a: activated without a renter';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_needs_renter' then raise exception 'FAIL 7a: wrong error: %', sqlerrm; end if;
+  end;
+  insert into lease_parties (organization_id, lease_id, contact_id, role) values (org, l3, c1, 'renter');
+  begin
+    perform 1 from public.activate_lease(l3, null, s_ok);
+    raise exception 'FAIL 7b: activated without a unit';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_needs_unit' then raise exception 'FAIL 7b: wrong error: %', sqlerrm; end if;
+  end;
+  insert into lease_units (organization_id, lease_id, unit_id) values (org, l3, u1);
+  begin
+    perform 1 from public.activate_lease(l3, null, s_ok);
+    raise exception 'FAIL 7c: activated without a rent';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_needs_rent' then raise exception 'FAIL 7c: wrong error: %', sqlerrm; end if;
+  end;
+  insert into lease_rents (organization_id, lease_id, unit_id, effective_from, rent_amount, charges_amount)
+  values (org, l3, u1, v_today, 800, 50);
+  perform 1 from public.activate_lease(l3, null, s_ok);
+  select status into v_text from leases where id = l3;
+  if v_text <> 'active' then raise exception 'FAIL 7d: status is %', v_text; end if;
+  select signed_at into v_date from leases where id = l3;
+  if v_date <> v_today then raise exception 'FAIL 7d: signed_at is %', v_date; end if;
+  select status into v_text from units where id = u1;
+  if v_text <> 'rented' then raise exception 'FAIL 7d: unit status is %', v_text; end if;
+  select count(*) into n from lease_terms where lease_id = l3 and kind = 'initial' and start_date = v_today and end_date = v_today + 364;
+  if n <> 1 then raise exception 'FAIL 7d: initial term rows: %', n; end if;
+  -- the flag must not leak into the rest of the transaction: a direct edit is refused again
+  begin
+    update leases set end_date = v_today + 500 where id = l3;
+    raise exception 'FAIL 7d: erp.lease_action flag leaked after the function';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_draft' then raise exception 'FAIL 7d: wrong error: %', sqlerrm; end if;
+  end;
+  begin
+    perform 1 from public.activate_lease(l3, null, s_ok);
+    raise exception 'FAIL 7e: activated twice';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_draft' then raise exception 'FAIL 7e: wrong error: %', sqlerrm; end if;
+  end;
+
+  -- 8. The caller must be a writer of the lease's organization.
+  insert into leases (id, organization_id, start_date, end_date) values (l4, org, v_today, v_today + 100);
+  begin
+    perform 1 from public.activate_lease(l4, null, s_viewer);
+    raise exception 'FAIL 8a: a viewer activated a lease';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_forbidden' then raise exception 'FAIL 8a: wrong error: %', sqlerrm; end if;
+  end;
+  begin
+    perform 1 from public.activate_lease(l4, null, s_other);
+    raise exception 'FAIL 8b: another organization activated the lease';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_found' then raise exception 'FAIL 8b: wrong error: %', sqlerrm; end if;
+  end;
+
+  -- 9. Overlap: both ends are inclusive. l3 occupies u1 from today to today+364.
+  perform pg_temp.mk_lease(l5, org, u1, c2, v_today + 364, v_today + 700);
+  begin
+    perform 1 from public.activate_lease(l5, null, s_ok);
+    raise exception 'FAIL 9: a lease starting on the last day of another was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> format('lease_overlap:%s', (select number from leases where id = l3)) then
+      raise exception 'FAIL 9: wrong error: %', sqlerrm;
+    end if;
+  end;
+  -- 9b. Back to back is fine: the next lease starts the day after.
+  perform pg_temp.mk_lease(l6, org, u1, c2, v_today + 365, v_today + 730);
+  perform 1 from public.activate_lease(l6, null, s_ok);
+  select status into v_text from leases where id = l6;
+  if v_text <> 'active' then raise exception 'FAIL 9b: back-to-back lease not active (%)', v_text; end if;
+  -- 9c. The check serialises simultaneous activations on one unit with an advisory lock.
+  if position('pg_advisory_xact_lock' in pg_get_functiondef('public.assert_no_lease_overlap(uuid,date,date)'::regprocedure)) = 0 then
+    raise exception 'FAIL 9c: the overlap check takes no lock';
+  end if;
+
+  -- 10. Renewal.
+  begin
+    perform 1 from public.renew_lease(l3, v_today + 364, null, null, s_ok);
+    raise exception 'FAIL 10a: renewal to the same end date accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_renewal_not_after' then raise exception 'FAIL 10a: wrong error: %', sqlerrm; end if;
+  end;
+  begin
+    perform 1 from public.renew_lease(l3, v_today + 400, null, null, s_ok);
+    raise exception 'FAIL 10b: renewal into the next lease accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> format('lease_overlap:%s', (select number from leases where id = l6)) then
+      raise exception 'FAIL 10b: wrong error: %', sqlerrm;
+    end if;
+  end;
+  begin
+    perform 1 from public.renew_lease(l2, v_today + 400, null, null, s_ok);
+    raise exception 'FAIL 10c: a draft was renewed';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_active' then raise exception 'FAIL 10c: wrong error: %', sqlerrm; end if;
+  end;
+  perform pg_temp.mk_lease(l7, org, u2, c1, v_today - 100, v_today + 10, 700);
+  perform 1 from public.activate_lease(l7, v_today - 100, s_ok);
+  perform 1 from public.renew_lease(
+    l7, v_today + 375,
+    jsonb_build_array(jsonb_build_object('unit_id', u2, 'rent_amount', 750, 'charges_amount', 25)),
+    'Renouvellement test', s_ok);
+  select end_date into v_date from leases where id = l7;
+  if v_date <> v_today + 375 then raise exception 'FAIL 10d: end_date is %', v_date; end if;
+  select count(*) into n from lease_terms where lease_id = l7 and kind = 'renewal'
+    and start_date = v_today + 11 and end_date = v_today + 375 and note = 'Renouvellement test';
+  if n <> 1 then raise exception 'FAIL 10d: renewal term rows: %', n; end if;
+  select rent_amount into v_num from lease_rents where lease_id = l7 and unit_id = u2 and effective_from = v_today + 11;
+  if v_num is distinct from 750 then raise exception 'FAIL 10d: renewal rent is %', v_num; end if;
+
+  -- 11. Ending a lease.
+  perform pg_temp.mk_lease(l8, org, u3, c2, v_today - 30, v_today + 300);
+  perform 1 from public.activate_lease(l8, v_today - 30, s_ok);
+  begin
+    perform 1 from public.end_lease(l8, v_today + 1, 'other', s_ok);
+    raise exception 'FAIL 11a: an end date in the future was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_end_in_future' then raise exception 'FAIL 11a: wrong error: %', sqlerrm; end if;
+  end;
+  begin
+    perform 1 from public.end_lease(l8, v_today - 31, 'other', s_ok);
+    raise exception 'FAIL 11b: an end date before the start was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_end_before_start' then raise exception 'FAIL 11b: wrong error: %', sqlerrm; end if;
+  end;
+  perform 1 from public.end_lease(l8, v_today, 'terminated_by_renter', s_ok);
+  select status || '/' || ended_on::text || '/' || end_reason into v_text from leases where id = l8;
+  if v_text <> 'ended/' || v_today::text || '/terminated_by_renter' then raise exception 'FAIL 11c: lease is %', v_text; end if;
+  select status into v_text from units where id = u3;
+  if v_text <> 'vacant' then raise exception 'FAIL 11c: unit status is %', v_text; end if;
+  begin
+    perform 1 from public.end_lease(l8, v_today, 'other', s_ok);
+    raise exception 'FAIL 11d: an ended lease was ended again';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_active' then raise exception 'FAIL 11d: wrong error: %', sqlerrm; end if;
+  end;
+
+  -- 11e. Ending one of two active leases of a unit keeps the unit rented while the other is active.
+  perform pg_temp.mk_lease(l9, org, u4, c1, v_today - 60, v_today + 30);
+  perform pg_temp.mk_lease(l10, org, u4, c2, v_today + 31, v_today + 400);
+  perform 1 from public.activate_lease(l9, v_today - 60, s_ok);
+  perform 1 from public.activate_lease(l10, v_today, s_ok);
+  perform 1 from public.end_lease(l9, v_today, 'term_reached', s_ok);
+  select status into v_text from units where id = u4;
+  if v_text <> 'rented' then raise exception 'FAIL 11e: unit status is % while another lease is active', v_text; end if;
+
+  -- 12. A unit for sale stays for sale, whatever its leases do.
+  update units set status = 'for_sale' where id = u5;
+  perform pg_temp.mk_lease(l11, org, u5, c1, v_today, v_today + 100);
+  perform 1 from public.activate_lease(l11, null, s_ok);
+  perform 1 from public.end_lease(l11, v_today, 'other', s_ok);
+  select status into v_text from units where id = u5;
+  if v_text <> 'for_sale' then raise exception 'FAIL 12: unit status is %', v_text; end if;
+
+  -- 13. Rent changes.
+  begin
+    perform 1 from public.change_rent(l7, u2, v_today - 101, 100, 0, 'trop tot', s_ok);
+    raise exception 'FAIL 13a: a rent before the start was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_rent_before_start' then raise exception 'FAIL 13a: wrong error: %', sqlerrm; end if;
+  end;
+  begin
+    perform 1 from public.change_rent(l7, u3, v_today + 20, 100, 0, 'autre unite', s_ok);
+    raise exception 'FAIL 13b: a rent for a unit outside the lease was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_unit_not_found' then raise exception 'FAIL 13b: wrong error: %', sqlerrm; end if;
+  end;
+  begin
+    perform 1 from public.change_rent(l2, u2, v_today + 20, 100, 0, 'brouillon', s_ok);
+    raise exception 'FAIL 13c: a rent change on a draft was accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm <> 'lease_not_active' then raise exception 'FAIL 13c: wrong error: %', sqlerrm; end if;
+  end;
+  perform 1 from public.change_rent(l7, u2, v_today + 20, 780, 30, 'Indexation', s_ok);
+  select count(*) into n from lease_rents where lease_id = l7 and unit_id = u2;
+  if n <> 3 then raise exception 'FAIL 13d: rent rows: %', n; end if;
+  begin
+    perform 1 from public.change_rent(l7, u2, v_today + 20, 790, 30, 'meme jour', s_ok);
+    raise exception 'FAIL 13e: two rents on the same day accepted';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    if sqlerrm not like '%lease_rents_lease_id_unit_id_effective_from_key%' then raise exception 'FAIL 13e: wrong error: %', sqlerrm; end if;
+  end;
+
+  -- 14. Expiry: day 7 after the end date stays active, day 8 expires; a lease in its grace week can still be renewed.
+  perform pg_temp.mk_lease(l12, org, u3, c2, v_today - 300, v_today - 8);
+  perform pg_temp.mk_lease(l13, org, u7, c1, v_today - 300, v_today - 7);
+  update leases set status = 'active', signed_at = v_today - 300 where id in (l12, l13);
+  select count(*) into n from public.expire_overdue_leases() where id in (l12, l13);
+  if n <> 1 then raise exception 'FAIL 14a: expired % of the two leases', n; end if;
+  select status || '/' || ended_on::text || '/' || end_reason into v_text from leases where id = l12;
+  if v_text <> 'expired/' || (v_today - 8)::text || '/expired_auto' then raise exception 'FAIL 14b: lease is %', v_text; end if;
+  select status into v_text from leases where id = l13;
+  if v_text <> 'active' then raise exception 'FAIL 14c: day-7 lease is %', v_text; end if;
+  select status into v_text from units where id = u3;
+  if v_text <> 'vacant' then raise exception 'FAIL 14d: unit of the expired lease is %', v_text; end if;
+  select status into v_text from units where id = u7;
+  if v_text <> 'rented' then raise exception 'FAIL 14e: unit of the lease in grace is %', v_text; end if;
+  perform 1 from public.renew_lease(l13, v_today + 60, null, 'grace', s_ok);
+  select end_date into v_date from leases where id = l13;
+  if v_date <> v_today + 60 then raise exception 'FAIL 14f: renewal in the grace week gave %', v_date; end if;
+
   -- <<< NEXT TESTS (task 4) go above this line
 
   -- <<< NEXT TESTS (task 5) go above this line
+
 
   raise exception 'OK: all lease tests passed';
 end $$;

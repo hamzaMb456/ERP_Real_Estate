@@ -276,6 +276,235 @@ insert into storage.buckets (id, max_upload_file_size, min_upload_file_size, pre
 values ('lease-files', 10485760, 1, true, 300, 'max-age=3600')
 on conflict (id) do nothing;
 
--- <<< PART 2 (task 4): sync, overlap, lease functions
+-- Unit status follows the leases: a unit with an active lease is rented, otherwise vacant. Units for sale,
+-- sold or under maintenance are never touched (their status says something a lease cannot).
+create or replace function public.sync_unit_status(p_unit uuid)
+returns void
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_target text;
+begin
+  v_target := case when exists (
+      select 1 from public.lease_units lu join public.leases l on l.id = lu.lease_id
+      where lu.unit_id = p_unit and l.status = 'active'
+    ) then 'rented' else 'vacant' end;
+  update public.units set status = v_target
+  where id = p_unit and status in ('rented', 'vacant') and status <> v_target;
+end;
+$$;
+
+create or replace function public.leases_sync_units()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_unit uuid;
+begin
+  for v_unit in select unit_id from public.lease_units where lease_id = new.id loop
+    perform public.sync_unit_status(v_unit);
+  end loop;
+  return null;
+end;
+$$;
+
+create trigger leases_sync_units after insert or update of status on public.leases
+  for each row execute function public.leases_sync_units();
+
+-- Who is calling: Hasura passes its session variables as json. Only org_admin and manager may act.
+create or replace function public.lease_session_org(p_session json)
+returns uuid
+language plpgsql
+stable
+set search_path = public, pg_temp
+as $$
+declare
+  v_role text := p_session ->> 'x-hasura-role';
+  v_org  uuid := nullif(p_session ->> 'x-hasura-org-id', '')::uuid;
+begin
+  if v_org is null or v_role is null or v_role not in ('org_admin', 'manager') then
+    raise exception 'lease_forbidden' using errcode = '42501';
+  end if;
+  return v_org;
+end;
+$$;
+
+-- A unit cannot be on two leases whose occupied periods overlap (both ends inclusive). The occupied period
+-- of an active, ended or expired lease runs from its start to its end (or the day it really ended).
+-- Drafts reserve nothing. One advisory lock per unit, taken in a fixed order, so two simultaneous
+-- activations queue up instead of both passing.
+create or replace function public.assert_no_lease_overlap(p_lease uuid, p_start date, p_end date)
+returns void
+language plpgsql
+set search_path = public, pg_temp
+as $$
+declare
+  v_number integer;
+begin
+  perform pg_advisory_xact_lock(hashtextextended(lu.unit_id::text, 0))
+  from (select unit_id from public.lease_units where lease_id = p_lease order by unit_id) lu;
+
+  select l.number into v_number
+  from public.lease_units mine
+  join public.lease_units other on other.unit_id = mine.unit_id and other.lease_id <> mine.lease_id
+  join public.leases l on l.id = other.lease_id and l.status in ('active', 'ended', 'expired')
+  where mine.lease_id = p_lease
+    and daterange(l.start_date, coalesce(l.ended_on, l.end_date), '[]') && daterange(p_start, p_end, '[]')
+  order by l.number
+  limit 1;
+
+  if v_number is not null then
+    raise exception 'lease_overlap:%', v_number using errcode = '23P01';
+  end if;
+end;
+$$;
+
+-- draft -> active. Needs a renter, a unit and a first rent for every unit; no overlap with another lease.
+create or replace function public.activate_lease(p_lease_id uuid, p_signed_on date default null, hasura_session json default null)
+returns setof public.leases
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_org   uuid := public.lease_session_org(hasura_session);
+  v_lease public.leases;
+begin
+  select * into v_lease from public.leases where id = p_lease_id and organization_id = v_org for update;
+  if not found then raise exception 'lease_not_found' using errcode = 'P0002'; end if;
+  if v_lease.status <> 'draft' then raise exception 'lease_not_draft' using errcode = '23514'; end if;
+  if not exists (select 1 from public.lease_parties where lease_id = v_lease.id and role = 'renter') then
+    raise exception 'lease_needs_renter' using errcode = '23514';
+  end if;
+  if not exists (select 1 from public.lease_units where lease_id = v_lease.id) then
+    raise exception 'lease_needs_unit' using errcode = '23514';
+  end if;
+  if exists (
+    select 1 from public.lease_units lu
+    where lu.lease_id = v_lease.id
+      and not exists (select 1 from public.lease_rents r where r.lease_id = lu.lease_id and r.unit_id = lu.unit_id)
+  ) then
+    raise exception 'lease_needs_rent' using errcode = '23514';
+  end if;
+  perform public.assert_no_lease_overlap(v_lease.id, v_lease.start_date, v_lease.end_date);
+
+  perform set_config('erp.lease_action', 'on', true);
+  update public.leases set status = 'active', signed_at = coalesce(p_signed_on, public.today_tunis()) where id = v_lease.id;
+  insert into public.lease_terms (organization_id, lease_id, kind, start_date, end_date)
+  values (v_org, v_lease.id, 'initial', v_lease.start_date, v_lease.end_date);
+  perform set_config('erp.lease_action', 'off', true);
+  return query select * from public.leases where id = v_lease.id;
+end;
+$$;
+
+-- Renewal extends the same lease: the end date moves and a term row is logged. Allowed while the lease is
+-- active, including its 7-day grace week. New rents (optional) start the day after the old end date.
+create or replace function public.renew_lease(p_lease_id uuid, p_new_end_date date, p_rents jsonb default null, p_note text default null, hasura_session json default null)
+returns setof public.leases
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_org   uuid := public.lease_session_org(hasura_session);
+  v_lease public.leases;
+begin
+  select * into v_lease from public.leases where id = p_lease_id and organization_id = v_org for update;
+  if not found then raise exception 'lease_not_found' using errcode = 'P0002'; end if;
+  if v_lease.status <> 'active' then raise exception 'lease_not_active' using errcode = '23514'; end if;
+  if p_new_end_date is null or p_new_end_date <= greatest(v_lease.end_date, public.today_tunis()) then
+    raise exception 'lease_renewal_not_after' using errcode = '23514';
+  end if;
+  perform public.assert_no_lease_overlap(v_lease.id, v_lease.start_date, p_new_end_date);
+
+  perform set_config('erp.lease_action', 'on', true);
+  insert into public.lease_terms (organization_id, lease_id, kind, start_date, end_date, note)
+  values (v_org, v_lease.id, 'renewal', v_lease.end_date + 1, p_new_end_date, nullif(trim(p_note), ''));
+  update public.leases set end_date = p_new_end_date where id = v_lease.id;
+  if p_rents is not null and jsonb_typeof(p_rents) = 'array' then
+    insert into public.lease_rents (organization_id, lease_id, unit_id, effective_from, rent_amount, charges_amount, reason)
+    select v_org, v_lease.id, (r ->> 'unit_id')::uuid, v_lease.end_date + 1,
+           (r ->> 'rent_amount')::numeric, coalesce((r ->> 'charges_amount')::numeric, 0), 'renewal'
+    from jsonb_array_elements(p_rents) r;
+  end if;
+  perform set_config('erp.lease_action', 'off', true);
+  return query select * from public.leases where id = v_lease.id;
+end;
+$$;
+
+-- active -> ended, on a date between the start and today (the renter has really left).
+create or replace function public.end_lease(p_lease_id uuid, p_ended_on date, p_reason text default null, hasura_session json default null)
+returns setof public.leases
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_org   uuid := public.lease_session_org(hasura_session);
+  v_lease public.leases;
+begin
+  select * into v_lease from public.leases where id = p_lease_id and organization_id = v_org for update;
+  if not found then raise exception 'lease_not_found' using errcode = 'P0002'; end if;
+  if v_lease.status <> 'active' then raise exception 'lease_not_active' using errcode = '23514'; end if;
+  if p_ended_on is null or p_ended_on < v_lease.start_date then
+    raise exception 'lease_end_before_start' using errcode = '23514';
+  end if;
+  if p_ended_on > public.today_tunis() then raise exception 'lease_end_in_future' using errcode = '23514'; end if;
+
+  perform set_config('erp.lease_action', 'on', true);
+  update public.leases
+  set status = 'ended', ended_on = p_ended_on, end_reason = coalesce(nullif(trim(p_reason), ''), 'other')
+  where id = v_lease.id;
+  perform set_config('erp.lease_action', 'off', true);
+  return query select * from public.leases where id = v_lease.id;
+end;
+$$;
+
+-- A rent change on an active lease: adds a rent row for one of its units, from a date.
+create or replace function public.change_rent(
+  p_lease_id uuid, p_unit_id uuid, p_effective_from date, p_rent numeric, p_charges numeric default 0, p_reason text default null, hasura_session json default null)
+returns setof public.leases
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_org   uuid := public.lease_session_org(hasura_session);
+  v_lease public.leases;
+begin
+  select * into v_lease from public.leases where id = p_lease_id and organization_id = v_org for update;
+  if not found then raise exception 'lease_not_found' using errcode = 'P0002'; end if;
+  if v_lease.status <> 'active' then raise exception 'lease_not_active' using errcode = '23514'; end if;
+  if not exists (select 1 from public.lease_units where lease_id = v_lease.id and unit_id = p_unit_id) then
+    raise exception 'lease_unit_not_found' using errcode = 'P0002';
+  end if;
+  insert into public.lease_rents (organization_id, lease_id, unit_id, effective_from, rent_amount, charges_amount, reason)
+  values (v_org, v_lease.id, p_unit_id, p_effective_from, p_rent, coalesce(p_charges, 0), nullif(trim(p_reason), ''));
+  return query select * from public.leases where id = v_lease.id;
+end;
+$$;
+
+-- Daily job (admin only, no role permission): an active lease whose grace week is over expires and frees its unit.
+create or replace function public.expire_overdue_leases()
+returns setof public.leases
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  perform set_config('erp.lease_action', 'on', true);
+  return query
+  with expired as (
+    update public.leases
+    set status = 'expired', ended_on = end_date, end_reason = 'expired_auto'
+    where status = 'active' and end_date + public.lease_rule('grace_days') < public.today_tunis()
+    returning *
+  )
+  select * from expired;
+  perform set_config('erp.lease_action', 'off', true);
+end;
+$$;
 
 -- <<< PART 3 (task 5): views
