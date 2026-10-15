@@ -20,6 +20,7 @@ export default defineConfig({
         'src/lib/geocode.ts',
         'src/lib/gaps.ts',
         'src/lib/dates.ts',
+        'src/lib/show-error.ts',
       ],
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },

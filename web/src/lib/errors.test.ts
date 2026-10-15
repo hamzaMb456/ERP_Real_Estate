@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toFrenchError } from './errors';
+import { isRetryable, toFrenchError } from './errors';
 
 describe('toFrenchError', () => {
   it('explains a share total above 100 % with the date', () => {
@@ -39,9 +39,40 @@ describe('toFrenchError', () => {
     expect(toFrenchError(error)).toBe('Vous n’avez pas les droits pour cette action.');
   });
 
+  it.each([
+    ['lease_overlap:12', 'Cette unité est déjà louée sur cette période (bail N° 12).'],
+    ['lease_needs_renter', 'Ajoutez au moins un locataire avant d’activer le bail.'],
+    ['lease_needs_unit', 'Ajoutez au moins une unité avant d’activer le bail.'],
+    ['lease_needs_rent', 'Indiquez le loyer de chaque unité avant d’activer le bail.'],
+    ['lease_not_draft', 'Ce bail ne peut plus être modifié.'],
+    ['lease_not_active', 'Ce bail ne peut plus être modifié.'],
+    ['lease_not_found', 'Ce bail est introuvable.'],
+    ['lease_forbidden', 'Vous n’avez pas les droits pour cette action.'],
+    ['lease_renewal_not_after', 'La nouvelle date de fin doit être postérieure à la fin actuelle du bail.'],
+    ['lease_end_before_start', 'La date de fin doit suivre la date de début.'],
+    ['new row violates check constraint "leases_dates_check"', 'La date de fin doit suivre la date de début.'],
+    ['lease_end_in_future', 'La date de fin du bail ne peut pas être dans le futur.'],
+    ['lease_rent_before_start', 'Le loyer ne peut pas commencer avant le début du bail.'],
+    ['lease_draft_only', 'Les unités d’un bail ne peuvent être modifiées que tant qu’il est en brouillon.'],
+    ['lease_unit_not_found', 'Cette unité ne fait pas partie du bail.'],
+    ['new row violates check constraint "leases_registration_check"', 'La date d’enregistrement ne peut pas précéder la signature.'],
+    ['duplicate key value violates unique constraint "lease_rents_lease_id_unit_id_effective_from_key"', 'Un loyer existe déjà à cette date pour cette unité.'],
+  ])('explains lease error %s', (message, expected) => {
+    expect(toFrenchError(new Error(message))).toBe(expected);
+  });
+
   it('keeps an unknown message and handles non-errors', () => {
     expect(toFrenchError(new Error('Something odd'))).toBe('Something odd');
     expect(toFrenchError(new Error(''))).toBe('Erreur inconnue.');
     expect(toFrenchError('nope')).toBe('Erreur inconnue.');
+  });
+});
+
+describe('isRetryable', () => {
+  it('retries network and permission failures only', () => {
+    expect(isRetryable(new TypeError('Failed to fetch'))).toBe(true);
+    expect(isRetryable(new Error('check constraint of an insert permission has failed'))).toBe(true);
+    expect(isRetryable(new Error('lease_overlap:3'))).toBe(false);
+    expect(isRetryable('nope')).toBe(false);
   });
 });
