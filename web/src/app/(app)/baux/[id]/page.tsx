@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, SearchX } from 'lucide-react';
+import { LeaseCalendarTab } from '@/components/calendar/lease-calendar-tab';
 import { LEASE_QUERY, type LeaseDetails } from '@/components/leases/lease-details';
 import { LeaseActions } from '@/components/leases/lease-actions';
 import { LeaseDocuments } from '@/components/leases/lease-documents';
@@ -20,7 +21,7 @@ import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 import { useHashTab } from '@/lib/use-hash';
 
-const LEASE_TABS = ['apercu', 'loyers', 'documents'] as const;
+const LEASE_TABS = ['apercu', 'loyers', 'documents', 'calendrier'] as const;
 type LeaseTabName = (typeof LEASE_TABS)[number];
 
 function BackLink() {
@@ -113,6 +114,7 @@ export default function LeaseDetailPage() {
             <TabsTrigger value="apercu">Aperçu</TabsTrigger>
             <TabsTrigger value="loyers">Loyers</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="calendrier">Calendrier</TabsTrigger>
           </TabsList>
           <TabsContent value="apercu" className="pt-4">
             <LeaseOverviewTab lease={lease} canEdit={canEdit} onChanged={refresh} />
@@ -122,6 +124,9 @@ export default function LeaseDetailPage() {
           </TabsContent>
           <TabsContent value="documents" className="pt-4">
             <LeaseDocuments leaseId={lease.id} />
+          </TabsContent>
+          <TabsContent value="calendrier" className="pt-4">
+            <LeaseCalendarTab leaseId={lease.id} />
           </TabsContent>
         </Tabs>
       </StaggerItem>

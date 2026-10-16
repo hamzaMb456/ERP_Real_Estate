@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   ChartColumn,
   Building2,
   DollarSign,
@@ -35,6 +36,7 @@ export const NAV_GROUPS: NavGroup[] = [
         ],
       },
       { label: 'Contacts', href: '/contacts', icon: Users },
+      { label: 'Calendrier', href: '/calendrier', icon: CalendarDays },
     ],
   },
   {

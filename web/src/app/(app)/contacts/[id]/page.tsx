@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { motion } from 'motion/react';
 import { Archive, ArchiveRestore, ArrowLeft, Copy, FileText, IdCard, Loader2, Mail, MapPin, Pencil, Phone, UserX } from 'lucide-react';
 import { toast } from 'sonner';
+import { ContactAppointments } from '@/components/calendar/contact-appointments';
 import { CONTACT_ROLES, RoleBadge, type ContactRole } from '@/components/domain/badges';
 import { HoverLift, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { ContactGuaranteedLeases, ContactRenterLeases } from '@/components/leases/contact-leases';
@@ -294,6 +295,10 @@ export default function ContactDetailPage() {
 
       <StaggerItem>
         <ContactGuaranteedLeases contactId={current.id} />
+      </StaggerItem>
+
+      <StaggerItem>
+        <ContactAppointments contactId={current.id} />
       </StaggerItem>
 
       <StaggerItem>
