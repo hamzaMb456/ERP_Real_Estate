@@ -79,7 +79,8 @@ const operations = [
       source,
       name: 'appointment_changed',
       table: table('appointments'),
-      update: { columns: ['starts_at', 'ends_at', 'location', 'status'] },
+      // notify_by_email: switching it on after creation invites the participants (the function decides).
+      update: { columns: ['starts_at', 'ends_at', 'location', 'status', 'notify_by_email'] },
       webhook: fnUrl('send-appointment-email'),
       headers,
       retry_conf,

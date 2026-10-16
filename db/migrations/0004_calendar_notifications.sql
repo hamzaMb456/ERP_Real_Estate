@@ -108,21 +108,50 @@ $$;
 create trigger appointments_check_staff before insert or update of assigned_user_id, organization_id on public.appointments
   for each row execute function public.check_appointment_staff();
 
+-- A cancelled or finished appointment, or one moved to another Tunis day, loses its reminder in the bell:
+-- the reminder would be wrong (cancelled, moved) or pointless (done). The next daily run writes a new one
+-- for the new day (the reminder key carries the day).
+create or replace function public.drop_stale_appointment_reminders()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if new.status <> 'planned'
+     or (new.starts_at at time zone 'Africa/Tunis')::date <> (old.starts_at at time zone 'Africa/Tunis')::date then
+    delete from public.notifications
+    where appointment_id = new.id and kind = 'appointment_reminder';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger appointments_drop_stale_reminders after update of status, starts_at on public.appointments
+  for each row execute function public.drop_stale_appointment_reminders();
+
 -- Staff of each organization (org_admin, manager): the "staff in charge" list and the notification
 -- recipients. Organization from auth.users.metadata, roles from auth.user_roles.
+-- The organization id is cast only when it has the exact 8-4-4-4-12 shape (case guard: Postgres may
+-- evaluate a WHERE before or after the select list), so one user with a bad metadata value is left out
+-- instead of making the view fail for every organization.
 create view public.staff_members as
-select distinct on (u.id)
-  u.id                                       as user_id,
-  (u.metadata ->> 'organization_id')::uuid   as organization_id,
-  coalesce(nullif(u.display_name, ''), u.email) as display_name,
-  u.email                                    as email,
-  r.role                                     as role
-from auth.users u
-join auth.user_roles r on r.user_id = u.id
-where u.disabled = false
-  and r.role in ('org_admin', 'manager')
-  and (u.metadata ->> 'organization_id') ~ '^[0-9a-fA-F-]{36}$'
-order by u.id, case r.role when 'org_admin' then 0 else 1 end;
+select distinct on (s.id) s.id as user_id, s.organization_id, s.display_name, s.email, s.role
+from (
+  select
+    u.id,
+    case when (u.metadata ->> 'organization_id') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+         then (u.metadata ->> 'organization_id')::uuid end as organization_id,
+    coalesce(nullif(u.display_name, ''), u.email) as display_name,
+    u.email,
+    r.role
+  from auth.users u
+  join auth.user_roles r on r.user_id = u.id
+  where u.disabled = false
+    and r.role in ('org_admin', 'manager')
+) s
+where s.organization_id is not null
+order by s.id, case s.role when 'org_admin' then 0 else 1 end;
 
 -- One feed for the calendar: appointments, plus all-day events derived from active leases
 -- (one per leased unit). All-day events start at midnight Tunis time and end the next midnight
@@ -232,7 +261,11 @@ begin
        'lease_ending_soon:' || o.id::text || ':' || o.end_date::text),
       ('lease_grace', o.in_grace,
        'lease_grace:' || o.id::text || ':' || o.end_date::text),
-      ('lease_expired', o.status = 'expired' and o.ended_on >= v_today - public.lease_rule('expired_notice_days'),
+      -- expire_overdue_leases sets ended_on to the END DATE and runs on the first day after the grace week,
+      -- so the day a lease expired is end_date + grace_days + 1, not ended_on.
+      ('lease_expired',
+       o.status = 'expired' and o.end_reason = 'expired_auto'
+         and o.end_date + public.lease_rule('grace_days') + 1 >= v_today - public.lease_rule('expired_notice_days'),
        'lease_expired:' || o.id::text),
       ('registration_due', o.registration_state = 'due_soon',
        'registration_due:' || o.id::text || ':' || coalesce(o.registration_deadline::text, '')),
@@ -252,7 +285,9 @@ begin
   with inserted as (
   insert into public.notifications (organization_id, user_id, kind, title, link, appointment_id, lease_id, dedupe_key)
   select a.organization_id, s.user_id, 'appointment_reminder', a.title, '/calendrier?rendezvous=' || a.id::text,
-         a.id, a.lease_id, 'appointment_reminder:' || a.id::text
+         a.id, a.lease_id,
+         -- The key carries the appointment day: an appointment moved to another day is reminded again.
+         'appointment_reminder:' || a.id::text || ':' || (a.starts_at at time zone 'Africa/Tunis')::date::text
   from public.appointments a
   join public.staff_members s
     on s.organization_id = a.organization_id
@@ -264,10 +299,10 @@ begin
   )
   select * from inserted;
 
+  -- reminder_sent_at = the last run that covered the appointment.
   update public.appointments
   set reminder_sent_at = now()
   where status = 'planned'
-    and reminder_sent_at is null
     and (starts_at at time zone 'Africa/Tunis')::date = v_today + 1;
 
   delete from public.notifications
@@ -283,7 +318,8 @@ declare
 begin
   foreach v_fn in array array[
     'public.generate_daily_notifications()',
-    'public.check_appointment_staff()'
+    'public.check_appointment_staff()',
+    'public.drop_stale_appointment_reminders()'
   ] loop
     execute format('revoke execute on function %s from public', v_fn);
     foreach v_role in array array['nhost_hasura', 'postgres'] loop

@@ -13,6 +13,10 @@ declare
   appt   uuid := 'c0000000-0000-4000-8000-000000000041';
   l_act  uuid := 'c0000000-0000-4000-8000-000000000051';   -- fixture lease, activated
   appt2  uuid := 'c0000000-0000-4000-8000-000000000042';   -- planned appointment tomorrow
+  appt3  uuid := 'c0000000-0000-4000-8000-000000000043';   -- tomorrow at 00:30 Tunis time (the evening before in UTC)
+  appt4  uuid := 'c0000000-0000-4000-8000-000000000044';   -- the day after tomorrow at 00:30 Tunis time
+  u_bad1 uuid := 'c0000000-0000-4000-8000-000000000033';   -- staff user whose metadata org id is not a uuid
+  u_bad2 uuid := 'c0000000-0000-4000-8000-000000000034';   -- staff user whose metadata org id has 36 chars but no uuid shape
   l_old  uuid := 'c0000000-0000-4000-8000-000000000052';   -- expired 8 days ago
   l_new  uuid := 'c0000000-0000-4000-8000-000000000053';   -- expired 2 days ago
   n_old  uuid := 'c0000000-0000-4000-8000-000000000061';   -- notification created 91 days ago
@@ -86,6 +90,15 @@ begin
   select count(*) into n from public.staff_members where user_id = u_view;
   if n <> 0 then raise exception 'FAIL: viewer listed in staff_members'; end if;
 
+  -- 5b. One staff user with a malformed organization id in auth metadata must not break the view for everybody.
+  insert into auth.users (id, email, metadata) values
+    (u_bad1, 'bad1@fixture.test', jsonb_build_object('organization_id', 'not-a-uuid')),
+    (u_bad2, 'bad2@fixture.test', jsonb_build_object('organization_id', '1111111111111-4111-8111-111111111111'));
+  insert into auth.user_roles (user_id, role) values (u_bad1, 'manager'), (u_bad2, 'manager');
+  select count(*) into n from public.staff_members;
+  select count(*) into n1 from public.staff_members where user_id in (u_bad1, u_bad2);
+  if n1 <> 0 then raise exception 'FAIL: malformed organization id listed in staff_members'; end if;
+
   -- 6. A draft lease produces no calendar event; once active it produces a lease_start all-day event
   --    that starts at midnight Tunis time and ends the next midnight.
   -- A fresh unit in a demo property, so no demo lease can overlap.
@@ -133,11 +146,22 @@ begin
 
   -- Fixtures: a planned appointment tomorrow assigned to the manager (appt, cancelled above, is also
   -- tomorrow); two leases that expired 8 and 2 days ago; two old notifications.
-  insert into public.appointments (id, organization_id, kind, title, starts_at, ends_at, assigned_user_id)
-  values (appt2, org, 'move_in', 'Entree test', now() + interval '1 day', now() + interval '1 day 1 hour', u_mgr);
-  insert into public.leases (id, organization_id, status, start_date, end_date, ended_on, end_reason) values
-    (l_old, org, 'expired', v_today - 400, v_today - 15, v_today - 8, 'expired_auto'),
-    (l_new, org, 'expired', v_today - 400, v_today - 9,  v_today - 2, 'expired_auto');
+  insert into public.appointments (id, organization_id, kind, title, starts_at, ends_at, assigned_user_id) values
+    (appt2, org, 'move_in', 'Entree test', now() + interval '1 day', now() + interval '1 day 1 hour', u_mgr),
+    -- 00:30 Tunis time is 23:30 UTC the evening before: the reminder day must follow the Tunis calendar.
+    (appt3, org, 'meeting', 'Minuit demain', ((v_today + 1) + time '00:30') at time zone 'Africa/Tunis',
+     ((v_today + 1) + time '01:30') at time zone 'Africa/Tunis', u_mgr),
+    (appt4, org, 'meeting', 'Minuit apres-demain', ((v_today + 2) + time '00:30') at time zone 'Africa/Tunis',
+     ((v_today + 2) + time '01:30') at time zone 'Africa/Tunis', u_mgr);
+  -- Two leases past their grace week, then expired by the real daily function: it sets ended_on to the END
+  -- DATE (not to the day it ran), so « expired 12 days ago » and « expired yesterday » look like this.
+  insert into public.leases (id, organization_id, status, start_date, end_date) values
+    (l_old, org, 'active', v_today - 400, v_today - 20),
+    (l_new, org, 'active', v_today - 400, v_today - 9);
+  perform public.expire_overdue_leases();
+  if (select status from public.leases where id = l_new) <> 'expired' then
+    raise exception 'FAIL: fixture lease was not expired by expire_overdue_leases';
+  end if;
   insert into public.notifications (id, organization_id, user_id, kind, title, dedupe_key, created_at) values
     (n_old,  org, u_mgr, 'lease_grace', 'Old',  'fixture:old',  now() - interval '91 days'),
     (n_keep, org, u_mgr, 'lease_grace', 'Keep', 'fixture:keep', now() - interval '89 days');
@@ -149,20 +173,49 @@ begin
   if n2 <> 0 then raise exception 'FAIL: second run inserted % notifications', n2; end if;
 
   -- 9. Reminders: none for the cancelled appointment, exactly one (for the assigned user) for the planned one.
-  select count(*) into n from public.notifications where dedupe_key = 'appointment_reminder:' || appt;
+  select count(*) into n from public.notifications where dedupe_key like 'appointment_reminder:' || appt || '%';
   if n <> 0 then raise exception 'FAIL: cancelled appointment got % reminders', n; end if;
   select count(*) into n from public.notifications
-  where dedupe_key = 'appointment_reminder:' || appt2 and user_id = u_mgr and appointment_id = appt2;
+  where dedupe_key like 'appointment_reminder:' || appt2 || '%' and user_id = u_mgr and appointment_id = appt2;
   if n <> 1 then raise exception 'FAIL: planned appointment got % reminders', n; end if;
   if (select reminder_sent_at from public.appointments where id = appt2) is null then
     raise exception 'FAIL: reminder_sent_at not set';
   end if;
 
-  -- 10. Expired leases: only those that ended within expired_notice_days.
+  -- 9b. The reminder day is the Tunis day: 00:30 tomorrow (23:30 UTC today) gets one, 00:30 the day after none.
+  select count(*) into n from public.notifications where dedupe_key like 'appointment_reminder:' || appt3 || '%' and user_id = u_mgr;
+  if n <> 1 then raise exception 'FAIL: appointment at 00:30 Tunis tomorrow got % reminders', n; end if;
+  select count(*) into n from public.notifications where dedupe_key like 'appointment_reminder:' || appt4 || '%';
+  if n <> 0 then raise exception 'FAIL: appointment at 00:30 Tunis the day after tomorrow got % reminders', n; end if;
+
+  -- 9c. The reminder key carries the appointment day, so a moved appointment is reminded again.
+  if not exists (select 1 from public.notifications
+                 where dedupe_key = 'appointment_reminder:' || appt2 || ':' || (v_today + 1)::text) then
+    raise exception 'FAIL: reminder key does not carry the appointment day';
+  end if;
+  update public.notifications set read_at = now() where appointment_id = appt2 and kind = 'appointment_reminder';
+  update public.appointments set starts_at = ((v_today + 3) + time '09:00') at time zone 'Africa/Tunis',
+                                 ends_at   = ((v_today + 3) + time '10:00') at time zone 'Africa/Tunis' where id = appt2;
+  if exists (select 1 from public.notifications where appointment_id = appt2 and kind = 'appointment_reminder') then
+    raise exception 'FAIL: the reminder of the old day survived the move of the appointment';
+  end if;
+  update public.appointments set starts_at = ((v_today + 1) + time '09:00') at time zone 'Africa/Tunis',
+                                 ends_at   = ((v_today + 1) + time '10:00') at time zone 'Africa/Tunis' where id = appt2;
+  select count(*) into n from public.generate_daily_notifications();
+  select count(*) into n1 from public.notifications where appointment_id = appt2 and kind = 'appointment_reminder';
+  if n1 <> 1 then raise exception 'FAIL: moved appointment got % reminders after moving back to tomorrow', n1; end if;
+
+  -- 9d. Cancelling an appointment removes its reminder from the bell (read or not).
+  update public.appointments set status = 'cancelled' where id = appt2;
+  if exists (select 1 from public.notifications where appointment_id = appt2 and kind = 'appointment_reminder') then
+    raise exception 'FAIL: the reminder of a cancelled appointment is still in the bell';
+  end if;
+
+  -- 10. Expired leases: only those that expired within expired_notice_days (end date + grace week + 1 day).
   select count(*) into n from public.notifications where dedupe_key = 'lease_expired:' || l_old;
-  if n <> 0 then raise exception 'FAIL: lease expired 8 days ago notified'; end if;
+  if n <> 0 then raise exception 'FAIL: lease expired 12 days ago notified'; end if;
   select count(*) into n from public.notifications where dedupe_key = 'lease_expired:' || l_new and user_id = u_mgr;
-  if n <> 1 then raise exception 'FAIL: lease expired 2 days ago notified % times', n; end if;
+  if n <> 1 then raise exception 'FAIL: lease expired yesterday notified % times', n; end if;
 
   -- 11. Retention: older than notification_retention_days is deleted, younger is kept.
   if exists (select 1 from public.notifications where id = n_old) then raise exception 'FAIL: 91-day notification kept'; end if;
