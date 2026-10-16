@@ -1,7 +1,7 @@
 # Project 2 — Leases (Baux), rent requests, inspections, deposit, calendar (design)
 
 Date: 2026-10-15 · Branch: `claude/continuation-bdded2` · Depends on: Project 1 (core records)
-Status: **Plan A built** (core leases, migration 0003; see `docs/superpowers/handoffs/2026-10-15-leases-plan-a.md`). Plans B, C, D not written yet.
+Status: **Plan A built** (core leases, migration 0003; see `docs/superpowers/handoffs/2026-10-15-leases-plan-a.md`). **Plan B built** (calendar, notifications, daily job, e-mail, migration 0004; see `docs/superpowers/handoffs/2026-10-16-leases-plan-b.md`). Plans C and D not written yet. Numbering ruled in Plan B: 0004 = calendar, 0005 = rent requests (adds `appointments.rent_request_id`), 0006 = inspections and deposit; the headers of sections 3.2 and 3.3 below carry the older numbers.
 Sources: `docs/reference/05-scope-matrix.md` §4.5, UML "Renters and leases" (buttons 1–31),
 glossary (Lease, Renter, Guarantor, Rent Request, Security Deposit), Stitch pages 3–6.
 
