@@ -208,19 +208,20 @@ $$;
 -- Daily job (admin only, called by the lease-daily Nhost function after expire_overdue_leases).
 -- Writes one notification per staff recipient; the dedupe key makes a second run the same day a no-op.
 -- Titles are ASCII ('Bail <number>' or the appointment title); the web and the e-mail templates add the
--- French wording from the kind. Returns the number of notifications inserted.
+-- French wording from the kind. Returns the notifications it inserted (a row set, because Hasura tracks
+-- only set-returning functions).
 create or replace function public.generate_daily_notifications()
-returns integer
+returns setof public.notifications
 language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
 declare
   v_today date := public.today_tunis();
-  v_count integer := 0;
-  v_rows  integer;
 begin
   -- Leases: ending soon, grace week, recent automatic expiry, registration due or overdue. Every staff member.
+  return query
+  with inserted as (
   insert into public.notifications (organization_id, user_id, kind, title, link, lease_id, dedupe_key)
   select o.organization_id, s.user_id, ev.kind, 'Bail ' || o.number::text, '/baux/' || o.id::text, o.id, ev.dedupe_key
   from public.lease_overview o
@@ -240,12 +241,15 @@ begin
   ) as ev (kind, applies, dedupe_key)
   where o.archived_at is null
     and ev.applies
-  on conflict (organization_id, user_id, dedupe_key) do nothing;
-  get diagnostics v_rows = row_count;
-  v_count := v_count + v_rows;
+  on conflict (organization_id, user_id, dedupe_key) do nothing
+  returning *
+  )
+  select * from inserted;
 
   -- Appointments planned for tomorrow (Tunis day): the staff member in charge, or every staff member
   -- when nobody is assigned. Cancelled and done appointments get nothing.
+  return query
+  with inserted as (
   insert into public.notifications (organization_id, user_id, kind, title, link, appointment_id, lease_id, dedupe_key)
   select a.organization_id, s.user_id, 'appointment_reminder', a.title, '/calendrier?rendezvous=' || a.id::text,
          a.id, a.lease_id, 'appointment_reminder:' || a.id::text
@@ -255,9 +259,10 @@ begin
    and (a.assigned_user_id is null or s.user_id = a.assigned_user_id)
   where a.status = 'planned'
     and (a.starts_at at time zone 'Africa/Tunis')::date = v_today + 1
-  on conflict (organization_id, user_id, dedupe_key) do nothing;
-  get diagnostics v_rows = row_count;
-  v_count := v_count + v_rows;
+  on conflict (organization_id, user_id, dedupe_key) do nothing
+  returning *
+  )
+  select * from inserted;
 
   update public.appointments
   set reminder_sent_at = now()
@@ -267,8 +272,6 @@ begin
 
   delete from public.notifications
   where created_at < now() - public.lease_rule('notification_retention_days') * interval '1 day';
-
-  return v_count;
 end;
 $$;
 

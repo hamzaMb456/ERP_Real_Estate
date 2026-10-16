@@ -143,8 +143,8 @@ begin
     (n_keep, org, u_mgr, 'lease_grace', 'Keep', 'fixture:keep', now() - interval '89 days');
 
   -- 8. Idempotent: the second run on the same day inserts nothing.
-  n1 := public.generate_daily_notifications();
-  n2 := public.generate_daily_notifications();
+  select count(*) into n1 from public.generate_daily_notifications();
+  select count(*) into n2 from public.generate_daily_notifications();
   if n1 <= 0 then raise exception 'FAIL: first run inserted % notifications', n1; end if;
   if n2 <> 0 then raise exception 'FAIL: second run inserted % notifications', n2; end if;
 
