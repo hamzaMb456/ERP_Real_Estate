@@ -1,3 +1,6 @@
 
 # Local agent scratch (plan execution ledgers)
 .superpowers/
+
+# Nhost functions dependencies
+functions/node_modules/
