@@ -13,6 +13,12 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.22",
+    "@fullcalendar/daygrid": "^6.1.22",
+    "@fullcalendar/interaction": "^6.1.22",
+    "@fullcalendar/list": "^6.1.22",
+    "@fullcalendar/react": "^6.1.22",
+    "@fullcalendar/timegrid": "^6.1.22",
     "@hookform/resolvers": "^5.9.1",
     "@nhost/nhost-js": "^4.9.0",
     "class-variance-authority": "^0.7.1",
