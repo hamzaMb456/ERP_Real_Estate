@@ -36,7 +36,9 @@ export const appointment = (overrides: Partial<Appointment> = {}): Appointment =
 export const ENV = { NHOST_WEBHOOK_SECRET: 'sec' };
 export const HEADERS = { 'x-nhost-webhook-secret': 'sec' };
 
-export function fakeHasura(appt: Appointment | null) {
+export type HasuraFaults = { failWriteFor?: string[]; failRead?: boolean };
+
+export function fakeHasura(appt: Appointment | null, faults: HasuraFaults = {}) {
   const writes: Array<{ contactId: string; set: Record<string, unknown> }> = [];
   const queries: string[] = [];
   return {
@@ -46,10 +48,14 @@ export function fakeHasura(appt: Appointment | null) {
       async request<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
         queries.push(query);
         if (query.includes('update_appointment_participants_by_pk')) {
+          if (faults.failWriteFor?.includes(variables.contactId as string)) throw new Error('hasura down');
           writes.push({ contactId: variables.contactId as string, set: variables.set as Record<string, unknown> });
           return {} as T;
         }
-        if (query.includes('appointments_by_pk')) return { appointments_by_pk: appt } as T;
+        if (query.includes('appointments_by_pk')) {
+          if (faults.failRead) throw new Error('hasura down');
+          return { appointments_by_pk: appt } as T;
+        }
         throw new Error('unexpected query');
       },
     },

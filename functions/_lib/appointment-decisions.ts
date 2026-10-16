@@ -1,7 +1,7 @@
 import type { HasuraEvent } from './event';
 
 export type ParticipantAction = 'invite' | 'skip' | 'none';
-export type AppointmentAction = 'cancel' | 'update' | 'none';
+export type AppointmentAction = 'cancel' | 'update' | 'invite_all' | 'none';
 
 /** What the handler read from Hasura about the appointment and the contact. */
 export type ParticipantContext = { planned: boolean; notifyByEmail: boolean; email: string | null };
@@ -39,6 +39,10 @@ export function decideAppointmentAction(event: HasuraEvent): AppointmentAction {
   if (event.table.name !== 'appointments' || event.event.op !== 'UPDATE' || !next || !old) return 'none';
   if (next.status === 'cancelled' && old.status !== 'cancelled') return 'cancel';
   if (next.status !== 'planned') return 'none';
+  // Notifications switched on after creation: invite everyone who was never mailed.
+  if (old.notify_by_email === false && next.notify_by_email === true) return 'invite_all';
+  // Events carry every column, so an explicit false means this appointment stays silent.
+  if (next.notify_by_email === false) return 'none';
   const changed = ['starts_at', 'ends_at', 'location'].some((field) => !sameValue(old[field], next[field]));
   return changed ? 'update' : 'none';
 }

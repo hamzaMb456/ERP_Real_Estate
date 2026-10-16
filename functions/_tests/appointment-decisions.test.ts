@@ -84,4 +84,28 @@ describe('decideAppointmentAction', () => {
     expect(decideAppointmentAction(appointmentEvent(cancelled, { ...cancelled, location: 'B' }))).toBe('none');
     expect(decideAppointmentAction(appointmentEvent(base, { ...base, status: 'done', location: 'B' }))).toBe('none');
   });
+
+  describe('notify_by_email turned on after creation', () => {
+    const off = { ...base, notify_by_email: false };
+
+    it('invites everyone when notifications go from false to true on a planned appointment', () => {
+      expect(decideAppointmentAction(appointmentEvent(off, { ...off, notify_by_email: true }))).toBe('invite_all');
+    });
+
+    it('does nothing when notifications go from true to false', () => {
+      const on = { ...base, notify_by_email: true };
+      expect(decideAppointmentAction(appointmentEvent(on, { ...on, notify_by_email: false }))).toBe('none');
+    });
+
+    it('does nothing for a location change while notifications stay off', () => {
+      expect(decideAppointmentAction(appointmentEvent(off, { ...off, location: 'B' }))).toBe('none');
+    });
+
+    it('does not invite for an appointment that is not planned', () => {
+      const next = { ...off, notify_by_email: true, status: 'cancelled' };
+      expect(decideAppointmentAction(appointmentEvent(off, next))).toBe('cancel');
+      const done = { ...off, status: 'done' };
+      expect(decideAppointmentAction(appointmentEvent(done, { ...done, notify_by_email: true }))).toBe('none');
+    });
+  });
 });

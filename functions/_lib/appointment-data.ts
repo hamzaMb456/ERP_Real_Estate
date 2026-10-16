@@ -21,7 +21,7 @@ export type Appointment = {
 };
 
 export type MailKind = 'invitation' | 'update' | 'cancellation';
-export type Tally = { sent: number; failed: number; skipped: number };
+export type Tally = { sent: number; failed: number; skipped: number; writeErrors: number };
 
 const GET_APPOINTMENT = `query GetAppointment($id: uuid!) {
   appointments_by_pk(id: $id) {
@@ -52,7 +52,25 @@ export async function markParticipant(
   await client.request(MARK_PARTICIPANT, { appointmentId, contactId, set });
 }
 
-/** Sends one mail and records the outcome on the participant; an SMTP error becomes `failed`, never a throw. */
+/**
+ * Records a result after a mail went out. A write failure is counted, never thrown:
+ * a 5xx would make Hasura retry the whole event and mail everyone again.
+ */
+async function recordOutcome(
+  client: HasuraClient,
+  appointmentId: string,
+  contactId: string,
+  set: { email_status: 'sent' | 'failed'; email_error: string | null },
+  tally: Tally,
+): Promise<void> {
+  try {
+    await markParticipant(client, appointmentId, contactId, set);
+  } catch {
+    tally.writeErrors += 1;
+  }
+}
+
+/** Sends one mail and records the outcome on the participant; neither an SMTP error nor a failed write throws. */
 export async function sendToParticipant(
   deps: { client: HasuraClient; mailer: Mailer },
   appointment: Appointment,
@@ -73,12 +91,15 @@ export async function sendToParticipant(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'erreur d\'envoi';
     tally.failed += 1;
-    await markParticipant(deps.client, appointment.id, participant.contact_id, {
-      email_status: 'failed',
-      email_error: message.slice(0, 500),
-    });
+    await recordOutcome(
+      deps.client,
+      appointment.id,
+      participant.contact_id,
+      { email_status: 'failed', email_error: message.slice(0, 500) },
+      tally,
+    );
     return;
   }
   tally.sent += 1;
-  await markParticipant(deps.client, appointment.id, participant.contact_id, { email_status: 'sent', email_error: null });
+  await recordOutcome(deps.client, appointment.id, participant.contact_id, { email_status: 'sent', email_error: null }, tally);
 }

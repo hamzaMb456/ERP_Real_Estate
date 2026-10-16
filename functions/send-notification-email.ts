@@ -9,6 +9,7 @@ import { isAuthorizedWebhook } from './_lib/webhook';
 
 const MAX_ERROR_LENGTH = 500;
 const NO_EMAIL_ERROR = 'destinataire sans e-mail';
+const STALE_REMINDER_ERROR = 'rendez-vous annule ou deplace';
 
 type NotificationRow = {
   id: string;
@@ -17,11 +18,15 @@ type NotificationRow = {
   title: string;
   body: string | null;
   link: string | null;
+  appointment_id: string | null;
   emailed_at: string | null;
 };
 
 const GET_NOTIFICATION = `query GetNotification($id: uuid!) {
-  notifications_by_pk(id: $id) { id user_id kind title body link emailed_at }
+  notifications_by_pk(id: $id) { id user_id kind title body link appointment_id emailed_at }
+}`;
+const GET_APPOINTMENT_STATE = `query GetAppointmentState($id: uuid!) {
+  appointments_by_pk(id: $id) { status starts_at }
 }`;
 const GET_RECIPIENT = `query GetRecipient($id: uuid!) {
   staff_members(where: { user_id: { _eq: $id } }, limit: 1) { email }
@@ -38,6 +43,16 @@ async function loadRecipient(client: HasuraClient, userId: string): Promise<stri
 
 async function markNotification(client: HasuraClient, id: string, set: Record<string, unknown>): Promise<void> {
   await client.request(MARK_NOTIFICATION, { id, set });
+}
+
+/** A reminder is stale once its appointment was cancelled, moved out of 'planned' or deleted. */
+async function isStaleReminder(client: HasuraClient, row: NotificationRow): Promise<boolean> {
+  if (row.kind !== 'appointment_reminder' || !row.appointment_id) return false;
+  const data = await client.request<{ appointments_by_pk: { status: string; starts_at: string } | null }>(
+    GET_APPOINTMENT_STATE,
+    { id: row.appointment_id },
+  );
+  return data.appointments_by_pk?.status !== 'planned';
 }
 
 export async function handleNotificationEmail(
@@ -58,6 +73,11 @@ export async function handleNotificationEmail(
   const row = found.notifications_by_pk;
   if (!row || row.emailed_at) return { status: 200, body: { skipped: 'already_emailed' } };
 
+  if (await isStaleReminder(hasura, row)) {
+    await markNotification(hasura, row.id, { email_error: STALE_REMINDER_ERROR });
+    return { status: 200, body: { skipped: 'appointment_not_planned' } };
+  }
+
   const to = await loadRecipient(hasura, row.user_id);
   if (!to) {
     await markNotification(hasura, row.id, { email_error: NO_EMAIL_ERROR });
@@ -73,8 +93,13 @@ export async function handleNotificationEmail(
     await markNotification(hasura, row.id, { email_error: message.slice(0, MAX_ERROR_LENGTH) });
     return { status: 200, body: { sent: false } };
   }
-  await markNotification(hasura, row.id, { emailed_at: new Date().toISOString(), email_error: null });
-  return { status: 200, body: { sent: true } };
+  // The mail is out: a 5xx here would make Hasura retry and send it again, so count the failure instead.
+  try {
+    await markNotification(hasura, row.id, { emailed_at: new Date().toISOString(), email_error: null });
+  } catch {
+    return { status: 200, body: { sent: true, writeErrors: 1 } };
+  }
+  return { status: 200, body: { sent: true, writeErrors: 0 } };
 }
 
 export default async function handler(req: FnRequest, res: FnResponse): Promise<void> {
