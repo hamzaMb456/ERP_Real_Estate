@@ -34,6 +34,7 @@ const TRACK = [
   'ownerships', 'property_files', 'common_areas', 'current_ownerships', 'property_owners', 'record_gaps',
   'leases', 'lease_units', 'lease_parties', 'lease_rents', 'lease_terms', 'lease_files',
   'lease_overview', 'current_lease_rents', 'unit_current_lease',
+  'appointments', 'appointment_participants', 'notifications', 'staff_members', 'calendar_feed',
 ];
 
 const OWNERSHIP_COLUMNS = [
@@ -89,6 +90,27 @@ const SELECT_COLUMNS = {
     'organization_id', 'unit_id', 'lease_id', 'number', 'start_date', 'end_date', 'renter_names',
     'in_grace', 'is_ending_soon', 'rent_amount', 'charges_amount',
   ],
+  appointments: [
+    'id', 'organization_id', 'kind', 'title', 'location', 'starts_at', 'ends_at', 'status', 'assigned_user_id',
+    'unit_id', 'lease_id', 'notify_by_email', 'reminder_sent_at', 'notes', 'created_at', 'updated_at',
+  ],
+  appointment_participants: [
+    'appointment_id', 'organization_id', 'contact_id', 'role', 'email_status', 'email_error', 'created_at', 'updated_at',
+  ],
+  notifications: [
+    'id', 'organization_id', 'user_id', 'kind', 'title', 'body', 'link', 'lease_id', 'appointment_id',
+    'read_at', 'emailed_at', 'email_error', 'created_at',
+  ],
+  staff_members: ['user_id', 'organization_id', 'display_name', 'email', 'role'],
+  calendar_feed: [
+    'event_id', 'organization_id', 'source', 'kind', 'title', 'starts_at', 'ends_at', 'all_day', 'status',
+    'appointment_id', 'lease_id', 'unit_id', 'branch_id', 'assigned_user_id', 'contact_ids', 'location', 'notify_by_email',
+  ],
+};
+
+// Select filters other than "my organization": a user sees only their own notifications.
+const SELECT_FILTERS = {
+  notifications: { _and: [orgFilter('organization_id'), { user_id: { _eq: USER_VAR } }] },
 };
 
 // organization_id is never writable by clients: insert sets it from the JWT (preset), update excludes it.
@@ -148,6 +170,14 @@ const WRITE_COLUMNS = {
     update: ['category', 'title'],
     canDelete: true,
   },
+  // reminder_sent_at is written by the daily job only. Status starts as planned (column default).
+  appointments: {
+    roles: WRITERS,
+    insert: ['id', 'kind', 'title', 'location', 'starts_at', 'ends_at', 'assigned_user_id', 'unit_id', 'lease_id', 'notify_by_email', 'notes'],
+    update: ['kind', 'title', 'location', 'starts_at', 'ends_at', 'status', 'assigned_user_id', 'unit_id', 'lease_id', 'notify_by_email', 'notes'],
+  },
+  // email_status / email_error belong to the e-mail function; the only client update is « Renvoyer » (below).
+  appointment_participants: { roles: WRITERS, insert: ['appointment_id', 'contact_id', 'role'], update: null, canDelete: true },
 };
 
 const tableOrgColumn = (name) => (name === 'organizations' ? 'id' : 'organization_id');
@@ -192,6 +222,16 @@ const RELATIONSHIPS = [
   { type: 'array', table: 'units', name: 'lease_units', to: 'lease_units', map: { id: 'unit_id' } },
   { type: 'array', table: 'units', name: 'current_lease', to: 'unit_current_lease', map: { id: 'unit_id' } },
   { type: 'array', table: 'contacts', name: 'lease_parties', to: 'lease_parties', map: { id: 'contact_id' } },
+  { type: 'array', table: 'appointments', name: 'participants', to: 'appointment_participants', map: { id: 'appointment_id' } },
+  { type: 'object', table: 'appointments', name: 'unit', to: 'units', map: { unit_id: 'id' } },
+  { type: 'object', table: 'appointments', name: 'lease', to: 'leases', map: { lease_id: 'id' } },
+  { type: 'object', table: 'appointments', name: 'assigned_user', to: 'staff_members', map: { assigned_user_id: 'user_id' } },
+  { type: 'object', table: 'appointment_participants', name: 'appointment', to: 'appointments', map: { appointment_id: 'id' } },
+  { type: 'object', table: 'appointment_participants', name: 'contact', to: 'contacts', map: { contact_id: 'id' } },
+  { type: 'array', table: 'contacts', name: 'appointment_participants', to: 'appointment_participants', map: { id: 'contact_id' } },
+  { type: 'array', table: 'leases', name: 'appointments', to: 'appointments', map: { id: 'lease_id' } },
+  { type: 'object', table: 'notifications', name: 'lease', to: 'leases', map: { lease_id: 'id' } },
+  { type: 'object', table: 'notifications', name: 'appointment', to: 'appointments', map: { appointment_id: 'id' } },
 ];
 
 const tracks = TRACK.map((name) => ({ type: 'pg_track_table', args: { source, table: table(name) } }));
@@ -227,7 +267,7 @@ for (const [name, columns] of Object.entries(SELECT_COLUMNS)) {
       type: 'pg_create_select_permission',
       args: {
         source, table: table(name), role,
-        permission: { columns, filter: orgFilter(orgColumn), allow_aggregations: true },
+        permission: { columns, filter: SELECT_FILTERS[name] ?? orgFilter(orgColumn), allow_aggregations: true },
       },
     });
   }
@@ -262,6 +302,32 @@ for (const [name, w] of Object.entries(WRITE_COLUMNS)) {
       });
     }
   }
+}
+
+// Notifications: everyone marks their own as read; nothing else is writable from the client.
+for (const role of ROLES) {
+  creates.push({
+    type: 'pg_create_update_permission',
+    args: {
+      source, table: table('notifications'), role,
+      permission: { columns: ['read_at'], filter: SELECT_FILTERS.notifications, check: SELECT_FILTERS.notifications },
+    },
+  });
+}
+
+// « Renvoyer »: writers may only put a participant's e-mail back to pending; the event trigger then resends.
+for (const role of WRITERS) {
+  creates.push({
+    type: 'pg_create_update_permission',
+    args: {
+      source, table: table('appointment_participants'), role,
+      permission: {
+        columns: ['email_status'],
+        filter: orgFilter('organization_id'),
+        check: { _and: [orgFilter('organization_id'), { email_status: { _eq: 'pending' } }] },
+      },
+    },
+  });
 }
 
 // The organization itself: only an org_admin may rename it. No insert/delete from clients.
@@ -349,9 +415,10 @@ for (const role of WRITERS) {
 
 // Lease functions are exposed as mutations. The writers' functions receive the Hasura session
 // (hasura_session) so the database can check the caller's organization and role itself.
-// expire_overdue_leases has no role permission: only the admin secret (the daily job) can call it.
+// expire_overdue_leases and generate_daily_notifications have no role permission: only the admin secret
+// (the daily job) can call them.
 const WRITER_FUNCTIONS = ['activate_lease', 'renew_lease', 'end_lease', 'change_rent'];
-const ADMIN_FUNCTIONS = ['expire_overdue_leases'];
+const ADMIN_FUNCTIONS = ['expire_overdue_leases', 'generate_daily_notifications'];
 const fn = (name) => ({ schema: 'public', name });
 for (const name of [...WRITER_FUNCTIONS, ...ADMIN_FUNCTIONS]) {
   for (const role of WRITERS) drops.push({ type: 'pg_drop_function_permission', args: { source, function: fn(name), role } });

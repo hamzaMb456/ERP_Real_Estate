@@ -17,6 +17,7 @@ const EXPECTED = [
   'ownerships', 'property_files', 'common_areas', 'current_ownerships', 'property_owners', 'record_gaps',
   'leases', 'lease_units', 'lease_parties', 'lease_rents', 'lease_terms', 'lease_files',
   'lease_overview', 'current_lease_rents', 'unit_current_lease',
+  'appointments', 'appointment_participants', 'notifications', 'staff_members', 'calendar_feed',
 ];
 const DEMO_ORG = '11111111-1111-4111-8111-111111111111';
 
@@ -50,6 +51,6 @@ const asManager = await post(
 console.log('Query as manager:', JSON.stringify(asManager.json.errors ?? asManager.json.data));
 
 const functions = (meta.json.sources?.[0]?.functions ?? []).map((f) => f.function.name);
-for (const name of ['activate_lease', 'renew_lease', 'end_lease', 'change_rent', 'expire_overdue_leases']) {
+for (const name of ['activate_lease', 'renew_lease', 'end_lease', 'change_rent', 'expire_overdue_leases', 'generate_daily_notifications']) {
   console.log(`  function ${name}: ${functions.includes(name) ? 'tracked' : 'NOT tracked'}`);
 }
