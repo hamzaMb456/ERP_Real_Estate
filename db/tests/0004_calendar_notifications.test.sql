@@ -12,6 +12,13 @@ declare
   u_view uuid := 'c0000000-0000-4000-8000-000000000032';   -- fixture user with the viewer role only
   appt   uuid := 'c0000000-0000-4000-8000-000000000041';
   l_act  uuid := 'c0000000-0000-4000-8000-000000000051';   -- fixture lease, activated
+  appt2  uuid := 'c0000000-0000-4000-8000-000000000042';   -- planned appointment tomorrow
+  l_old  uuid := 'c0000000-0000-4000-8000-000000000052';   -- expired 8 days ago
+  l_new  uuid := 'c0000000-0000-4000-8000-000000000053';   -- expired 2 days ago
+  n_old  uuid := 'c0000000-0000-4000-8000-000000000061';   -- notification created 91 days ago
+  n_keep uuid := 'c0000000-0000-4000-8000-000000000062';   -- notification created 89 days ago
+  n1 int;
+  n2 int;
   s_mgr  json;
   v_contact uuid;
   v_unit    uuid;
@@ -120,6 +127,50 @@ begin
   select contact_ids into v_ids from public.calendar_feed where event_id = 'a:' || appt and status = 'cancelled' and not all_day;
   if v_ids is null or not (v_contact = any (v_ids)) then
     raise exception 'FAIL: cancelled appointment missing from the feed or without its participant';
+  end if;
+
+  -- ---------- Part 3: generate_daily_notifications ----------
+
+  -- Fixtures: a planned appointment tomorrow assigned to the manager (appt, cancelled above, is also
+  -- tomorrow); two leases that expired 8 and 2 days ago; two old notifications.
+  insert into public.appointments (id, organization_id, kind, title, starts_at, ends_at, assigned_user_id)
+  values (appt2, org, 'move_in', 'Entree test', now() + interval '1 day', now() + interval '1 day 1 hour', u_mgr);
+  insert into public.leases (id, organization_id, status, start_date, end_date, ended_on, end_reason) values
+    (l_old, org, 'expired', v_today - 400, v_today - 15, v_today - 8, 'expired_auto'),
+    (l_new, org, 'expired', v_today - 400, v_today - 9,  v_today - 2, 'expired_auto');
+  insert into public.notifications (id, organization_id, user_id, kind, title, dedupe_key, created_at) values
+    (n_old,  org, u_mgr, 'lease_grace', 'Old',  'fixture:old',  now() - interval '91 days'),
+    (n_keep, org, u_mgr, 'lease_grace', 'Keep', 'fixture:keep', now() - interval '89 days');
+
+  -- 8. Idempotent: the second run on the same day inserts nothing.
+  n1 := public.generate_daily_notifications();
+  n2 := public.generate_daily_notifications();
+  if n1 <= 0 then raise exception 'FAIL: first run inserted % notifications', n1; end if;
+  if n2 <> 0 then raise exception 'FAIL: second run inserted % notifications', n2; end if;
+
+  -- 9. Reminders: none for the cancelled appointment, exactly one (for the assigned user) for the planned one.
+  select count(*) into n from public.notifications where dedupe_key = 'appointment_reminder:' || appt;
+  if n <> 0 then raise exception 'FAIL: cancelled appointment got % reminders', n; end if;
+  select count(*) into n from public.notifications
+  where dedupe_key = 'appointment_reminder:' || appt2 and user_id = u_mgr and appointment_id = appt2;
+  if n <> 1 then raise exception 'FAIL: planned appointment got % reminders', n; end if;
+  if (select reminder_sent_at from public.appointments where id = appt2) is null then
+    raise exception 'FAIL: reminder_sent_at not set';
+  end if;
+
+  -- 10. Expired leases: only those that ended within expired_notice_days.
+  select count(*) into n from public.notifications where dedupe_key = 'lease_expired:' || l_old;
+  if n <> 0 then raise exception 'FAIL: lease expired 8 days ago notified'; end if;
+  select count(*) into n from public.notifications where dedupe_key = 'lease_expired:' || l_new and user_id = u_mgr;
+  if n <> 1 then raise exception 'FAIL: lease expired 2 days ago notified % times', n; end if;
+
+  -- 11. Retention: older than notification_retention_days is deleted, younger is kept.
+  if exists (select 1 from public.notifications where id = n_old) then raise exception 'FAIL: 91-day notification kept'; end if;
+  if not exists (select 1 from public.notifications where id = n_keep) then raise exception 'FAIL: 89-day notification deleted'; end if;
+
+  -- 12. Admin only: nobody but the Hasura database role may run it.
+  if has_function_privilege('public', 'public.generate_daily_notifications()', 'execute') then
+    raise exception 'FAIL: generate_daily_notifications is executable by public';
   end if;
 
   raise exception 'OK: all calendar tests passed';

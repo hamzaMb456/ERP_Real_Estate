@@ -186,3 +186,107 @@ cross join lateral (
 where l.status = 'active'
   and l.archived_at is null
   and ev.day is not null;
+
+-- Day thresholds: the 0003 values, plus how long an automatic expiry stays worth a notification and
+-- how long notifications are kept.
+create or replace function public.lease_rule(p_name text)
+returns integer
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+  select case p_name
+    when 'grace_days' then 7
+    when 'ending_soon_days' then 60
+    when 'registration_days' then 60
+    when 'registration_warning_days' then 10
+    when 'expired_notice_days' then 7
+    when 'notification_retention_days' then 90
+  end;
+$$;
+
+-- Daily job (admin only, called by the lease-daily Nhost function after expire_overdue_leases).
+-- Writes one notification per staff recipient; the dedupe key makes a second run the same day a no-op.
+-- Titles are ASCII ('Bail <number>' or the appointment title); the web and the e-mail templates add the
+-- French wording from the kind. Returns the number of notifications inserted.
+create or replace function public.generate_daily_notifications()
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_today date := public.today_tunis();
+  v_count integer := 0;
+  v_rows  integer;
+begin
+  -- Leases: ending soon, grace week, recent automatic expiry, registration due or overdue. Every staff member.
+  insert into public.notifications (organization_id, user_id, kind, title, link, lease_id, dedupe_key)
+  select o.organization_id, s.user_id, ev.kind, 'Bail ' || o.number::text, '/baux/' || o.id::text, o.id, ev.dedupe_key
+  from public.lease_overview o
+  join public.staff_members s on s.organization_id = o.organization_id
+  cross join lateral (
+    values
+      ('lease_ending_soon', o.is_ending_soon,
+       'lease_ending_soon:' || o.id::text || ':' || o.end_date::text),
+      ('lease_grace', o.in_grace,
+       'lease_grace:' || o.id::text || ':' || o.end_date::text),
+      ('lease_expired', o.status = 'expired' and o.ended_on >= v_today - public.lease_rule('expired_notice_days'),
+       'lease_expired:' || o.id::text),
+      ('registration_due', o.registration_state = 'due_soon',
+       'registration_due:' || o.id::text || ':' || coalesce(o.registration_deadline::text, '')),
+      ('registration_overdue', o.registration_state = 'overdue',
+       'registration_overdue:' || o.id::text || ':' || coalesce(o.registration_deadline::text, ''))
+  ) as ev (kind, applies, dedupe_key)
+  where o.archived_at is null
+    and ev.applies
+  on conflict (organization_id, user_id, dedupe_key) do nothing;
+  get diagnostics v_rows = row_count;
+  v_count := v_count + v_rows;
+
+  -- Appointments planned for tomorrow (Tunis day): the staff member in charge, or every staff member
+  -- when nobody is assigned. Cancelled and done appointments get nothing.
+  insert into public.notifications (organization_id, user_id, kind, title, link, appointment_id, lease_id, dedupe_key)
+  select a.organization_id, s.user_id, 'appointment_reminder', a.title, '/calendrier?rendezvous=' || a.id::text,
+         a.id, a.lease_id, 'appointment_reminder:' || a.id::text
+  from public.appointments a
+  join public.staff_members s
+    on s.organization_id = a.organization_id
+   and (a.assigned_user_id is null or s.user_id = a.assigned_user_id)
+  where a.status = 'planned'
+    and (a.starts_at at time zone 'Africa/Tunis')::date = v_today + 1
+  on conflict (organization_id, user_id, dedupe_key) do nothing;
+  get diagnostics v_rows = row_count;
+  v_count := v_count + v_rows;
+
+  update public.appointments
+  set reminder_sent_at = now()
+  where status = 'planned'
+    and reminder_sent_at is null
+    and (starts_at at time zone 'Africa/Tunis')::date = v_today + 1;
+
+  delete from public.notifications
+  where created_at < now() - public.lease_rule('notification_retention_days') * interval '1 day';
+
+  return v_count;
+end;
+$$;
+
+-- Only the Hasura database role (and the owner) may run the trigger function and the daily job.
+do $$
+declare
+  v_fn   text;
+  v_role text;
+begin
+  foreach v_fn in array array[
+    'public.generate_daily_notifications()',
+    'public.check_appointment_staff()'
+  ] loop
+    execute format('revoke execute on function %s from public', v_fn);
+    foreach v_role in array array['nhost_hasura', 'postgres'] loop
+      if exists (select 1 from pg_roles where rolname = v_role) then
+        execute format('grant execute on function %s to %I', v_fn, v_role);
+      end if;
+    end loop;
+  end loop;
+end $$;
