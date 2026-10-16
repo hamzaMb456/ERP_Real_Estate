@@ -9,6 +9,14 @@ create table if not exists auth.users (
   disabled      boolean not null default false,
   created_at    timestamptz not null default now()
 );
+-- Nhost keeps every role a user may take (the JWT allowed roles) here.
+create table if not exists auth.user_roles (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  role       text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, role)
+);
 
 create schema if not exists storage;
 create table if not exists storage.buckets (
