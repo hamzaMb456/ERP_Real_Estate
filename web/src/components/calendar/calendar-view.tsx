@@ -126,6 +126,11 @@ export default function CalendarView({ events, view, date, onViewChange, onDateC
           onSelectSlot?.(slotToIso(info.startStr));
           info.view.calendar.unselect();
         }}
+        // Focusable events (tabindex 0) that Enter and Space activate, named as buttons for screen readers.
+        // FullCalendar already turns this on when an eventClick handler exists; saying it keeps it from
+        // depending on that detection.
+        eventInteractive
+        eventDidMount={(info) => info.el.setAttribute('role', 'button')}
         eventClick={(info) => {
           info.jsEvent.preventDefault();
           onEventClick(info.event.id);

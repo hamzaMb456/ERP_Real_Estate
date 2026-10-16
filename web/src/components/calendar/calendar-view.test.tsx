@@ -60,4 +60,50 @@ describe('CalendarView', () => {
     await userEvent.click(screen.getByText('Visite B-102'));
     expect(onEventClick).toHaveBeenCalledWith('a:1');
   });
+  describe('keyboard access', () => {
+    const renderView = (onEventClick = vi.fn()) => {
+      render(
+        <CalendarView
+          events={events}
+          view="dayGridMonth"
+          date="2026-10-16"
+          onViewChange={() => {}}
+          onDateChange={() => {}}
+          onEventClick={onEventClick}
+        />,
+      );
+      return onEventClick;
+    };
+    const eventElement = (title: string) => screen.getByText(title).closest('.fc-event') as HTMLElement;
+
+    it('puts the events in the tab order', () => {
+      renderView();
+      for (const title of ['Visite B-102', 'Fin du bail · Bail 12']) {
+        expect(eventElement(title)).toHaveAttribute('tabindex', '0');
+      }
+    });
+
+    it('exposes the events to screen readers as buttons', () => {
+      renderView();
+      expect(screen.getByRole('button', { name: /Visite B-102/ })).toBe(eventElement('Visite B-102'));
+      expect(screen.getByRole('button', { name: /Fin du bail · Bail 12/ })).toBe(eventElement('Fin du bail · Bail 12'));
+    });
+
+    it('reports the event id when Enter is pressed on a focused event', async () => {
+      const onEventClick = renderView();
+      const user = userEvent.setup();
+      eventElement('Visite B-102').focus();
+      expect(eventElement('Visite B-102')).toHaveFocus();
+      await user.keyboard('{Enter}');
+      expect(onEventClick).toHaveBeenCalledWith('a:1');
+    });
+
+    it('reports the event id when Space is pressed on a focused event', async () => {
+      const onEventClick = renderView();
+      const user = userEvent.setup();
+      eventElement('Fin du bail · Bail 12').focus();
+      await user.keyboard(' ');
+      expect(onEventClick).toHaveBeenCalledWith('l:2:3:lease_end');
+    });
+  });
 });

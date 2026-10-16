@@ -7,6 +7,7 @@ import {
   emailStatusLabel,
   findStaffConflicts,
   isoToTunisParts,
+  participantEmailLabel,
   tunisToIso,
 } from '@/lib/appointments';
 
@@ -32,6 +33,27 @@ describe('emailStatusLabel', () => {
     expect(emailStatusLabel('failed')).toBe('E-mail non envoyé · Renvoyer');
     expect(emailStatusLabel('skipped')).toBe('Pas d’adresse e-mail');
     expect(emailStatusLabel('pending')).toBe('En attente');
+  });
+});
+
+describe('participantEmailLabel', () => {
+  it('says the e-mails are off when notifications are disabled and the participant was skipped', () => {
+    expect(participantEmailLabel('skipped', { notifyByEmail: false, hasEmail: true })).toBe('E-mail désactivé');
+    expect(participantEmailLabel('skipped', { notifyByEmail: false, hasEmail: false })).toBe('E-mail désactivé');
+  });
+
+  it('keeps « Pas d’adresse e-mail » only when notifications are on and the contact has no address', () => {
+    expect(participantEmailLabel('skipped', { notifyByEmail: true, hasEmail: false })).toBe('Pas d’adresse e-mail');
+  });
+
+  it('does not blame a missing address when the contact has one', () => {
+    expect(participantEmailLabel('skipped', { notifyByEmail: true, hasEmail: true })).toBe('Aucun e-mail envoyé');
+  });
+
+  it('falls back to the status label for the other statuses', () => {
+    expect(participantEmailLabel('sent', { notifyByEmail: false, hasEmail: true })).toBe('E-mail envoyé');
+    expect(participantEmailLabel('pending', { notifyByEmail: true, hasEmail: true })).toBe('En attente');
+    expect(participantEmailLabel('failed', { notifyByEmail: true, hasEmail: true })).toBe('E-mail non envoyé · Renvoyer');
   });
 });
 

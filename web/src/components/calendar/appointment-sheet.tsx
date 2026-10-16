@@ -135,7 +135,14 @@ function AppointmentContent({
 
         <section className="space-y-2">
           <h3 className="font-medium">Participants</h3>
-          <AppointmentParticipantsList appointmentId={appointment.id} participants={appointment.participants} canEdit={canEdit} onChanged={onChanged} />
+          <AppointmentParticipantsList
+            appointmentId={appointment.id}
+            participants={appointment.participants}
+            notifyByEmail={appointment.notify_by_email}
+            appointmentStatus={appointment.status}
+            canEdit={canEdit}
+            onChanged={onChanged}
+          />
           {!appointment.notify_by_email && <p className="text-xs text-muted-foreground">Les e-mails sont désactivés pour ce rendez-vous.</p>}
         </section>
 

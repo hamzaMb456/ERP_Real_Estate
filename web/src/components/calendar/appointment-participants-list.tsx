@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Loader2, Mail, MailX } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { emailStatusLabel, PARTICIPANT_ROLE_LABELS } from '@/lib/appointments';
+import type { AppointmentStatus } from '@/lib/appointment-types';
+import { participantEmailLabel, PARTICIPANT_ROLE_LABELS } from '@/lib/appointments';
 import { showError } from '@/lib/show-error';
 import type { AppointmentDetails } from './appointment-details';
 import { resendParticipantMutation } from './appointment-mutations';
@@ -13,11 +14,15 @@ import { resendParticipantMutation } from './appointment-mutations';
 type Props = {
   appointmentId: string;
   participants: AppointmentDetails['participants'];
+  /** The appointment's « Prévenir par e-mail » switch: it explains why a participant was skipped. */
+  notifyByEmail: boolean;
+  /** « Renvoyer » only makes sense while the appointment is still planned. */
+  appointmentStatus: AppointmentStatus;
   canEdit: boolean;
   onChanged: () => void;
 };
 
-export function AppointmentParticipantsList({ appointmentId, participants, canEdit, onChanged }: Props) {
+export function AppointmentParticipantsList({ appointmentId, participants, notifyByEmail, appointmentStatus, canEdit, onChanged }: Props) {
   const [resending, setResending] = useState<string | null>(null);
 
   async function resend(contactId: string) {
@@ -52,8 +57,8 @@ export function AppointmentParticipantsList({ appointmentId, participants, canEd
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Icon className="size-3.5" aria-hidden />
-              <span>{failed ? 'E-mail non envoyé' : emailStatusLabel(participant.email_status)}</span>
-              {failed && canEdit && (
+              <span>{failed ? 'E-mail non envoyé' : participantEmailLabel(participant.email_status, { notifyByEmail, hasEmail: Boolean(participant.contact.email) })}</span>
+              {failed && canEdit && appointmentStatus === 'planned' && (
                 <Button type="button" size="xs" variant="outline" disabled={resending === participant.contact_id} onClick={() => void resend(participant.contact_id)}>
                   {resending === participant.contact_id && <Loader2 data-icon="inline-start" className="animate-spin" />}
                   Renvoyer

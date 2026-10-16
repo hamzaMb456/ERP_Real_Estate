@@ -31,6 +31,16 @@ const EMAIL_STATUS_LABELS: Record<EmailStatus, string> = {
 
 export const emailStatusLabel = (status: EmailStatus): string => EMAIL_STATUS_LABELS[status];
 
+/**
+ * The e-mail status shown next to a participant. « skipped » has two causes, so it is spelled out:
+ * the appointment has « Prévenir par e-mail » off, or the contact has no address.
+ */
+export function participantEmailLabel(status: EmailStatus, context: { notifyByEmail: boolean; hasEmail: boolean }): string {
+  if (status !== 'skipped') return emailStatusLabel(status);
+  if (!context.notifyByEmail) return 'E-mail désactivé';
+  return context.hasEmail ? 'Aucun e-mail envoyé' : emailStatusLabel(status);
+}
+
 /** A Tunis wall-clock date (YYYY-MM-DD) and time (HH:mm) as an ISO instant. Tunisia is UTC+1 all year. */
 export const tunisToIso = (date: string, time: string): string => `${date}T${time}:00+01:00`;
 

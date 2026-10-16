@@ -5,12 +5,15 @@ import type { AppointmentKind, AppointmentStatus, FeedRow } from '@/lib/appointm
 import { isoToTunisParts } from '@/lib/appointments';
 import { formatWhen } from './calendar-format';
 
+/** What a line of the list needs: a calendar_feed row fits, and so does a participation's appointment. */
+export type AppointmentListItem = Pick<FeedRow, 'event_id' | 'appointment_id' | 'title' | 'kind' | 'starts_at' | 'location' | 'status'>;
+
 /** Opens the appointment's sheet on the calendar, on the right day. */
-export const appointmentHref = (row: FeedRow): string =>
+export const appointmentHref = (row: AppointmentListItem): string =>
   `/calendrier?rendezvous=${row.appointment_id}&date=${isoToTunisParts(row.starts_at).date}`;
 
 /** Appointments as links to the calendar, one line each (the lease tab and the contact page use it). */
-export function AppointmentList({ rows, emptyText }: { rows: FeedRow[]; emptyText: string }) {
+export function AppointmentList({ rows, emptyText }: { rows: AppointmentListItem[]; emptyText: string }) {
   if (rows.length === 0) return <p className="text-sm text-muted-foreground">{emptyText}</p>;
   return (
     <ul className="divide-y">
