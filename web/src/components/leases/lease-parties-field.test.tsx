@@ -9,9 +9,23 @@ const OPTIONS: ContactOption[] = [
   { id: 'c2', full_name: 'Hédi Ben Salem', kind: 'person', is_organization: false },
 ];
 
-const props = { legend: 'Locataires', addLabel: 'Ajouter un locataire', rowLabel: 'locataire', options: OPTIONS, taken: [] as string[] };
+const props = {
+  legend: 'Locataires',
+  help: 'Les personnes qui louent et signent le bail.',
+  addLabel: 'Ajouter un locataire',
+  rowLabel: 'locataire',
+  options: OPTIONS,
+  taken: [] as string[],
+};
 
 describe('LeasePartiesField', () => {
+  it('shows the help of the legend in a popover', async () => {
+    render(<LeasePartiesField {...props} value={['c1']} onChange={() => {}} minRows={1} />);
+    expect(screen.queryByText(props.help)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Aide' }));
+    expect(await screen.findByText(props.help)).toBeInTheDocument();
+  });
+
   it('adds an empty row', async () => {
     const onChange = vi.fn();
     render(<LeasePartiesField {...props} value={['c1']} onChange={onChange} minRows={1} />);

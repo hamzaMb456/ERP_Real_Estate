@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { FieldLabelWithHelp } from '@/components/field-help';
 import { LeasePartiesField } from '@/components/leases/lease-parties-field';
 import { LeaseUnitsField, type UnitOption } from '@/components/leases/lease-units-field';
 import { Pulse } from '@/components/motion/primitives';
@@ -11,15 +12,16 @@ import type { ContactOption } from '@/components/ownership/contact-picker';
 import { useContactOptions } from '@/components/ownership/use-contact-options';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { addDays, todayTunis } from '@/lib/dates';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { graphql } from '@/lib/graphql';
 import type { LeaseDraftInput, LeaseUnitInput } from '@/lib/lease-types';
 import { buildLeaseObjects, validateLeaseDraft } from '@/lib/leases';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const UNITS_QUERY = `
   query LeaseFormUnits($keep: [uuid!]!) {
     units(
@@ -64,18 +66,19 @@ type Props = { initial?: LeaseFormInitial; presetUnitId?: string };
 
 /** Loads the free units and the contacts, then shows the form (its state starts from what was loaded). */
 export function LeaseForm({ initial, presetUnitId }: Props) {
+  const t = useT();
   const keep = [...(initial?.units.map((unit) => unit.unitId) ?? []), ...(presetUnitId ? [presetUnitId] : [])];
   const units = useGraphql<{ units: UnitOption[] }>(UNITS_QUERY, { keep });
   const contacts = useContactOptions();
 
   if (units.status === 'loading' || contacts.status === 'loading') {
-    return <Pulse className="text-sm text-muted-foreground">Chargement du formulaire…</Pulse>;
+    return <Pulse className="text-sm text-muted-foreground">{t.leases.form.loading}</Pulse>;
   }
   if (units.status === 'error' || contacts.status === 'error') {
     const message = units.status === 'error' ? units.message : contacts.status === 'error' ? contacts.message : '';
     return (
       <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        Impossible de charger le formulaire : {message}
+        {t.leases.form.loadError(message)}
       </p>
     );
   }
@@ -83,6 +86,7 @@ export function LeaseForm({ initial, presetUnitId }: Props) {
 }
 
 function LeaseFormBody({ units, contacts, initial, presetUnitId }: { units: UnitOption[]; contacts: ContactOption[] } & Props) {
+  const t = useT();
   const router = useRouter();
   const [state, setState] = useState<LeaseDraftInput>(() => {
     if (initial) {
@@ -130,10 +134,10 @@ function LeaseFormBody({ units, contacts, initial, presetUnitId }: { units: Unit
       } else {
         await graphql(CREATE_LEASE, { lease: { id, ...built.set }, units: built.units, parties: built.parties, rents: built.rents });
       }
-      toast.success('Brouillon enregistré', { description: 'Activez le bail une fois signé.' });
+      toast.success(t.leases.form.draftSaved, { description: t.leases.form.draftSavedBody });
       router.push('/baux/' + id);
     } catch (caught) {
-      setError(toFrenchError(caught));
+      setError(toUserMessage(caught));
     } finally {
       setSaving(false);
     }
@@ -143,24 +147,38 @@ function LeaseFormBody({ units, contacts, initial, presetUnitId }: { units: Unit
     <form onSubmit={submit} noValidate className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Durée et conditions</CardTitle>
-          <CardDescription>Le loyer mensuel est payable le jour choisi (de 1 à 28).</CardDescription>
+          <CardTitle>{t.leases.form.termsTitle}</CardTitle>
+          <CardDescription>{t.leases.form.termsDescription}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field>
-            <FieldLabel htmlFor="lease-start">Début du bail</FieldLabel>
+            <FieldLabelWithHelp
+              htmlFor="lease-start"
+              help={t.leases.form.startHelp}
+            >
+              {t.leases.form.start}
+            </FieldLabelWithHelp>
             <Input id="lease-start" type="date" required value={state.startDate} onChange={(event) => patch({ startDate: event.target.value })} />
           </Field>
           <Field>
-            <FieldLabel htmlFor="lease-end">Fin du bail</FieldLabel>
+            <FieldLabelWithHelp
+              htmlFor="lease-end"
+              help={t.leases.form.endHelp}
+            >
+              {t.leases.form.end}
+            </FieldLabelWithHelp>
             <Input id="lease-end" type="date" required value={state.endDate} onChange={(event) => patch({ endDate: event.target.value })} />
           </Field>
           <Field>
-            <FieldLabel htmlFor="lease-day">Jour de paiement</FieldLabel>
+            <FieldLabelWithHelp htmlFor="lease-day" help={t.leases.form.payDayHelp}>
+              {t.leases.form.payDay}
+            </FieldLabelWithHelp>
             <Input id="lease-day" type="number" min={1} max={28} value={state.paymentDay} onChange={(event) => patch({ paymentDay: event.target.value })} />
           </Field>
           <Field>
-            <FieldLabel htmlFor="lease-deposit">Dépôt de garantie (TND)</FieldLabel>
+            <FieldLabelWithHelp htmlFor="lease-deposit" help={t.leases.form.depositHelp}>
+              {t.leases.form.deposit}
+            </FieldLabelWithHelp>
             <Input id="lease-deposit" inputMode="decimal" placeholder="0" value={state.depositAmount} onChange={(event) => patch({ depositAmount: event.target.value })} />
           </Field>
         </CardContent>
@@ -175,9 +193,10 @@ function LeaseFormBody({ units, contacts, initial, presetUnitId }: { units: Unit
       <Card>
         <CardContent className="space-y-6">
           <LeasePartiesField
-            legend="Locataires"
-            addLabel="Ajouter un locataire"
-            rowLabel="locataire"
+            legend={t.leases.form.renters}
+            help={t.leases.form.rentersHelp}
+            addLabel={t.leases.form.addRenter}
+            rowLabel={t.leases.form.renterRow}
             value={state.renters}
             onChange={(value) => patch({ renters: value })}
             options={contacts}
@@ -185,9 +204,10 @@ function LeaseFormBody({ units, contacts, initial, presetUnitId }: { units: Unit
             minRows={1}
           />
           <LeasePartiesField
-            legend="Garants"
-            addLabel="Ajouter un garant"
-            rowLabel="garant"
+            legend={t.leases.form.guarantors}
+            help={t.leases.form.guarantorsHelp}
+            addLabel={t.leases.form.addGuarantor}
+            rowLabel={t.leases.form.guarantorRow}
             value={state.guarantors}
             onChange={(value) => patch({ guarantors: value })}
             options={contacts}
@@ -204,11 +224,11 @@ function LeaseFormBody({ units, contacts, initial, presetUnitId }: { units: Unit
       )}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={() => router.back()}>
-          Annuler
+          {t.common.cancel}
         </Button>
         <Button type="submit" disabled={saving}>
           {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Enregistrer le brouillon
+          {t.leases.form.saveDraft}
         </Button>
       </div>
     </form>

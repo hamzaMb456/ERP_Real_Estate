@@ -1,3 +1,5 @@
+import { getMessages } from '@/i18n/store';
+
 export type GapEntity = 'property' | 'unit' | 'contact';
 
 export type GapRow = {
@@ -11,18 +13,9 @@ export type GapRow = {
 
 export type GapGroup = { entityId: string; label: string; context: string | null; gaps: GapRow[] };
 
-const LABELS: Record<string, string> = {
-  no_owner: 'Aucun propriétaire',
-  no_surface: 'Surface manquante',
-  no_rent: 'Loyer manquant',
-  no_address: 'Adresse incomplète',
-  no_position: 'Position sur la carte manquante',
-  shares_total: 'Tantièmes différents de 1000',
-  no_contact_info: 'Ni téléphone ni e-mail',
-};
-
 export function gapLabel(code: string): string {
-  return LABELS[code] ?? code;
+  const labels: Record<string, string> = getMessages().properties.gaps.codes;
+  return labels[code] ?? code;
 }
 
 /** Where to go to fix the gap: the exact form, tab or dialog. */

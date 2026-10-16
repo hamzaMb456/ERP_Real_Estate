@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { OCCUPANCY, occupancyLevel, type OccupancyLevel } from '@/lib/occupancy';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const QUERY = `
   query PropertiesMap {
     properties(where: { archived_at: { _is_null: true } }, order_by: { name: asc }) {
@@ -32,6 +33,7 @@ type Row = {
 };
 
 export default function PropertiesMapPage() {
+  const t = useT();
   const result = useGraphql<{ properties: Row[] }>(QUERY);
   const [city, setCity] = useState('all');
   const [branch, setBranch] = useState('all');
@@ -55,17 +57,17 @@ export default function PropertiesMapPage() {
   return (
     <Stagger className="space-y-6">
       <StaggerItem>
-        <PageHeader title="Carte des biens" description="Les biens placés sur la carte, colorés selon leur occupation." />
+        <PageHeader title={t.properties.map.title} description={t.properties.map.description} />
       </StaggerItem>
 
       <StaggerItem>
         <div className="flex flex-wrap items-center gap-3">
           <Select value={city} onValueChange={setCity}>
-            <SelectTrigger className="w-44" aria-label="Ville">
+            <SelectTrigger className="w-44" aria-label={t.properties.map.city}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toutes les villes</SelectItem>
+              <SelectItem value="all">{t.properties.map.allCities}</SelectItem>
               {cities.map((value) => (
                 <SelectItem key={value} value={value}>
                   {value}
@@ -74,11 +76,11 @@ export default function PropertiesMapPage() {
             </SelectContent>
           </Select>
           <Select value={branch} onValueChange={setBranch}>
-            <SelectTrigger className="w-48" aria-label="Succursale">
+            <SelectTrigger className="w-48" aria-label={t.properties.map.branch}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toutes les succursales</SelectItem>
+              <SelectItem value="all">{t.properties.map.allBranches}</SelectItem>
               {branches.map(([id, name]) => (
                 <SelectItem key={id} value={id}>
                   {name}
@@ -86,21 +88,21 @@ export default function PropertiesMapPage() {
               ))}
             </SelectContent>
           </Select>
-          <ul className="flex flex-wrap gap-3 text-xs text-muted-foreground" aria-label="Légende">
+          <ul className="flex flex-wrap gap-3 text-xs text-muted-foreground" aria-label={t.properties.map.legend}>
             {(Object.keys(OCCUPANCY) as OccupancyLevel[]).map((level) => (
               <li key={level} className="flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full" style={{ backgroundColor: OCCUPANCY[level].color }} aria-hidden />
-                {OCCUPANCY[level].label}
+                {t.properties.map.occupancy[level]}
               </li>
             ))}
           </ul>
         </div>
       </StaggerItem>
 
-      {result.status === 'loading' && <SkeletonList count={1} itemClassName="h-[60vh] rounded-xl bg-muted" label="Chargement de la carte…" />}
+      {result.status === 'loading' && <SkeletonList count={1} itemClassName="h-[60vh] rounded-xl bg-muted" label={t.properties.map.loading} />}
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger les biens : {result.message}
+          {t.properties.map.loadError(result.message)}
         </p>
       )}
 
@@ -111,7 +113,7 @@ export default function PropertiesMapPage() {
             <div className="space-y-4">
               <Card className="gap-0 py-0">
                 <CardHeader className="border-b py-3">
-                  <CardTitle className="text-sm">Sur la carte ({points.length})</CardTitle>
+                  <CardTitle className="text-sm">{t.properties.map.onMap(points.length)}</CardTitle>
                 </CardHeader>
                 <CardContent className="max-h-80 overflow-y-auto p-0">
                   <ul className="divide-y text-sm">
@@ -131,7 +133,7 @@ export default function PropertiesMapPage() {
                   <CardHeader className="border-b py-3">
                     <CardTitle className="flex items-center gap-2 text-sm">
                       <MapPinOff className="size-4 text-muted-foreground" aria-hidden />
-                      Sans position ({missing.length})
+                      {t.properties.map.noPosition(missing.length)}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -140,7 +142,7 @@ export default function PropertiesMapPage() {
                         <li key={row.id} className="flex items-center justify-between gap-2 px-4 py-2">
                           <span className="truncate">{row.name}</span>
                           <Link href={'/biens/' + row.id + '/modifier'} className="shrink-0 text-xs font-medium text-primary hover:underline">
-                            Placer sur la carte
+                            {t.properties.map.placeOnMap}
                           </Link>
                         </li>
                       ))}

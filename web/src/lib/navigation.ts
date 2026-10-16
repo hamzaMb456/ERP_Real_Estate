@@ -13,80 +13,87 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-export type NavChild = { label: string; href: string };
-export type NavItem = { label: string; href: string; icon: LucideIcon; children?: NavChild[] };
-export type NavGroup = { label: string; items: NavItem[] };
+import type { Messages } from '@/i18n/messages';
+
+type NavMessages = Messages['nav'];
+
+/** Keys into the `nav` dictionary: labels live in src/i18n/messages, not here. */
+export type NavKey = keyof NavMessages['items'];
+export type NavChild = { key: NavKey; href: string };
+export type NavItem = { key: NavKey; href: string; icon: LucideIcon; children?: NavChild[] };
+export type NavGroup = { key: keyof NavMessages['groups']; items: NavItem[] };
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Pilotage',
+    key: 'steering',
     items: [
-      { label: 'Tableau de bord', href: '/', icon: LayoutGrid },
+      { key: 'dashboard', href: '/', icon: LayoutGrid },
       {
-        label: 'Biens',
+        key: 'properties',
         href: '/biens',
         icon: Building2,
         children: [
-          { label: 'Biens et unités', href: '/biens' },
-          { label: 'Carte des biens', href: '/biens/carte' },
-          { label: 'Parties communes', href: '/biens/parties-communes' },
-          { label: 'Fiches incomplètes', href: '/biens/fiches-incompletes' },
-          { label: 'Biens archivés', href: '/biens/archives' },
+          { key: 'propertiesAndUnits', href: '/biens' },
+          { key: 'propertiesMap', href: '/biens/carte' },
+          { key: 'commonAreas', href: '/biens/parties-communes' },
+          { key: 'incompleteRecords', href: '/biens/fiches-incompletes' },
+          { key: 'archivedProperties', href: '/biens/archives' },
         ],
       },
-      { label: 'Contacts', href: '/contacts', icon: Users },
+      { key: 'contacts', href: '/contacts', icon: Users },
     ],
   },
   {
-    label: 'Gestion',
+    key: 'management',
     items: [
       {
-        label: 'Locataires et baux',
+        key: 'rentersAndLeases',
         href: '/baux',
         icon: FileText,
         children: [
-          { label: 'Baux', href: '/baux' },
-          { label: 'Demandes de location', href: '/baux/demandes' },
+          { key: 'leases', href: '/baux' },
+          { key: 'rentalRequests', href: '/baux/demandes' },
         ],
       },
       {
-        label: 'Finance',
+        key: 'finance',
         href: '/finance',
         icon: DollarSign,
         children: [
-          { label: 'Factures de loyer', href: '/finance' },
-          { label: 'Paiements', href: '/finance/paiements' },
-          { label: 'Dépenses', href: '/finance/depenses' },
+          { key: 'rentInvoices', href: '/finance' },
+          { key: 'payments', href: '/finance/paiements' },
+          { key: 'expenses', href: '/finance/depenses' },
         ],
       },
-      { label: 'Maintenance', href: '/maintenance', icon: Wrench },
+      { key: 'maintenance', href: '/maintenance', icon: Wrench },
       {
-        label: 'Sécurité des immeubles',
+        key: 'buildingSecurity',
         href: '/securite',
         icon: Shield,
         children: [
-          { label: 'Incidents', href: '/securite' },
-          { label: 'Gardes et clés', href: '/securite/gardes-cles' },
+          { key: 'incidents', href: '/securite' },
+          { key: 'guardsAndKeys', href: '/securite/gardes-cles' },
         ],
       },
-      { label: 'Fournisseurs', href: '/fournisseurs', icon: Package },
-      { label: 'Ventes', href: '/ventes', icon: Tag },
+      { key: 'suppliers', href: '/fournisseurs', icon: Package },
+      { key: 'sales', href: '/ventes', icon: Tag },
     ],
   },
   {
-    label: 'Analyse',
-    items: [{ label: 'Rapports', href: '/rapports', icon: ChartColumn }],
+    key: 'analysis',
+    items: [{ key: 'reports', href: '/rapports', icon: ChartColumn }],
   },
   {
-    label: 'Administration',
+    key: 'administration',
     items: [
       {
-        label: 'Administration',
+        key: 'administration',
         href: '/administration',
         icon: Settings,
         children: [
-          { label: 'Utilisateurs et rôles', href: '/administration' },
-          { label: "Journal d'audit", href: '/administration/audit' },
+          { key: 'usersAndRoles', href: '/administration' },
+          { key: 'auditLog', href: '/administration/audit' },
+          { key: 'appearance', href: '/administration/apparence' },
         ],
       },
     ],
@@ -102,22 +109,22 @@ export function sectionOf(pathname: string): string {
 
 export type Crumb = { label: string; href?: string };
 
-const SEGMENT_LABELS: Record<string, string> = { nouveau: 'Nouveau', modifier: 'Modifier' };
+const SEGMENT_KEYS: Record<string, keyof NavMessages['crumbs']> = { nouveau: 'new', modifier: 'edit' };
 
-export function buildCrumbs(pathname: string): Crumb[] {
+export function buildCrumbs(pathname: string, nav: NavMessages): Crumb[] {
   const section = NAVIGATION.find((item) => item.href === sectionOf(pathname));
   if (!section) return [];
-  if (pathname === '/') return [{ label: section.label }];
+  const sectionLabel = nav.items[section.key];
+  if (pathname === '/') return [{ label: sectionLabel }];
 
   const exact = section.children?.find((child) => child.href === pathname);
   if (exact || pathname === section.href) {
-    return [{ label: section.label, href: section.href }, ...(exact && exact.href !== section.href ? [{ label: exact.label }] : [])].map(
-      (crumb, index, all) => (index === all.length - 1 ? { label: crumb.label } : crumb),
-    );
+    return exact && exact.href !== section.href
+      ? [{ label: sectionLabel, href: section.href }, { label: nav.items[exact.key] }]
+      : [{ label: sectionLabel }];
   }
 
   const rest = pathname.slice(section.href.length).split('/').filter(Boolean);
   const last = rest[rest.length - 1] ?? '';
-  const label = SEGMENT_LABELS[last] ?? 'Fiche';
-  return [{ label: section.label, href: section.href }, { label }];
+  return [{ label: sectionLabel, href: section.href }, { label: nav.crumbs[SEGMENT_KEYS[last] ?? 'record'] }];
 }

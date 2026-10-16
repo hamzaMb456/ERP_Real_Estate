@@ -1,6 +1,8 @@
 // Ownership rules the screens need before sending anything to the database.
 // The database still enforces the 100 % cap; these checks give earlier, clearer messages.
 
+import { getIntlLocale, getMessages } from '@/i18n/store';
+
 export type OwnershipRow = {
   id: string;
   unit_id: string;
@@ -29,14 +31,17 @@ export function dayBefore(iso: string): string {
   return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
 }
 
-export function formatDateFr(iso: string): string {
-  const [year, month, day] = iso.split('-');
-  return `${day}/${month}/${year}`;
+/** A calendar day (YYYY-MM-DD) as dd/mm/yyyy, with the digits and separators of the current language. */
+export function formatDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Intl.DateTimeFormat(getIntlLocale(), { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(year, month - 1, day)),
+  );
 }
 
 export function formatPercent(value: number | string): string {
   const rounded = Math.round(Number(value) * 100) / 100;
-  return String(rounded).replace('.', ',') + ' %';
+  return new Intl.NumberFormat(getIntlLocale(), { maximumFractionDigits: 2 }).format(rounded) + ' %';
 }
 
 export function isCurrent(row: { starts_on: string; ends_on: string | null }, today: string = todayIso()): boolean {
@@ -52,15 +57,16 @@ export function ownershipPhase(
 }
 
 export function validateNewOwners(owners: NewOwner[]): string | null {
-  if (owners.length === 0) return 'Ajoutez au moins un propriétaire.';
-  if (owners.some((owner) => !owner.contactId)) return 'Choisissez un contact pour chaque ligne.';
+  const t = getMessages().ownership.validation;
+  if (owners.length === 0) return t.atLeastOne;
+  if (owners.some((owner) => !owner.contactId)) return t.pickEach;
   const ids = owners.map((owner) => owner.contactId);
-  if (new Set(ids).size !== ids.length) return 'Un même contact apparaît deux fois.';
+  if (new Set(ids).size !== ids.length) return t.duplicate;
   if (owners.some((owner) => !(owner.sharePercent > 0) || owner.sharePercent > 100)) {
-    return 'Chaque part doit être comprise entre 0 et 100 %.';
+    return t.shareRange;
   }
   const total = owners.reduce((sum, owner) => sum + owner.sharePercent, 0);
-  if (Math.abs(total - 100) > 0.001) return `Le total des parts doit être 100 % (actuellement ${formatPercent(total)}).`;
+  if (Math.abs(total - 100) > 0.001) return t.totalMustBe(formatPercent(total));
   return null;
 }
 
@@ -77,7 +83,7 @@ export function planTransfer(
   const running = rows.filter((row) => unitIds.includes(row.unit_id) && (row.ends_on === null || row.ends_on >= date));
   const blocking = running.find((row) => row.starts_on >= date);
   if (blocking) {
-    return { error: `La date doit être postérieure au ${formatDateFr(blocking.starts_on)}, début de la détention actuelle.` };
+    return { error: getMessages().ownership.validation.dateAfter(formatDate(blocking.starts_on)) };
   }
 
   return {

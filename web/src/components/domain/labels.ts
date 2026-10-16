@@ -1,22 +1,4 @@
-export const PROPERTY_TYPES: Record<string, string> = { building: 'Immeuble', house: 'Maison', plot: 'Terrain' };
-
-export const UNIT_TYPES: Record<string, string> = {
-  apartment: 'Appartement',
-  office: 'Bureau',
-  shop: 'Commerce',
-  parking: 'Parking',
-  house: 'Maison',
-  land: 'Terrain',
-};
-
-export const UNIT_STATUSES: Record<string, string> = {
-  vacant: 'Disponible',
-  rented: 'Loué',
-  for_sale: 'À vendre',
-  sold: 'Vendu',
-  under_maintenance: 'En travaux',
-};
-
+// Governorates are stored by their French name; the display name comes from the dictionary (labels.governorates).
 export const GOVERNORATES = [
   'Ariana',
   'Béja',
@@ -43,12 +25,3 @@ export const GOVERNORATES = [
   'Tunis',
   'Zaghouan',
 ] as const;
-
-export const AREA_KINDS: Record<string, string> = {
-  stairs: 'Escaliers',
-  lift: 'Ascenseur',
-  garden: 'Jardin',
-  roof: 'Toiture / terrasse',
-  parking: 'Parking commun',
-  other: 'Autre',
-};

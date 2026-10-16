@@ -1,10 +1,11 @@
 export type OccupancyLevel = 'none' | 'empty' | 'partial' | 'full';
 
-export const OCCUPANCY: Record<OccupancyLevel, { label: string; color: string }> = {
-  full: { label: 'Entièrement loué', color: '#047857' },
-  partial: { label: 'Partiellement loué', color: '#d97706' },
-  empty: { label: 'Aucune unité louée', color: '#dc2626' },
-  none: { label: 'Sans unité', color: '#6b7280' },
+/** Pin colours per level; the labels live in the dictionary (properties.map.occupancy). */
+export const OCCUPANCY: Record<OccupancyLevel, { color: string }> = {
+  full: { color: '#047857' },
+  partial: { color: '#d97706' },
+  empty: { color: '#dc2626' },
+  none: { color: '#6b7280' },
 };
 
 export function occupancyLevel(statuses: string[]): OccupancyLevel {

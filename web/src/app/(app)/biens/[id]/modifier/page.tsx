@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const PROPERTY_QUERY = `
   query PropertyForEdit($id: uuid!) {
     property: properties_by_pk(id: $id) {
@@ -47,29 +48,30 @@ function toFormValues(row: PropertyRow): PropertyFormValues {
 }
 
 export default function EditPropertyPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const result = useGraphql<{ property: PropertyRow | null }>(PROPERTY_QUERY, { id });
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
+      <Button asChild variant="ghost" size="sm" className="-ms-2">
         <Link href={'/biens/' + id}>
-          <ArrowLeft data-icon="inline-start" />
-          Retour au bien
+          <ArrowLeft data-icon="inline-start" className="rtl:-scale-x-100" />
+          {t.properties.backToProperty}
         </Link>
       </Button>
-      {result.status === 'loading' && <Pulse className="text-sm text-muted-foreground">Chargement du bien…</Pulse>}
+      {result.status === 'loading' && <Pulse className="text-sm text-muted-foreground">{t.properties.edit.loading}</Pulse>}
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger ce bien : {result.message}
+          {t.properties.detail.loadError(result.message)}
         </p>
       )}
       {result.status === 'success' && !result.data.property && (
-        <p className="text-sm text-muted-foreground">Ce bien n’existe pas ou vous n’y avez pas accès.</p>
+        <p className="text-sm text-muted-foreground">{t.properties.edit.missing}</p>
       )}
       {result.status === 'success' && result.data.property && (
         <>
-          <PageHeader title={'Modifier ' + result.data.property.name} description="Corrigez les informations du bien." />
+          <PageHeader title={t.properties.edit.title(result.data.property.name)} description={t.properties.edit.description} />
           <PropertyForm mode="edit" propertyId={id} initial={toFormValues(result.data.property)} />
         </>
       )}

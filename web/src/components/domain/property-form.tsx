@@ -1,24 +1,28 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { GOVERNORATES, PROPERTY_TYPES } from '@/components/domain/labels';
+import { GOVERNORATES } from '@/components/domain/labels';
+import { FieldLabelWithHelp } from '@/components/field-help';
 import { LocationField } from '@/components/map/location-field';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldError, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { addressQuery } from '@/lib/geocode';
 import { graphql } from '@/lib/graphql';
 import { useGraphql } from '@/lib/use-graphql';
 
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/provider';
 const BRANCHES_QUERY = `query Branches { branches(order_by: { name: asc }) { id name city } }`;
 
 const ADD_PROPERTY = `
@@ -33,22 +37,24 @@ const UPDATE_PROPERTY = `
   }
 `;
 
-const schema = z.object({
-  name: z.string().trim().min(2, 'Saisissez le nom du bien (2 caractères minimum).'),
+function makeSchema(m: Messages['properties']['form']) {
+  return z.object({
+  name: z.string().trim().min(2, m.nameRequired),
   type: z.enum(['building', 'house', 'plot']),
-  branch_id: z.string().min(1, 'Choisissez la succursale responsable.'),
+  branch_id: z.string().min(1, m.branchRequired),
   address_line: z.string().trim(),
   city: z.string().trim(),
   governorate: z.string(),
   postal_code: z
     .string()
     .trim()
-    .refine((value) => value === '' || /^\d{4}$/.test(value), 'Code postal invalide : 4 chiffres attendus.'),
+    .refine((value) => value === '' || /^\d{4}$/.test(value), m.postalInvalid),
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
-});
+  });
+}
 
-export type PropertyFormValues = z.infer<typeof schema>;
+export type PropertyFormValues = z.infer<ReturnType<typeof makeSchema>>;
 
 const EMPTY_PROPERTY: PropertyFormValues = {
   name: '',
@@ -67,6 +73,8 @@ const orNull = (value: string) => (value === '' ? null : value);
 type Props = { mode: 'create' } | { mode: 'edit'; propertyId: string; initial: PropertyFormValues };
 
 export function PropertyForm(props: Props) {
+  const t = useT();
+  const schema = useMemo(() => makeSchema(t.properties.form), [t]);
   const router = useRouter();
   const editing = props.mode === 'edit';
   const cancelHref = props.mode === 'edit' ? '/biens/' + props.propertyId : '/biens';
@@ -96,22 +104,22 @@ export function PropertyForm(props: Props) {
     try {
       if (props.mode === 'edit') {
         await graphql(UPDATE_PROPERTY, { id: props.propertyId, set: fields });
-        toast.success('Bien mis à jour', { description: values.name });
+        toast.success(t.properties.form.updated, { description: values.name });
         router.push('/biens/' + props.propertyId);
         return;
       }
       const created = await graphql<{ insert_properties_one: { id: string } }>(ADD_PROPERTY, {
         object: { ...fields, type: values.type },
       });
-      toast.success('Bien créé', {
+      toast.success(t.properties.form.created, {
         description:
           values.type === 'building'
-            ? values.name + ' a été ajouté. Ajoutez maintenant ses unités.'
-            : values.name + ' a été ajouté avec son unité.',
+            ? t.properties.form.createdBuilding(values.name)
+            : t.properties.form.createdSingle(values.name),
       });
       router.push('/biens/' + created.insert_properties_one.id);
     } catch (error) {
-      toast.error('Enregistrement impossible', { description: toFrenchError(error) });
+      toast.error(t.properties.form.saveFailed, { description: toUserMessage(error) });
     }
   }
 
@@ -121,10 +129,12 @@ export function PropertyForm(props: Props) {
         <CardContent>
           <FieldGroup>
             <Field data-invalid={!!errors.name}>
-              <FieldLabel htmlFor="name">Nom du bien *</FieldLabel>
+              <FieldLabelWithHelp htmlFor="name" help={t.properties.form.nameHelp}>
+                {t.properties.form.name}
+              </FieldLabelWithHelp>
               <Input
                 id="name"
-                placeholder="Ex. Résidence Les Jardins de Carthage"
+                placeholder={t.properties.form.namePlaceholder}
                 aria-invalid={!!errors.name}
                 aria-describedby={errors.name ? 'name-error' : undefined}
                 {...register('name')}
@@ -138,13 +148,18 @@ export function PropertyForm(props: Props) {
                 name="type"
                 render={({ field }) => (
                   <Field>
-                    <FieldLabel htmlFor="type">Type de bien *</FieldLabel>
+                    <FieldLabelWithHelp
+                      htmlFor="type"
+                      help={t.properties.form.typeHelp}
+                    >
+                      {t.properties.form.type}
+                    </FieldLabelWithHelp>
                     <Select value={field.value} onValueChange={field.onChange} disabled={editing}>
                       <SelectTrigger id="type" className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(PROPERTY_TYPES).map(([value, label]) => (
+                        {Object.entries(t.labels.propertyTypes).map(([value, label]) => (
                           <SelectItem key={value} value={value}>
                             {label}
                           </SelectItem>
@@ -152,12 +167,11 @@ export function PropertyForm(props: Props) {
                       </SelectContent>
                     </Select>
                     {editing ? (
-                      <FieldDescription>Le type ne peut plus être modifié après la création.</FieldDescription>
+                      <FieldDescription>{t.properties.form.typeLocked}</FieldDescription>
                     ) : (
                       type !== 'building' && (
                         <FieldDescription>
-                          Une unité « {type === 'house' ? 'MAISON' : 'TERRAIN'} » sera créée automatiquement pour suivre
-                          propriétaires, loyers et ventes.
+                          {t.properties.form.autoUnit(type === 'house' ? 'MAISON' : 'TERRAIN')}
                         </FieldDescription>
                       )
                     )}
@@ -169,10 +183,12 @@ export function PropertyForm(props: Props) {
                 name="branch_id"
                 render={({ field }) => (
                   <Field data-invalid={!!errors.branch_id}>
-                    <FieldLabel htmlFor="branch_id">Succursale *</FieldLabel>
+                    <FieldLabelWithHelp htmlFor="branch_id" help={t.properties.form.branchHelp}>
+                      {t.properties.form.branch}
+                    </FieldLabelWithHelp>
                     <Select value={field.value} onValueChange={field.onChange} disabled={branches.status !== 'success'}>
                       <SelectTrigger id="branch_id" className="w-full" aria-invalid={!!errors.branch_id}>
-                        <SelectValue placeholder={branches.status === 'loading' ? 'Chargement…' : 'Choisir une succursale'} />
+                        <SelectValue placeholder={branches.status === 'loading' ? t.common.loading : t.properties.form.branchPlaceholder} />
                       </SelectTrigger>
                       <SelectContent>
                         {branches.status === 'success' &&
@@ -185,7 +201,7 @@ export function PropertyForm(props: Props) {
                       </SelectContent>
                     </Select>
                     {branches.status === 'error' && (
-                      <FieldDescription className="text-destructive">Impossible de charger les succursales.</FieldDescription>
+                      <FieldDescription className="text-destructive">{t.properties.form.branchesError}</FieldDescription>
                     )}
                     <FieldError errors={[errors.branch_id]} />
                   </Field>
@@ -194,29 +210,35 @@ export function PropertyForm(props: Props) {
             </div>
 
             <Field>
-              <FieldLabel htmlFor="address_line">Adresse</FieldLabel>
-              <Input id="address_line" placeholder="Ex. 14 Rue des Jardins" {...register('address_line')} />
+              <FieldLabelWithHelp htmlFor="address_line" help={t.properties.form.addressHelp}>
+                {t.properties.form.address}
+              </FieldLabelWithHelp>
+              <Input id="address_line" placeholder={t.properties.form.addressPlaceholder} {...register('address_line')} />
             </Field>
 
             <div className="grid gap-6 sm:grid-cols-3">
               <Field>
-                <FieldLabel htmlFor="city">Ville</FieldLabel>
-                <Input id="city" placeholder="Ex. Carthage" {...register('city')} />
+                <FieldLabelWithHelp htmlFor="city" help={t.properties.form.cityHelp}>
+                  {t.properties.form.city}
+                </FieldLabelWithHelp>
+                <Input id="city" placeholder={t.properties.form.cityPlaceholder} {...register('city')} />
               </Field>
               <Controller
                 control={control}
                 name="governorate"
                 render={({ field }) => (
                   <Field>
-                    <FieldLabel htmlFor="governorate">Gouvernorat</FieldLabel>
+                    <FieldLabelWithHelp htmlFor="governorate" help={t.properties.form.governorateHelp}>
+                      {t.properties.form.governorate}
+                    </FieldLabelWithHelp>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger id="governorate" className="w-full">
-                        <SelectValue placeholder="Choisir" />
+                        <SelectValue placeholder={t.properties.form.governoratePlaceholder} />
                       </SelectTrigger>
                       <SelectContent>
                         {GOVERNORATES.map((name) => (
                           <SelectItem key={name} value={name}>
-                            {name}
+                            {t.labels.governorates[name] ?? name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -225,7 +247,9 @@ export function PropertyForm(props: Props) {
                 )}
               />
               <Field data-invalid={!!errors.postal_code}>
-                <FieldLabel htmlFor="postal_code">Code postal</FieldLabel>
+                <FieldLabelWithHelp htmlFor="postal_code" help={t.properties.form.postalCodeHelp}>
+                  {t.properties.form.postalCode}
+                </FieldLabelWithHelp>
                 <Input
                   id="postal_code"
                   inputMode="numeric"
@@ -239,7 +263,9 @@ export function PropertyForm(props: Props) {
             </div>
 
             <Field>
-              <FieldLabel>Position sur la carte</FieldLabel>
+              <FieldLabelWithHelp help={t.properties.form.positionHelp}>
+                {t.properties.form.position}
+              </FieldLabelWithHelp>
               <LocationField
                 query={addressQuery([addressLine, postalCode, city, governorate])}
                 latitude={latitude}
@@ -254,11 +280,11 @@ export function PropertyForm(props: Props) {
         </CardContent>
         <CardFooter className="justify-end gap-2 border-t">
           <Button asChild variant="ghost">
-            <Link href={cancelHref}>Annuler</Link>
+            <Link href={cancelHref}>{t.common.cancel}</Link>
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />}
-            {isSubmitting ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Enregistrer le bien'}
+            {isSubmitting ? t.common.saving : editing ? t.common.saveChanges : t.properties.form.saveProperty}
           </Button>
         </CardFooter>
       </Card>

@@ -1,3 +1,4 @@
+import { getMessages } from '@/i18n/store';
 import { nhost } from '@/lib/nhost';
 
 export async function graphql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -7,7 +8,7 @@ export async function graphql<T>(query: string, variables?: Record<string, unkno
     throw new Error(errors.map((error) => error.message).join(' · '));
   }
   if (!data) {
-    throw new Error('Réponse vide du serveur.');
+    throw new Error(getMessages().common.emptyServerReply);
   }
   return data;
 }

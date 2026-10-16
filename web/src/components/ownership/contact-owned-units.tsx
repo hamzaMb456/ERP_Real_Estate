@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { Pulse } from '@/components/motion/primitives';
-import { formatDateFr, formatPercent, ownershipPhase, todayIso } from '@/lib/ownership';
+import { formatDate, formatPercent, ownershipPhase, todayIso } from '@/lib/ownership';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const QUERY = `
   query ContactOwnerships($contactId: uuid!) {
     ownerships(where: { contact_id: { _eq: $contactId } }, order_by: [{ starts_on: desc }]) {
@@ -35,15 +36,16 @@ function UnitLine({ row, detail }: { row: Row; detail: string }) {
 }
 
 export function ContactOwnedUnits({ contactId }: { contactId: string }) {
+  const t = useT();
   const result = useGraphql<{ ownerships: Row[] }>(QUERY, { contactId });
-  if (result.status === 'loading') return <Pulse className="text-sm text-muted-foreground">Chargement des unités…</Pulse>;
-  if (result.status === 'error') return <p role="alert" className="text-sm text-destructive">Impossible de charger les unités : {result.message}</p>;
+  if (result.status === 'loading') return <Pulse className="text-sm text-muted-foreground">{t.ownership.contactUnits.loading}</Pulse>;
+  if (result.status === 'error') return <p role="alert" className="text-sm text-destructive">{t.ownership.contactUnits.loadError(result.message)}</p>;
 
   const today = todayIso();
   const active = result.data.ownerships.filter((row) => ownershipPhase(row, today) !== 'past');
   const past = result.data.ownerships.filter((row) => ownershipPhase(row, today) === 'past');
   if (active.length === 0 && past.length === 0) {
-    return <p className="text-sm text-muted-foreground">Aucune unité détenue pour le moment.</p>;
+    return <p className="text-sm text-muted-foreground">{t.ownership.contactUnits.none}</p>;
   }
 
   return (
@@ -55,9 +57,9 @@ export function ContactOwnedUnits({ contactId }: { contactId: string }) {
               key={row.id}
               row={row}
               detail={
-                formatPercent(row.share_percent) +
-                (row.starts_on > today ? ' · à partir du ' : ' · depuis le ') +
-                formatDateFr(row.starts_on)
+                row.starts_on > today
+                  ? t.ownership.contactUnits.fromDate(formatPercent(row.share_percent), formatDate(row.starts_on))
+                  : t.ownership.contactUnits.sinceDate(formatPercent(row.share_percent), formatDate(row.starts_on))
               }
             />
           ))}
@@ -65,13 +67,13 @@ export function ContactOwnedUnits({ contactId }: { contactId: string }) {
       )}
       {past.length > 0 && (
         <div>
-          <p className="mb-1 text-xs font-medium text-muted-foreground">Unités détenues auparavant</p>
+          <p className="mb-1 text-xs font-medium text-muted-foreground">{t.ownership.contactUnits.formerly}</p>
           <ul className="divide-y opacity-80">
             {past.map((row) => (
               <UnitLine
                 key={row.id}
                 row={row}
-                detail={formatDateFr(row.starts_on) + ' → ' + formatDateFr(row.ends_on as string)}
+                detail={formatDate(row.starts_on) + ' ' + t.common.arrow + ' ' + formatDate(row.ends_on as string)}
               />
             ))}
           </ul>

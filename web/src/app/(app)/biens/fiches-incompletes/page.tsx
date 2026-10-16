@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { gapLabel, gapLink, groupGaps, type GapEntity, type GapRow } from '@/lib/gaps';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const QUERY = `
   query RecordGaps {
     record_gaps(order_by: [{ entity_type: asc }, { entity_label: asc }]) {
@@ -18,28 +19,29 @@ const QUERY = `
   }
 `;
 
-const SECTIONS: { entity: GapEntity; title: string; icon: typeof Building2 }[] = [
-  { entity: 'property', title: 'Biens', icon: Building2 },
-  { entity: 'unit', title: 'Unités', icon: DoorOpen },
-  { entity: 'contact', title: 'Contacts', icon: Users },
+const SECTIONS: { entity: GapEntity; icon: typeof Building2 }[] = [
+  { entity: 'property', icon: Building2 },
+  { entity: 'unit', icon: DoorOpen },
+  { entity: 'contact', icon: Users },
 ];
 
 export default function IncompleteRecordsPage() {
+  const t = useT();
   const result = useGraphql<{ record_gaps: GapRow[] }>(QUERY);
 
   return (
     <Stagger className="space-y-6">
       <StaggerItem>
         <PageHeader
-          title="Fiches incomplètes"
-          description="Les informations manquantes sur les biens, unités et contacts. Chaque ligne mène à l’endroit exact où la compléter."
+          title={t.properties.gaps.title}
+          description={t.properties.gaps.description}
         />
       </StaggerItem>
 
-      {result.status === 'loading' && <SkeletonList count={3} className="space-y-3" itemClassName="h-24 rounded-xl bg-muted" label="Chargement…" />}
+      {result.status === 'loading' && <SkeletonList count={3} className="space-y-3" itemClassName="h-24 rounded-xl bg-muted" label={t.properties.gaps.loading} />}
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger les fiches incomplètes : {result.message}
+          {t.properties.gaps.loadError(result.message)}
         </p>
       )}
 
@@ -48,8 +50,8 @@ export default function IncompleteRecordsPage() {
           <Card>
             <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
               <CheckCircle2 className="size-8 text-success" aria-hidden />
-              <p className="font-medium">Toutes les fiches sont complètes</p>
-              <p className="text-sm text-muted-foreground">Rien à compléter pour le moment.</p>
+              <p className="font-medium">{t.properties.gaps.allCompleteTitle}</p>
+              <p className="text-sm text-muted-foreground">{t.properties.gaps.allCompleteBody}</p>
             </CardContent>
           </Card>
         </StaggerItem>
@@ -67,9 +69,9 @@ export default function IncompleteRecordsPage() {
                   <CardHeader className="border-b py-4">
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Icon className="size-4 text-muted-foreground" aria-hidden />
-                      {section.title}
+                      {t.properties.gaps.sections[section.entity]}
                     </CardTitle>
-                    <CardDescription>{groups[section.entity].length} fiche(s) à compléter</CardDescription>
+                    <CardDescription>{t.properties.gaps.toComplete(groups[section.entity].length)}</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
                     <ul className="divide-y">
@@ -83,10 +85,10 @@ export default function IncompleteRecordsPage() {
                             {group.gaps.map((gap) => (
                               <Button key={gap.gap_code} asChild variant="outline" size="sm" className="h-7">
                                 <Link href={gapLink(gap)}>
-                                  <Badge variant="secondary" className="mr-1 bg-warning/15 text-warning">
+                                  <Badge variant="secondary" className="me-1 bg-warning/15 text-warning">
                                     !
                                   </Badge>
-                                  {gapLabel(gap.gap_code)} · Compléter
+                                  {gapLabel(gap.gap_code)} · {t.properties.gaps.complete}
                                 </Link>
                               </Button>
                             ))}

@@ -1,9 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { todayTunis } from '@/lib/dates';
 import type { LeaseOverviewRow, LeaseStatus } from '@/lib/lease-types';
-import { LEASE_STATUS_LABELS, leaseFlags, type LeaseFlagTone } from '@/lib/leases';
+import { leaseFlags, type LeaseFlagTone } from '@/lib/leases';
 import { cn } from '@/lib/utils';
 
+import { useT } from '@/i18n/provider';
 const STATUS_CLASS: Record<LeaseStatus, string> = {
   draft: 'bg-muted text-muted-foreground',
   active: 'bg-success/12 text-success',
@@ -18,10 +19,11 @@ const TONE_CLASS: Record<LeaseFlagTone, string> = {
 };
 
 export function LeaseStatusBadge({ status }: { status: LeaseStatus }) {
+  const t = useT();
   return (
     <Badge variant="secondary" className={cn('h-6 gap-1.5 px-2.5', STATUS_CLASS[status])}>
       <span className="size-1.5 rounded-full bg-current" aria-hidden />
-      {LEASE_STATUS_LABELS[status]}
+      {t.leases.statuses[status]}
     </Badge>
   );
 }

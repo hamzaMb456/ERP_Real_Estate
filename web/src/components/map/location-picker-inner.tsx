@@ -33,7 +33,7 @@ export function LocationPickerInner({
 }) {
   const editable = onChange !== undefined;
   return (
-    <div className={cn('isolate overflow-hidden rounded-lg border', className ?? 'h-64')}>
+    <div dir="ltr" className={cn('isolate overflow-hidden rounded-lg border', className ?? 'h-64')}>
       <MapContainer
         center={value ? [value.lat, value.lon] : TUNISIA_CENTER}
         zoom={value ? DETAIL_ZOOM : TUNISIA_ZOOM}
@@ -46,7 +46,7 @@ export function LocationPickerInner({
         {value && (
           <Marker
             position={[value.lat, value.lon]}
-            icon={pinIcon('#047857')}
+            icon={pinIcon('var(--primary)')}
             draggable={editable}
             eventHandlers={
               editable

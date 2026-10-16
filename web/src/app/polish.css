@@ -1,0 +1,128 @@
+/* ---- Surface polish ---------------------------------------------------------
+   Cards, tables, search bars and the header / sidebar / content backdrop photos.
+   Pure CSS on data-slot hooks, so no component API changes. Logical properties
+   only; photos are not mirrored in RTL (real signage), only their fade flips.
+   Photos: web/public/art/photos (credits in CREDITS.md there). */
+
+:root {
+  --surface-shadow:
+    0 1px 2px oklch(0.3 0.06 var(--theme-hue) / 0.06), 0 14px 30px -18px oklch(0.3 0.08 var(--theme-hue) / 0.28);
+  /* pale-green wash laid over each photo so it sits in the palette */
+  --photo-tint: color-mix(in srgb, var(--primary) 18%, transparent);
+  --photo-header-opacity: 0.32;
+  --photo-content-opacity: 0.2;
+  --art-grid: color-mix(in srgb, var(--primary) 9%, transparent);
+}
+
+.dark {
+  --surface-shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 16px 32px -18px oklch(0 0 0 / 0.7);
+  --photo-tint: color-mix(in srgb, var(--background) 35%, transparent);
+  --photo-header-opacity: 0.2;
+  --photo-content-opacity: 0.12;
+  --art-grid: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+/* Shared: a non-interactive photo layer behind its parent's content. */
+.app-header::before,
+[data-sidebar="sidebar"]::before,
+[data-slot="sidebar-inset"]::before,
+[data-slot="sidebar-inset"]::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+/* ---- Content backdrop: Tunis rooftops along the bottom + blueprint grid in the
+   top corner. Both sit on the (non-scrolling) inset, so cards slide over them. */
+[data-slot="sidebar-inset"] {
+  isolation: isolate;
+}
+
+[data-slot="sidebar-inset"]::before {
+  inset-inline: 0;
+  bottom: 0;
+  height: min(30rem, 55%);
+  opacity: var(--photo-content-opacity);
+  background-image: linear-gradient(var(--photo-tint), var(--photo-tint)),
+    url("/art/photos/content-tunis-skyline.webp");
+  background-size: cover;
+  background-position: center bottom;
+  filter: saturate(0.6);
+  mask-image: linear-gradient(to top, #000 35%, transparent 100%);
+}
+
+[data-slot="sidebar-inset"]::after {
+  inset-block-start: 3.5rem;
+  inset-inline-end: 0;
+  width: min(40rem, 60%);
+  height: 24rem;
+  background-image:
+    linear-gradient(var(--art-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--art-grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-repeat: repeat;
+  mask-image: radial-gradient(circle at 100% 0%, #000, transparent 70%);
+}
+
+[dir="rtl"] [data-slot="sidebar-inset"]::after {
+  mask-image: radial-gradient(circle at 0% 0%, #000, transparent 70%);
+}
+
+/* ---- Header backdrop: modern facade behind the right-hand controls ----------- */
+.app-header::before {
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: min(44rem, 72%);
+  opacity: var(--photo-header-opacity);
+  background-image: linear-gradient(var(--photo-tint), var(--photo-tint)),
+    url("/art/photos/header-afdb-tunis.webp");
+  background-size: cover;
+  background-position: center 40%;
+  filter: saturate(0.55);
+  mask-image: linear-gradient(to left, #000 25%, transparent 100%);
+}
+
+[dir="rtl"] .app-header::before {
+  mask-image: linear-gradient(to right, #000 25%, transparent 100%);
+}
+
+/* ---- Sidebar backdrop: real building toned into the emerald panel ----------- */
+[data-sidebar="sidebar"]:not([data-mobile]) {
+  position: relative;
+}
+
+[data-sidebar="sidebar"] {
+  isolation: isolate;
+}
+
+[data-sidebar="sidebar"]::before {
+  inset-inline: 0;
+  bottom: 0;
+  height: min(26rem, 60%);
+  opacity: 0.38;
+  background-image: url("/art/photos/sidebar-bvmt-tunis.webp");
+  background-size: cover;
+  background-position: center 30%;
+  /* keeps the photo's light and shade, takes the panel's emerald hue */
+  mix-blend-mode: luminosity;
+  mask-image: linear-gradient(to top, #000 30%, transparent 100%);
+}
+
+[data-collapsible="icon"] [data-sidebar="sidebar"]::before {
+  display: none;
+}
+
+/* ---- Cards: soft depth + a faint green wash at the top edge ------------------- */
+[data-slot="card"] {
+  --tw-shadow: var(--surface-shadow);
+  /* a touch translucent so the content backdrop reads through, text stays solid */
+  background-color: color-mix(in srgb, var(--card) 90%, transparent);
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--primary) 5%, transparent),
+    transparent 5rem
+  );
+}
+

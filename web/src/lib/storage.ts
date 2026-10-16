@@ -1,3 +1,4 @@
+import { getMessages } from '@/i18n/store';
 import { downloadName } from '@/lib/files';
 import { graphql } from '@/lib/graphql';
 import { nhost } from '@/lib/nhost';
@@ -14,7 +15,7 @@ const LINK_FILE = `
 export async function uploadToBucket(file: File, bucket: string = BUCKET): Promise<string> {
   const response = await nhost.storage.uploadFiles({ 'bucket-id': bucket, 'file[]': [file] });
   const id = response.body.processedFiles[0]?.id;
-  if (!id) throw new Error('Le fichier n’a pas pu être envoyé.');
+  if (!id) throw new Error(getMessages().common.uploadFailed);
   return id;
 }
 

@@ -6,7 +6,6 @@ import { motion } from 'motion/react';
 import { Building2, ChevronDown, Map as MapIcon, MapPin, Plus, Search, SearchX } from 'lucide-react';
 import { StatusBadge } from '@/components/domain/badges';
 import { StorageImage } from '@/components/files/storage-image';
-import { PROPERTY_TYPES, UNIT_TYPES } from '@/components/domain/labels';
 import { SkeletonList, Stagger, StaggerItem, staggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { FieldHelp } from '@/components/field-help';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,6 +22,8 @@ import { formatArea, formatTnd } from '@/lib/format';
 import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { getIntlLocale } from '@/i18n/store';
+import { useT } from '@/i18n/provider';
 const PROPERTIES_QUERY = `
   query PropertiesWithUnits {
     properties(order_by: { name: asc }, limit: 200) {
@@ -75,18 +77,19 @@ type Property = {
 };
 
 type StatusFilter = 'all' | 'rented' | 'vacant' | 'for_sale' | 'under_maintenance';
-const STATUS_CHIPS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'Toutes' },
-  { value: 'rented', label: 'Louées' },
-  { value: 'vacant', label: 'Disponibles' },
-  { value: 'for_sale', label: 'À vendre' },
-  { value: 'under_maintenance', label: 'En travaux' },
-];
 
 const rowsContainer = { hidden: {}, visible: { transition: { staggerChildren: 0.04 } } };
 const MotionRow = motion.create(TableRow);
 
 export default function BiensPage() {
+  const t = useT();
+  const chips: { value: StatusFilter; label: string }[] = [
+    { value: 'all', label: t.properties.list.statusAll },
+    { value: 'rented', label: t.properties.list.statusRented },
+    { value: 'vacant', label: t.properties.list.statusVacant },
+    { value: 'for_sale', label: t.properties.list.statusForSale },
+    { value: 'under_maintenance', label: t.properties.list.statusUnderMaintenance },
+  ];
   const result = useGraphql<{ properties: Property[] }>(PROPERTIES_QUERY);
   const [search, setSearch] = useState('');
   const [city, setCity] = useState('all');
@@ -111,7 +114,7 @@ export default function BiensPage() {
         property.units.flatMap((unit) => unit.current_owners.map((item) => [item.contact.id, item.contact.full_name] as const)),
       ),
     ),
-  ].sort((a, b) => a[1].localeCompare(b[1], 'fr'));
+  ].sort((a, b) => a[1].localeCompare(b[1], getIntlLocale()));
 
   const needle = search.trim().toLowerCase();
   const rows = properties
@@ -158,25 +161,25 @@ export default function BiensPage() {
     <Stagger className="space-y-6">
       <StaggerItem>
         <PageHeader
-          title="Biens et unités"
+          title={t.properties.list.title}
           description={
             result.status === 'success'
-              ? allUnits.length + ' unités dans ' + activeProperties.length + ' biens'
-              : 'Chargement du parc immobilier…'
+              ? t.properties.list.summary(allUnits.length, activeProperties.length)
+              : t.properties.list.loadingDescription
           }
           actions={
             <>
               <Button asChild variant="outline">
                 <Link href="/biens/carte">
                   <MapIcon data-icon="inline-start" />
-                  Carte
+                  {t.properties.list.map}
                 </Link>
               </Button>
               {canEdit && (
                 <Button asChild>
                   <Link href="/biens/nouveau">
                     <Plus data-icon="inline-start" />
-                    Ajouter un bien
+                    {t.properties.list.add}
                   </Link>
                 </Button>
               )}
@@ -195,9 +198,9 @@ export default function BiensPage() {
               value={status}
               onValueChange={(value) => setStatus((value || 'all') as StatusFilter)}
               className="flex-wrap justify-start"
-              aria-label="Filtrer par statut"
+              aria-label={t.properties.list.filterByStatus}
             >
-              {STATUS_CHIPS.map((chip) => (
+              {chips.map((chip) => (
                 <ToggleGroupItem key={chip.value} value={chip.value} className="gap-1.5">
                   {chip.label}
                   <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">{countStatus(chip.value)}</span>
@@ -213,16 +216,16 @@ export default function BiensPage() {
                 <InputGroupInput
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Nom, adresse ou référence d’unité"
-                  aria-label="Rechercher un bien"
+                  placeholder={t.properties.list.searchPlaceholder}
+                  aria-label={t.properties.list.searchLabel}
                 />
               </InputGroup>
               <Select value={city} onValueChange={setCity}>
-                <SelectTrigger className="w-40" aria-label="Ville">
-                  <SelectValue placeholder="Ville" />
+                <SelectTrigger className="w-40" aria-label={t.properties.list.city}>
+                  <SelectValue placeholder={t.properties.list.city} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes les villes</SelectItem>
+                  <SelectItem value="all">{t.properties.list.allCities}</SelectItem>
                   {cities.map((value) => (
                     <SelectItem key={value} value={value}>
                       {value}
@@ -231,12 +234,12 @@ export default function BiensPage() {
                 </SelectContent>
               </Select>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger className="w-40" aria-label="Type de bien">
-                  <SelectValue placeholder="Type" />
+                <SelectTrigger className="w-40" aria-label={t.properties.list.typeLabel}>
+                  <SelectValue placeholder={t.properties.list.typePlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  {Object.entries(PROPERTY_TYPES).map(([value, label]) => (
+                  <SelectItem value="all">{t.properties.list.allTypes}</SelectItem>
+                  {Object.entries(t.labels.propertyTypes).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
                       {label}
                     </SelectItem>
@@ -244,11 +247,11 @@ export default function BiensPage() {
                 </SelectContent>
               </Select>
               <Select value={branch} onValueChange={setBranch}>
-                <SelectTrigger className="w-44" aria-label="Succursale">
-                  <SelectValue placeholder="Succursale" />
+                <SelectTrigger className="w-44" aria-label={t.properties.list.branch}>
+                  <SelectValue placeholder={t.properties.list.branch} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toutes les succursales</SelectItem>
+                  <SelectItem value="all">{t.properties.list.allBranches}</SelectItem>
                   {branches.map(([id, name]) => (
                     <SelectItem key={id} value={id}>
                       {name}
@@ -257,11 +260,11 @@ export default function BiensPage() {
                 </SelectContent>
               </Select>
               <Select value={owner} onValueChange={setOwner}>
-                <SelectTrigger className="w-48" aria-label="Propriétaire">
-                  <SelectValue placeholder="Propriétaire" />
+                <SelectTrigger className="w-48" aria-label={t.properties.list.owner}>
+                  <SelectValue placeholder={t.properties.list.owner} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les propriétaires</SelectItem>
+                  <SelectItem value="all">{t.properties.list.allOwners}</SelectItem>
                   {owners.map(([id, name]) => (
                     <SelectItem key={id} value={id}>
                       {name}
@@ -272,12 +275,13 @@ export default function BiensPage() {
               <div className="flex items-center gap-2">
                 <Checkbox id="archived" checked={showArchived} onCheckedChange={(checked) => setShowArchived(checked === true)} />
                 <Label htmlFor="archived" className="text-sm font-normal text-muted-foreground">
-                  Biens archivés
+                  {t.properties.list.archived}
                 </Label>
+                <FieldHelp>{t.properties.list.archivedHelp}</FieldHelp>
               </div>
               {hasFilters && (
                 <Button variant="ghost" size="sm" onClick={reset}>
-                  Réinitialiser
+                  {t.properties.list.reset}
                 </Button>
               )}
             </div>
@@ -286,11 +290,11 @@ export default function BiensPage() {
       </StaggerItem>
 
       {result.status === 'loading' && (
-        <SkeletonList count={3} className="space-y-4" itemClassName="h-40 rounded-xl bg-muted" label="Chargement des biens…" />
+        <SkeletonList count={3} className="space-y-4" itemClassName="h-40 rounded-xl bg-muted" label={t.properties.list.loading} />
       )}
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger les biens : {result.message}
+          {t.properties.list.loadError(result.message)}
         </p>
       )}
 
@@ -300,10 +304,10 @@ export default function BiensPage() {
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <SearchX className="size-5" />
             </span>
-            <p className="font-medium">Aucun bien ne correspond</p>
-            <p className="text-sm text-muted-foreground">Modifiez les filtres pour élargir la recherche.</p>
+            <p className="font-medium">{t.properties.list.noMatchTitle}</p>
+            <p className="text-sm text-muted-foreground">{t.properties.list.noMatchHint}</p>
             <Button variant="outline" size="sm" onClick={reset} className="mt-2">
-              Réinitialiser les filtres
+              {t.properties.list.resetFilters}
             </Button>
           </CardContent>
         </Card>
@@ -326,7 +330,7 @@ export default function BiensPage() {
                           <StorageImage
                             fileId={property.files[0].storage_file_id}
                             width={96}
-                            alt={'Photo de ' + property.name}
+                            alt={t.properties.list.photoOf(property.name)}
                             className="size-10 shrink-0 rounded-lg object-cover"
                           />
                         ) : (
@@ -340,33 +344,33 @@ export default function BiensPage() {
                               {property.name}
                             </Link>
                             {property.archived_at && (
-                              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Archivé</span>
+                              <span className="ms-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">{t.properties.list.archivedBadge}</span>
                             )}
                           </h2>
                           <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <MapPin className="size-3" aria-hidden />
-                              {[property.address_line, property.city].filter(Boolean).join(', ') || 'Adresse non renseignée'}
+                              {[property.address_line, property.city].filter(Boolean).join(', ') || t.properties.list.noAddress}
                             </span>
                             <span aria-hidden>·</span>
-                            <span>{PROPERTY_TYPES[property.type] ?? property.type}</span>
+                            <span>{t.labels.propertyTypes[property.type] ?? property.type}</span>
                             {property.branch && (
                               <>
                                 <span aria-hidden>·</span>
-                                <span>Succursale {property.branch.name}</span>
+                                <span>{t.properties.list.branchName(property.branch.name)}</span>
                               </>
                             )}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <div className="hidden text-right sm:block">
+                        <div className="hidden text-end sm:block">
                           <p className="text-sm font-semibold tabular-nums">{formatTnd(rentTotal)}</p>
-                          <p className="text-xs text-muted-foreground">loyer mensuel</p>
+                          <p className="text-xs text-muted-foreground">{t.properties.list.monthlyRent}</p>
                         </div>
-                        {occupancy !== null && <StatusBadge status="rented" label={occupancy + ' % loué'} />}
+                        {occupancy !== null && <StatusBadge status="rented" label={t.properties.list.rentedPercent(occupancy)} />}
                         <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="icon-sm" aria-label={(open ? 'Replier ' : 'Déplier ') + property.name}>
+                          <Button variant="ghost" size="icon-sm" aria-label={open ? t.properties.list.collapse(property.name) : t.properties.list.expand(property.name)}>
                             <ChevronDown className={'transition-transform duration-200 ' + (open ? 'rotate-180' : '')} />
                           </Button>
                         </CollapsibleTrigger>
@@ -377,27 +381,27 @@ export default function BiensPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="pl-4">Unité</TableHead>
-                          <TableHead className="hidden lg:table-cell">Propriétaire</TableHead>
-                          <TableHead className="hidden md:table-cell">Étage</TableHead>
-                          <TableHead className="hidden md:table-cell">Pièces</TableHead>
-                          <TableHead className="hidden sm:table-cell">Surface</TableHead>
-                          <TableHead className="text-right">Loyer</TableHead>
-                          <TableHead className="pr-4">Statut</TableHead>
+                          <TableHead className="ps-4">{t.properties.list.colUnit}</TableHead>
+                          <TableHead className="hidden lg:table-cell">{t.properties.list.colOwner}</TableHead>
+                          <TableHead className="hidden md:table-cell">{t.properties.list.colFloor}</TableHead>
+                          <TableHead className="hidden md:table-cell">{t.properties.list.colRooms}</TableHead>
+                          <TableHead className="hidden sm:table-cell">{t.properties.list.colSurface}</TableHead>
+                          <TableHead className="text-end">{t.properties.list.colRent}</TableHead>
+                          <TableHead className="pe-4">{t.properties.list.colStatus}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <motion.tbody variants={rowsContainer} initial="hidden" animate="visible" className="[&_tr:last-child]:border-0">
                         {units.map((unit) => (
                           <MotionRow key={unit.id} variants={staggerItem}>
-                            <TableCell className="pl-4">
+                            <TableCell className="ps-4">
                               <Link href={'/biens/' + property.id + '/unites/' + unit.id} className="font-medium hover:text-primary hover:underline">
                                 {unit.code}
                               </Link>
-                              <span className="ml-2 text-xs text-muted-foreground">{UNIT_TYPES[unit.type] ?? unit.type}</span>
+                              <span className="ms-2 text-xs text-muted-foreground">{t.labels.unitTypes[unit.type] ?? unit.type}</span>
                             </TableCell>
                             <TableCell className="hidden text-sm lg:table-cell">
                               {unit.current_owners.length === 0 ? (
-                                <span className="text-xs font-medium text-warning">Aucun</span>
+                                <span className="text-xs font-medium text-warning">{t.properties.list.noOwner}</span>
                               ) : (
                                 unit.current_owners.map((item) => item.contact.full_name).join(', ')
                               )}
@@ -405,8 +409,8 @@ export default function BiensPage() {
                             <TableCell className="hidden tabular-nums md:table-cell">{unit.floor ?? '—'}</TableCell>
                             <TableCell className="hidden tabular-nums md:table-cell">{unit.rooms ?? '—'}</TableCell>
                             <TableCell className="hidden tabular-nums sm:table-cell">{formatArea(unit.surface_m2)}</TableCell>
-                            <TableCell className="text-right font-medium tabular-nums">{formatTnd(unit.rent_amount)}</TableCell>
-                            <TableCell className="pr-4">
+                            <TableCell className="text-end font-medium tabular-nums">{formatTnd(unit.rent_amount)}</TableCell>
+                            <TableCell className="pe-4">
                               <StatusBadge status={unit.status} />
                             </TableCell>
                           </MotionRow>
@@ -414,7 +418,7 @@ export default function BiensPage() {
                         {units.length === 0 && (
                           <TableRow>
                             <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
-                              Aucune unité à afficher pour ce filtre.
+                              {t.properties.list.noUnits}
                             </TableCell>
                           </TableRow>
                         )}

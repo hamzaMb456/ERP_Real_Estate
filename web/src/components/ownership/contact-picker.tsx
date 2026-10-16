@@ -8,10 +8,12 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
+import { getMessages } from '@/i18n/store';
+import { useT } from '@/i18n/provider';
 export type ContactOption = { id: string; full_name: string; kind: 'person' | 'company'; is_organization: boolean };
 
 export function optionLabel(option: ContactOption): string {
-  return option.is_organization ? option.full_name + ' (votre société)' : option.full_name;
+  return option.is_organization ? option.full_name + getMessages().ownership.picker.orgSuffix : option.full_name;
 }
 
 type Props = {
@@ -24,6 +26,7 @@ type Props = {
 };
 
 export function ContactPicker({ id, options, value, onChange, excludeIds = [], invalid = false }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.id === value);
   const available = options.filter((option) => option.id === value || !excludeIds.includes(option.id));
@@ -41,16 +44,16 @@ export function ContactPicker({ id, options, value, onChange, excludeIds = [], i
           className="w-full justify-between font-normal"
         >
           <span className={cn('truncate', !selected && 'text-muted-foreground')}>
-            {selected ? optionLabel(selected) : 'Choisir un contact'}
+            {selected ? optionLabel(selected) : t.ownership.picker.choose}
           </span>
           <ChevronsUpDown className="opacity-50" aria-hidden />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-64 p-0" align="start">
         <Command>
-          <CommandInput placeholder="Rechercher un contact…" />
+          <CommandInput placeholder={t.ownership.picker.search} />
           <CommandList>
-            <CommandEmpty>Aucun contact trouvé.</CommandEmpty>
+            <CommandEmpty>{t.ownership.picker.none}</CommandEmpty>
             <CommandGroup>
               {available.map((option) => (
                 <CommandItem
@@ -71,7 +74,7 @@ export function ContactPicker({ id, options, value, onChange, excludeIds = [], i
             <Button asChild variant="ghost" size="sm" className="w-full justify-start">
               <Link href="/contacts/nouveau" target="_blank">
                 <Plus data-icon="inline-start" />
-                Nouveau contact (nouvel onglet)
+                {t.ownership.picker.newContact}
               </Link>
             </Button>
           </div>

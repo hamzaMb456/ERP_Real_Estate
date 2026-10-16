@@ -4,17 +4,18 @@ import { useState, type FormEvent } from 'react';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { AREA_KINDS } from '@/components/domain/labels';
+import { FieldLabelWithHelp } from '@/components/field-help';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { graphql } from '@/lib/graphql';
 
+import { useT } from '@/i18n/provider';
 const ADD_AREA = `mutation AddArea($object: common_areas_insert_input!) { insert_common_areas_one(object: $object) { id } }`;
 const UPDATE_AREA = `mutation UpdateArea($id: uuid!, $set: common_areas_set_input!) { update_common_areas_by_pk(pk_columns: { id: $id }, _set: $set) { id } }`;
 const DELETE_AREA = `mutation DeleteArea($id: uuid!) { delete_common_areas_by_pk(id: $id) { id } }`;
@@ -34,26 +35,27 @@ export function CommonAreasList({
   canEdit: boolean;
   onChanged: () => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState<Editing>(null);
   const [toDelete, setToDelete] = useState<CommonArea | null>(null);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Parties communes</CardTitle>
-        <CardDescription>Escaliers, ascenseur, jardin, toiture… partagés par les propriétaires de l’immeuble.</CardDescription>
+        <CardTitle className="text-base">{t.files.areas.title}</CardTitle>
+        <CardDescription>{t.files.areas.description}</CardDescription>
         {canEdit && (
           <CardAction>
             <Button size="sm" onClick={() => setEditing({ mode: 'create' })}>
               <Plus data-icon="inline-start" />
-              Ajouter
+              {t.files.areas.add}
             </Button>
           </CardAction>
         )}
       </CardHeader>
       <CardContent>
         {areas.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucune partie commune enregistrée.</p>
+          <p className="text-sm text-muted-foreground">{t.files.areas.empty}</p>
         ) : (
           <ul className="divide-y">
             {areas.map((area) => (
@@ -61,16 +63,16 @@ export function CommonAreasList({
                 <div className="min-w-0 text-sm">
                   <p className="font-medium">{area.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {AREA_KINDS[area.kind] ?? area.kind}
+                    {t.labels.areaKinds[area.kind] ?? area.kind}
                     {area.notes ? ' · ' + area.notes : ''}
                   </p>
                 </div>
                 {canEdit && (
                   <div className="flex shrink-0 gap-1">
-                    <Button variant="ghost" size="icon-sm" aria-label={'Modifier ' + area.name} onClick={() => setEditing({ mode: 'edit', area })}>
+                    <Button variant="ghost" size="icon-sm" aria-label={t.files.areas.edit(area.name)} onClick={() => setEditing({ mode: 'edit', area })}>
                       <Pencil />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" aria-label={'Supprimer ' + area.name} onClick={() => setToDelete(area)}>
+                    <Button variant="ghost" size="icon-sm" aria-label={t.files.areas.delete(area.name)} onClick={() => setToDelete(area)}>
                       <Trash2 />
                     </Button>
                   </div>
@@ -84,8 +86,8 @@ export function CommonAreasList({
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing?.mode === 'edit' ? 'Modifier la partie commune' : 'Ajouter une partie commune'}</DialogTitle>
-            <DialogDescription>Nom, type et remarques éventuelles.</DialogDescription>
+            <DialogTitle>{editing?.mode === 'edit' ? t.files.areas.editTitle : t.files.areas.addTitle}</DialogTitle>
+            <DialogDescription>{t.files.areas.dialogDescription}</DialogDescription>
           </DialogHeader>
           {editing && (
             <AreaForm
@@ -104,16 +106,16 @@ export function CommonAreasList({
       <ConfirmDialog
         open={toDelete !== null}
         onOpenChange={(open) => !open && setToDelete(null)}
-        title="Supprimer cette partie commune ?"
-        description={toDelete ? `« ${toDelete.name} » sera retirée de l’immeuble.` : ''}
+        title={t.files.areas.deleteTitle}
+        description={toDelete ? t.files.areas.deleteBody(toDelete.name) : ''}
         onConfirm={async () => {
           if (!toDelete) return;
           try {
             await graphql(DELETE_AREA, { id: toDelete.id });
-            toast.success('Partie commune supprimée');
+            toast.success(t.files.areas.deleted);
             onChanged();
           } catch (error) {
-            toast.error('Suppression impossible', { description: toFrenchError(error) });
+            toast.error(t.files.areas.deleteFailed, { description: toUserMessage(error) });
           }
         }}
       />
@@ -132,6 +134,7 @@ function AreaForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(area?.name ?? '');
   const [kind, setKind] = useState(area?.kind ?? 'stairs');
   const [notes, setNotes] = useState(area?.notes ?? '');
@@ -140,17 +143,17 @@ function AreaForm({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (name.trim().length === 0) return setError('Saisissez un nom.');
+    if (name.trim().length === 0) return setError(t.files.areas.nameRequired);
     setError(null);
     setSaving(true);
     const fields = { name: name.trim(), kind, notes: notes.trim() === '' ? null : notes.trim() };
     try {
       if (area) await graphql(UPDATE_AREA, { id: area.id, set: fields });
       else await graphql(ADD_AREA, { object: { ...fields, property_id: propertyId } });
-      toast.success(area ? 'Partie commune mise à jour' : 'Partie commune ajoutée');
+      toast.success(area ? t.files.areas.updated : t.files.areas.added);
       onSaved();
     } catch (caught) {
-      setError(toFrenchError(caught));
+      setError(toUserMessage(caught));
     } finally {
       setSaving(false);
     }
@@ -159,17 +162,21 @@ function AreaForm({
   return (
     <form onSubmit={submit} noValidate className="space-y-5">
       <Field data-invalid={error !== null && name.trim() === ''}>
-        <FieldLabel htmlFor="area-name">Nom *</FieldLabel>
-        <Input id="area-name" value={name} placeholder="Ex. Escaliers bloc B" onChange={(event) => setName(event.target.value)} />
+        <FieldLabelWithHelp htmlFor="area-name" help={t.files.areas.nameHelp}>
+          {t.files.areas.name}
+        </FieldLabelWithHelp>
+        <Input id="area-name" value={name} placeholder={t.files.areas.namePlaceholder} onChange={(event) => setName(event.target.value)} />
       </Field>
       <Field>
-        <FieldLabel htmlFor="area-kind">Type</FieldLabel>
+        <FieldLabelWithHelp htmlFor="area-kind" help={t.files.areas.typeHelp}>
+          {t.files.areas.type}
+        </FieldLabelWithHelp>
         <Select value={kind} onValueChange={setKind}>
           <SelectTrigger id="area-kind" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(AREA_KINDS).map(([value, label]) => (
+            {Object.entries(t.labels.areaKinds).map(([value, label]) => (
               <SelectItem key={value} value={value}>
                 {label}
               </SelectItem>
@@ -178,7 +185,9 @@ function AreaForm({
         </Select>
       </Field>
       <Field>
-        <FieldLabel htmlFor="area-notes">Remarques</FieldLabel>
+        <FieldLabelWithHelp htmlFor="area-notes" help={t.files.areas.notesHelp}>
+          {t.files.areas.notes}
+        </FieldLabelWithHelp>
         <Textarea id="area-notes" rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} />
       </Field>
       {error && (
@@ -188,11 +197,11 @@ function AreaForm({
       )}
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onCancel}>
-          Annuler
+          {t.common.cancel}
         </Button>
         <Button type="submit" disabled={saving}>
           {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Enregistrer
+          {t.common.save}
         </Button>
       </DialogFooter>
     </form>

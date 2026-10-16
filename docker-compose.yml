@@ -1,0 +1,79 @@
+# Run the web app, unit tests and E2E in containers. Backend = Nhost (cloud),
+# not dockerized. Secrets stay in web/.env.local and web/.env.test.local
+# (git-ignored); they are injected at runtime, never baked into images.
+#
+#   docker compose up                  # app on http://localhost:${WEB_PORT:-3000}
+#   docker compose run --rm test       # unit tests (vitest)
+#   docker compose run --rm e2e        # Playwright E2E against the web service
+name: erp-real-estate
+
+x-web-build: &web-build
+  context: ./web
+  args:
+    BASE_IMAGE: node:24-bookworm-slim
+
+x-web-volumes: &web-volumes
+  - ./web:/app
+  - web-node-modules:/app/node_modules
+  - web-next:/app/.next
+
+services:
+  web:
+    build: *web-build
+    image: erp-web-dev
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    env_file:
+      - path: ./web/.env.local
+        required: true
+    environment:
+      NEXT_WATCH_POLL_MS: "1000"
+    volumes: *web-volumes
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/connexion').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
+  test:
+    build: *web-build
+    image: erp-web-dev
+    profiles: ["test"]
+    command: ["npm", "test"]
+    env_file:
+      - path: ./web/.env.local
+        required: true
+    volumes: *web-volumes
+
+  e2e:
+    build:
+      context: ./web
+      args:
+        BASE_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble
+    image: erp-web-e2e
+    profiles: ["test"]
+    init: true
+    ipc: host
+    # Share the web container's network: the app is reached as localhost:3000,
+    # an origin Next dev allows (a `web:3000` host is blocked by allowedDevOrigins).
+    network_mode: service:web
+    depends_on:
+      web:
+        condition: service_healthy
+    command: ["npx", "playwright", "test"]
+    env_file:
+      - path: ./web/.env.local
+        required: true
+      - path: ./web/.env.test.local
+        required: true
+    environment:
+      E2E_BASE_URL: http://localhost:3000
+    volumes:
+      - ./web:/app
+      - e2e-node-modules:/app/node_modules
+
+volumes:
+  web-node-modules:
+  web-next:
+  e2e-node-modules:

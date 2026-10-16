@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { CheckCircle2, CircleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { FileDrop } from '@/components/files/file-drop';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { titleFromFileName, validateFile, type DocumentCategory, type FileKind } from '@/lib/files';
 import { storageDeps } from '@/lib/storage';
 import { uploadAndLink, type FileTarget } from '@/lib/upload';
 
+import { useT } from '@/i18n/provider';
 type Item = { key: string; name: string; status: 'waiting' | 'sending' | 'done' | 'error'; message?: string };
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export function FileUploader({ target, kind, category, nextSortOrder, onUploaded }: Props) {
+  const t = useT();
   const [items, setItems] = useState<Item[]>([]);
   const busy = items.some((item) => item.status === 'waiting' || item.status === 'sending');
   const setStatus = (key: string, patch: Partial<Item>) =>
@@ -45,11 +47,11 @@ export function FileUploader({ target, kind, category, nextSortOrder, onUploaded
         uploaded += 1;
         setStatus(entry.key, { status: 'done' });
       } catch (error) {
-        setStatus(entry.key, { status: 'error', message: toFrenchError(error) });
+        setStatus(entry.key, { status: 'error', message: toUserMessage(error) });
       }
     }
     if (uploaded > 0) {
-      toast.success(uploaded > 1 ? `${uploaded} fichiers ajoutés` : 'Fichier ajouté');
+      toast.success(uploaded > 1 ? t.files.uploader.addedMany(uploaded) : t.files.uploader.addedOne);
       onUploaded();
     }
   }
@@ -64,16 +66,16 @@ export function FileUploader({ target, kind, category, nextSortOrder, onUploaded
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate">{item.name}</span>
                 <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                  {item.status === 'waiting' && 'En attente'}
-                  {item.status === 'sending' && 'Envoi…'}
+                  {item.status === 'waiting' && t.files.uploader.waiting}
+                  {item.status === 'sending' && t.files.uploader.sending}
                   {item.status === 'done' && (
                     <>
-                      <CheckCircle2 className="size-3.5 text-success" aria-hidden /> Envoyé
+                      <CheckCircle2 className="size-3.5 text-success" aria-hidden /> {t.files.uploader.done}
                     </>
                   )}
                   {item.status === 'error' && (
                     <>
-                      <CircleAlert className="size-3.5 text-destructive" aria-hidden /> Échec
+                      <CircleAlert className="size-3.5 text-destructive" aria-hidden /> {t.files.uploader.failed}
                     </>
                   )}
                 </span>

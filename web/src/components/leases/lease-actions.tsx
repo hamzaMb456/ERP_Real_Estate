@@ -11,6 +11,7 @@ import { graphql } from '@/lib/graphql';
 import { showError } from '@/lib/show-error';
 import { useCanEdit } from '@/lib/use-can-edit';
 
+import { useT } from '@/i18n/provider';
 const SET_ARCHIVED = `
   mutation SetLeaseArchived($id: uuid!, $archived_at: timestamptz) {
     update_leases_by_pk(pk_columns: { id: $id }, _set: { archived_at: $archived_at }) { id }
@@ -20,6 +21,7 @@ const SET_ARCHIVED = `
 type Props = { lease: LeaseDetails; onChanged: () => void };
 
 export function LeaseActions({ lease, onChanged }: Props) {
+  const t = useT();
   const canEdit = useCanEdit();
   const [archiving, setArchiving] = useState(false);
   if (!canEdit) return null;
@@ -28,10 +30,10 @@ export function LeaseActions({ lease, onChanged }: Props) {
     setArchiving(true);
     try {
       await graphql(SET_ARCHIVED, { id: lease.id, archived_at: lease.archived_at ? null : new Date().toISOString() });
-      toast.success(lease.archived_at ? 'Brouillon restauré' : 'Brouillon archivé');
+      toast.success(lease.archived_at ? t.leases.actions.draftRestored : t.leases.actions.draftArchived);
       onChanged();
     } catch (error) {
-      showError('Action impossible', error, () => void toggleArchive());
+      showError(t.leases.actions.actionFailed, error, () => void toggleArchive());
     } finally {
       setArchiving(false);
     }
@@ -46,7 +48,7 @@ export function LeaseActions({ lease, onChanged }: Props) {
             <Button asChild variant="outline">
               <Link href={'/baux/' + lease.id + '/modifier'}>
                 <Pencil data-icon="inline-start" />
-                Modifier
+                {t.common.edit}
               </Link>
             </Button>
             <ActivateDialog
@@ -55,7 +57,7 @@ export function LeaseActions({ lease, onChanged }: Props) {
               trigger={
                 <Button>
                   <FileCheck data-icon="inline-start" />
-                  Activer
+                  {t.leases.actions.activate}
                 </Button>
               }
             />
@@ -63,7 +65,7 @@ export function LeaseActions({ lease, onChanged }: Props) {
         )}
         <Button variant="outline" onClick={() => void toggleArchive()} disabled={archiving}>
           {archiving ? <Loader2 data-icon="inline-start" className="animate-spin" /> : archived ? <ArchiveRestore data-icon="inline-start" /> : <Archive data-icon="inline-start" />}
-          {archived ? 'Restaurer' : 'Archiver'}
+          {archived ? t.leases.actions.restore : t.leases.actions.archive}
         </Button>
       </>
     );
@@ -78,7 +80,7 @@ export function LeaseActions({ lease, onChanged }: Props) {
           trigger={
             <Button>
               <CalendarSync data-icon="inline-start" />
-              Renouveler
+              {t.leases.actions.renew}
             </Button>
           }
         />
@@ -88,7 +90,7 @@ export function LeaseActions({ lease, onChanged }: Props) {
           trigger={
             <Button variant="outline">
               <DoorOpen data-icon="inline-start" />
-              Terminer
+              {t.leases.actions.end}
             </Button>
           }
         />

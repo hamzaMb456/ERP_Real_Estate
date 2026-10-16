@@ -10,6 +10,7 @@ import { formatTnd } from '@/lib/format';
 import { formatLeaseNumber, leasePeriod } from '@/lib/leases';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const QUERY = `
   query UnitLease($id: uuid!) {
     unit_current_lease(where: { unit_id: { _eq: $id } }, order_by: [{ start_date: asc }]) {
@@ -31,24 +32,25 @@ type Row = {
 };
 
 export function UnitLeaseCard({ unitId, canCreate }: { unitId: string; canCreate: boolean }) {
+  const t = useT();
   const result = useGraphql<{ unit_current_lease: Row[] }>(QUERY, { id: unitId });
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Bail en cours</CardTitle>
-        <CardDescription>Le bail actif de cette unité et son locataire.</CardDescription>
+        <CardTitle className="text-base">{t.leases.unitCard.title}</CardTitle>
+        <CardDescription>{t.leases.unitCard.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        {result.status === 'loading' && <Pulse className="text-muted-foreground">Chargement…</Pulse>}
-        {result.status === 'error' && <p role="alert" className="text-destructive">Impossible de charger le bail : {result.message}</p>}
+        {result.status === 'loading' && <Pulse className="text-muted-foreground">{t.leases.unitCard.loading}</Pulse>}
+        {result.status === 'error' && <p role="alert" className="text-destructive">{t.leases.unitCard.loadError(result.message)}</p>}
         {result.status === 'success' && result.data.unit_current_lease.length === 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-muted-foreground">Aucun bail actif.</p>
+            <p className="text-muted-foreground">{t.leases.unitCard.none}</p>
             {canCreate && (
               <Button asChild variant="outline" size="sm">
                 <Link href={'/baux/nouveau?unite=' + unitId}>
                   <FilePlus2 data-icon="inline-start" />
-                  Créer un bail
+                  {t.leases.unitCard.create}
                 </Link>
               </Button>
             )}

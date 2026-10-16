@@ -1,0 +1,389 @@
+/* ---- Glossy fields, search bars, tables ---------------------------------------
+   Same language as the .btn-gloss buttons (globals.css): glass highlight on the top
+   half, darker lower edge, inner rim light on top, soft drop shadow, and a shine
+   streak that sweeps across on hover / focus. Pure CSS on data-slot hooks, so no
+   component API changes. Unlayered, so it wins over the shadcn utility classes;
+   the focus / invalid rings still show because they are re-composed into box-shadow. */
+:root {
+  --field-border: color-mix(in oklch, var(--primary) 24%, var(--border));
+  --field-border-hover: color-mix(in oklch, var(--primary) 48%, var(--border));
+  --field-base: color-mix(in oklch, var(--primary) 4%, var(--card));
+  --field-gloss: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.9),
+    rgb(255 255 255 / 0.15) 55%,
+    rgb(0 0 0 / 0.04)
+  );
+  --field-gloss-focus: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 1),
+    rgb(255 255 255 / 0.45) 55%,
+    rgb(0 0 0 / 0.02)
+  );
+  --field-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(0 0 0 / 0.06),
+    0 1px 2px oklch(0.3 0.06 var(--theme-hue) / 0.14), 0 6px 12px -8px oklch(0.3 0.08 var(--theme-hue) / 0.3);
+  --field-shadow-hover:
+    inset 0 1px 0 rgb(255 255 255 / 1), inset 0 -1px 0 rgb(0 0 0 / 0.07),
+    0 2px 4px oklch(0.3 0.06 var(--theme-hue) / 0.16), 0 10px 18px -10px oklch(0.3 0.08 var(--theme-hue) / 0.38);
+  --field-shine: color-mix(in oklch, var(--primary) 28%, white);
+  /* solid green glass, as on the primary button: selected chips, checked boxes */
+  --gloss-primary-border: color-mix(in oklch, var(--primary) 82%, black);
+  --gloss-primary-bg: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--primary) 74%, white) 0%,
+    var(--primary) 55%,
+    color-mix(in oklch, var(--primary) 86%, black) 100%
+  );
+  --gloss-primary-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55), inset 0 -1px 0 rgb(0 0 0 / 0.2),
+    0 1px 2px rgb(0 0 0 / 0.25), 0 6px 12px -6px color-mix(in oklch, var(--primary) 85%, transparent);
+  /* tables */
+  --table-head-gloss:
+    linear-gradient(to bottom, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0) 55%),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--primary) 13%, var(--card)),
+      color-mix(in oklch, var(--primary) 7%, var(--card)) 60%,
+      color-mix(in oklch, var(--primary) 11%, var(--card))
+    );
+  --table-head-rim: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --table-row-gloss: linear-gradient(to bottom, rgb(255 255 255 / 0.65), rgb(255 255 255 / 0) 70%);
+  --table-row-rim: inset 0 1px 0 rgb(255 255 255 / 0.85);
+}
+
+.dark {
+  --field-border: color-mix(in oklch, var(--primary) 30%, var(--border));
+  --field-border-hover: color-mix(in oklch, var(--primary) 55%, var(--border));
+  --field-base: color-mix(in oklch, var(--primary) 8%, var(--card));
+  --field-gloss: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.14),
+    rgb(255 255 255 / 0.02) 55%,
+    rgb(0 0 0 / 0.12)
+  );
+  --field-gloss-focus: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.2),
+    rgb(255 255 255 / 0.05) 55%,
+    rgb(0 0 0 / 0.1)
+  );
+  --field-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 -1px 0 rgb(0 0 0 / 0.35),
+    0 1px 2px rgb(0 0 0 / 0.4);
+  --field-shadow-hover:
+    inset 0 1px 0 rgb(255 255 255 / 0.28), inset 0 -1px 0 rgb(0 0 0 / 0.4),
+    0 2px 4px rgb(0 0 0 / 0.45), 0 8px 16px -10px rgb(0 0 0 / 0.6);
+  --field-shine: color-mix(in oklch, var(--primary) 40%, transparent);
+  --table-head-gloss:
+    linear-gradient(to bottom, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0) 55%),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--primary) 20%, var(--card)),
+      color-mix(in oklch, var(--primary) 11%, var(--card)) 60%,
+      color-mix(in oklch, var(--primary) 16%, var(--card))
+    );
+  --table-head-rim: inset 0 1px 0 rgb(255 255 255 / 0.16);
+  --table-row-gloss: linear-gradient(to bottom, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0) 70%);
+  --table-row-rim: inset 0 1px 0 rgb(255 255 255 / 0.1);
+}
+
+/* ---- Fields: text inputs, textareas, search bars, select triggers --------------- */
+[data-slot="input"],
+[data-slot="textarea"],
+[data-slot="input-group"],
+[data-slot="select-trigger"] {
+  background-color: var(--field-base);
+  background-image: var(--field-gloss);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--field-shadow);
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    box-shadow 0.25s,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* An invalid field keeps the destructive border from the component classes. */
+[data-slot="input"]:not([aria-invalid="true"]),
+[data-slot="textarea"]:not([aria-invalid="true"]),
+[data-slot="select-trigger"]:not([aria-invalid="true"]),
+[data-slot="input-group"]:not(:has([aria-invalid="true"])) {
+  border-color: var(--field-border);
+}
+
+[data-slot="input"]:not([aria-invalid="true"]):hover:not(:disabled, :focus-visible),
+[data-slot="textarea"]:not([aria-invalid="true"]):hover:not(:disabled, :focus-visible),
+[data-slot="select-trigger"]:not([aria-invalid="true"]):hover:not(:disabled),
+[data-slot="input-group"]:not(:has([aria-invalid="true"])):hover:not(:focus-within) {
+  border-color: var(--field-border-hover);
+}
+
+[data-slot="input"]:hover:not(:disabled),
+[data-slot="textarea"]:hover:not(:disabled),
+[data-slot="select-trigger"]:hover:not(:disabled),
+[data-slot="input-group"]:hover {
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--field-shadow-hover);
+}
+
+[data-slot="input"]:focus-visible,
+[data-slot="textarea"]:focus-visible,
+[data-slot="select-trigger"]:focus-visible,
+[data-slot="input-group"]:focus-within {
+  background-color: var(--card);
+  background-image: var(--field-gloss-focus);
+}
+
+[data-slot="input"]:disabled,
+[data-slot="textarea"]:disabled,
+[data-slot="select-trigger"]:disabled {
+  background-image: none;
+  box-shadow: none;
+}
+
+/* Triggers are button-like: lift on hover and press, like the buttons. */
+[data-slot="select-trigger"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+[data-slot="select-trigger"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Search bars and filter selects: taller, rounder, shine streak sweeps across. */
+[data-slot="input-group"]:not(:has(textarea, [data-align^="block"])) {
+  height: 2.5rem;
+}
+
+[data-slot="input-group"],
+[data-slot="select-trigger"][data-size="default"] {
+  border-radius: var(--radius-xl);
+}
+
+[data-slot="select-trigger"][data-size="default"] {
+  height: 2.5rem;
+}
+
+[data-slot="input-group"],
+[data-slot="select-trigger"] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+[data-slot="input-group"]::after,
+[data-slot="select-trigger"]::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -20%;
+  bottom: -20%;
+  left: -70%;
+  width: 40%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--field-shine), transparent);
+  transform: skewX(-22deg);
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-slot="input-group"]:hover::after,
+[data-slot="input-group"]:focus-within::after,
+[data-slot="select-trigger"]:hover::after {
+  transform: translateX(480%) skewX(-22deg);
+}
+
+[data-slot="input-group"] [data-slot="input-group-addon"] > svg {
+  color: var(--primary);
+}
+
+/* ---- Checkboxes and radios: glass when empty, green glass when checked ------------ */
+[data-slot="checkbox"],
+[data-slot="radio-group-item"] {
+  border-color: var(--field-border);
+  background-color: var(--field-base);
+  background-image: var(--field-gloss);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px oklch(0.3 0.06 var(--theme-hue) / 0.2);
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    box-shadow 0.25s;
+}
+
+[data-slot="checkbox"][aria-checked="true"],
+[data-slot="checkbox"][aria-checked="mixed"],
+[data-slot="radio-group-item"][aria-checked="true"] {
+  border-color: var(--gloss-primary-border);
+  background-color: var(--primary);
+  background-image: var(--gloss-primary-bg);
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--gloss-primary-shadow);
+}
+
+/* ---- Tabs and filter pills ------------------------------------------------------- */
+[data-slot="tabs-list"][data-variant="default"] {
+  background-color: color-mix(in oklch, var(--primary) 7%, var(--muted));
+  box-shadow:
+    inset 0 0 0 1px var(--field-border), inset 0 2px 4px rgb(0 0 0 / 0.08),
+    inset 0 -1px 0 rgb(255 255 255 / 0.6);
+}
+
+.dark [data-slot="tabs-list"][data-variant="default"] {
+  box-shadow:
+    inset 0 0 0 1px var(--field-border), inset 0 2px 4px rgb(0 0 0 / 0.3),
+    inset 0 -1px 0 rgb(255 255 255 / 0.06);
+}
+
+[data-slot="tabs-list"][data-variant="default"] [data-slot="tabs-trigger"][aria-selected="true"] {
+  background-color: var(--card);
+  background-image: var(--field-gloss);
+  box-shadow: var(--field-shadow);
+}
+
+[data-slot="toggle-group-item"] {
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    box-shadow 0.25s,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-slot="toggle-group-item"][data-state="off"] {
+  border-color: var(--field-border);
+  background-color: var(--field-base);
+  background-image: var(--field-gloss);
+  box-shadow: var(--field-shadow);
+}
+
+[data-slot="toggle-group-item"][data-state="off"]:hover {
+  border-color: var(--field-border-hover);
+  box-shadow: var(--field-shadow-hover);
+  transform: translateY(-1px);
+}
+
+[data-slot="toggle-group-item"][data-state="on"] {
+  color: var(--primary-foreground);
+  border-color: var(--gloss-primary-border);
+  background-color: var(--primary);
+  background-image: var(--gloss-primary-bg);
+  box-shadow: var(--gloss-primary-shadow);
+}
+
+/* ---- Tables ------------------------------------------------------------------- */
+[data-slot="table-header"] {
+  background-color: color-mix(in oklch, var(--primary) 7%, var(--card));
+}
+
+[data-slot="table-header"] > tr {
+  border-block-end: 2px solid color-mix(in oklch, var(--primary) 22%, var(--border));
+}
+
+/* Header cells carry the glass: highlight on top, darker lower edge. */
+[data-slot="table-head"] {
+  height: 2.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 72%, var(--primary));
+  background-image: var(--table-head-gloss);
+  box-shadow: var(--table-head-rim), inset 0 -1px 0 rgb(0 0 0 / 0.05);
+}
+
+[data-slot="table-body"] > [data-slot="table-row"] > [data-slot="table-cell"] {
+  padding-block: 0.75rem;
+  transition: box-shadow 0.25s;
+}
+
+[data-slot="table-body"] > [data-slot="table-row"] {
+  transition:
+    background-color 0.2s,
+    background-image 0.2s;
+}
+
+[data-slot="table-body"] > [data-slot="table-row"]:nth-child(even) {
+  background-color: color-mix(in srgb, var(--primary) 2.5%, transparent);
+}
+
+/* Hover: the row lights up like a glass strip, with a green marker on its edge. */
+[data-slot="table-body"] > [data-slot="table-row"]:hover {
+  background-color: color-mix(in srgb, var(--primary) 8%, transparent);
+  background-image: var(--table-row-gloss);
+}
+
+[data-slot="table-body"] > [data-slot="table-row"]:hover > [data-slot="table-cell"] {
+  box-shadow:
+    var(--table-row-rim), inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+[data-slot="table-body"] > [data-slot="table-row"]:hover > [data-slot="table-cell"]:first-child {
+  box-shadow:
+    inset 3px 0 0 var(--primary), var(--table-row-rim),
+    inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+[dir="rtl"] [data-slot="table-body"] > [data-slot="table-row"]:hover > [data-slot="table-cell"]:first-child {
+  box-shadow:
+    inset -3px 0 0 var(--primary), var(--table-row-rim),
+    inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+[data-slot="table-footer"] {
+  background-image: var(--table-head-gloss);
+  box-shadow: var(--table-head-rim);
+}
+
+/* ---- Row / card-action ghost buttons ("Voir", "Voir tout"): glossy like the fields ---- */
+[data-slot="table-cell"] [data-slot="button"][data-variant="ghost"],
+[data-slot="card-action"] [data-slot="button"][data-variant="ghost"] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--field-border);
+  background-color: var(--field-base);
+  background-image: var(--field-gloss);
+  box-shadow: var(--field-shadow);
+  color: var(--primary);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+[data-slot="table-cell"] [data-slot="button"][data-variant="ghost"]:hover:not(:disabled),
+[data-slot="card-action"] [data-slot="button"][data-variant="ghost"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--field-border-hover);
+  background-color: var(--field-base);
+  color: var(--primary);
+  box-shadow: var(--field-shadow-hover);
+}
+
+[data-slot="table-cell"] [data-slot="button"][data-variant="ghost"]:active:not(:disabled),
+[data-slot="card-action"] [data-slot="button"][data-variant="ghost"]:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+[data-slot="table-cell"] [data-slot="button"][data-variant="ghost"]::after,
+[data-slot="card-action"] [data-slot="button"][data-variant="ghost"]::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -20%;
+  bottom: -20%;
+  left: -70%;
+  width: 40%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--field-shine), transparent);
+  transform: skewX(-22deg);
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-slot="table-cell"] [data-slot="button"][data-variant="ghost"]:hover::after,
+[data-slot="card-action"] [data-slot="button"][data-variant="ghost"]:hover::after {
+  transform: translateX(480%) skewX(-22deg);
+}

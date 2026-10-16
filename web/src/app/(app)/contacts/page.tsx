@@ -14,9 +14,11 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/in
 import { Table, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
+import { FieldHelp } from '@/components/field-help';
 import { Label } from '@/components/ui/label';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const CONTACTS_QUERY = `
   query Contacts {
     contacts(order_by: { full_name: asc }, limit: 500) {
@@ -64,6 +66,7 @@ function initials(name: string): string {
 }
 
 export default function ContactsPage() {
+  const t = useT();
   const result = useGraphql<{ contacts: Contact[] }>(CONTACTS_QUERY);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<ContactRole | 'all'>('all');
@@ -92,13 +95,13 @@ export default function ContactsPage() {
     <Stagger className="space-y-6">
       <StaggerItem>
         <PageHeader
-          title="Contacts"
-          description="Les personnes et sociétés avec qui vous travaillez : propriétaires, locataires et acquéreurs."
+          title={t.contacts.list.title}
+          description={t.contacts.list.description}
           actions={
             <Button asChild>
               <Link href="/contacts/nouveau">
                 <Plus data-icon="inline-start" />
-                Ajouter un contact
+                {t.contacts.list.add}
               </Link>
             </Button>
           }
@@ -116,10 +119,10 @@ export default function ContactsPage() {
               }}
             >
               <TabsList className="h-auto flex-wrap">
-                <TabsTrigger value="all">Tous ({all.length})</TabsTrigger>
+                <TabsTrigger value="all">{t.contacts.list.tabAll(all.length)}</TabsTrigger>
                 {CONTACT_ROLES.map((role) => (
                   <TabsTrigger key={role.value} value={role.value}>
-                    {role.label}s ({countFor(role.value)})
+                    {t.contacts.list.tabRole(t.contacts.rolesPlural[role.value], countFor(role.value))}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -135,8 +138,9 @@ export default function ContactsPage() {
                   }}
                 />
                 <Label htmlFor="contacts-archived" className="text-sm font-normal text-muted-foreground">
-                  Afficher les archivés
+                  {t.contacts.list.showArchived}
                 </Label>
+                <FieldHelp>{t.contacts.list.archivedHelp}</FieldHelp>
               </div>
             <InputGroup className="md:w-72">
               <InputGroupAddon>
@@ -148,19 +152,19 @@ export default function ContactsPage() {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                placeholder="Nom, e-mail ou téléphone"
-                aria-label="Rechercher un contact"
+                placeholder={t.contacts.list.searchPlaceholder}
+                aria-label={t.contacts.list.searchLabel}
               />
             </InputGroup>
             </div>
           </div>
 
           {result.status === 'loading' && (
-            <SkeletonList count={5} className="space-y-2 p-4" itemClassName="h-12 rounded-lg bg-muted" label="Chargement des contacts…" />
+            <SkeletonList count={5} className="space-y-2 p-4" itemClassName="h-12 rounded-lg bg-muted" label={t.contacts.list.loading} />
           )}
           {result.status === 'error' && (
             <p role="alert" className="m-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              Impossible de charger les contacts : {result.message}
+              {t.contacts.list.loadError(result.message)}
             </p>
           )}
 
@@ -170,13 +174,13 @@ export default function ContactsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="pl-4">Contact</TableHead>
-                      <TableHead>Rôles</TableHead>
-                      <TableHead className="hidden lg:table-cell">E-mail</TableHead>
-                      <TableHead className="hidden sm:table-cell">Téléphone</TableHead>
-                      <TableHead className="hidden text-right md:table-cell">Unités</TableHead>
-                      <TableHead className="pr-4 text-right">
-                        <span className="sr-only">Actions</span>
+                      <TableHead className="ps-4">{t.contacts.list.colContact}</TableHead>
+                      <TableHead>{t.contacts.list.colRoles}</TableHead>
+                      <TableHead className="hidden lg:table-cell">{t.contacts.list.colEmail}</TableHead>
+                      <TableHead className="hidden sm:table-cell">{t.contacts.list.colPhone}</TableHead>
+                      <TableHead className="hidden text-end md:table-cell">{t.contacts.list.colUnits}</TableHead>
+                      <TableHead className="pe-4 text-end">
+                        <span className="sr-only">{t.common.actions}</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -191,7 +195,7 @@ export default function ContactsPage() {
                       const primary = CONTACT_ROLES.find((role) => contact.roles.some((item) => item.role === role.value));
                       return (
                         <MotionRow key={contact.id} variants={staggerItem} className="group">
-                          <TableCell className="pl-4">
+                          <TableCell className="ps-4">
                             <Link href={'/contacts/' + contact.id} className="flex items-center gap-3 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
                               <Avatar className="size-9">
                                 <AvatarFallback className={primary?.avatar + ' text-xs font-semibold'}>
@@ -201,9 +205,9 @@ export default function ContactsPage() {
                               <span className="min-w-0">
                                 <span className="block truncate font-medium group-hover:text-primary">{contact.full_name}</span>
                                 <span className="block text-xs text-muted-foreground">
-                                  {contact.kind === 'company' ? 'Société' : 'Personne'}
-                                  {contact.is_organization && ' · votre société'}
-                                  {contact.archived_at && ' · archivé'}
+                                  {t.contacts.kinds[contact.kind]}
+                                  {contact.is_organization && t.contacts.orgSuffix}
+                                  {contact.archived_at && t.contacts.archivedSuffix}
                                 </span>
                               </span>
                             </Link>
@@ -217,14 +221,14 @@ export default function ContactsPage() {
                           </TableCell>
                           <TableCell className="hidden text-muted-foreground lg:table-cell">{contact.email ?? '—'}</TableCell>
                           <TableCell className="hidden font-mono text-xs tabular-nums sm:table-cell">{contact.phone ?? '—'}</TableCell>
-                          <TableCell className="hidden text-right tabular-nums md:table-cell">
+                          <TableCell className="hidden text-end tabular-nums md:table-cell">
                             {contact.current_ownerships_aggregate.aggregate?.count || '—'}
                           </TableCell>
-                          <TableCell className="pr-4 text-right">
+                          <TableCell className="pe-4 text-end">
                             <Button asChild variant="ghost" size="sm">
-                              <Link href={'/contacts/' + contact.id} aria-label={'Ouvrir la fiche de ' + contact.full_name}>
-                                Voir
-                                <ChevronRight data-icon="inline-end" className="transition-transform group-hover:translate-x-0.5" />
+                              <Link href={'/contacts/' + contact.id} aria-label={t.contacts.list.openRecord(contact.full_name)}>
+                                {t.contacts.list.view}
+                                <ChevronRight data-icon="inline-end" className="transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
                               </Link>
                             </Button>
                           </TableCell>
@@ -238,15 +242,15 @@ export default function ContactsPage() {
                     <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <UserX className="size-5" />
                     </span>
-                    <p className="font-medium">Aucun contact trouvé</p>
-                    <p className="text-sm text-muted-foreground">Modifiez la recherche ou le filtre pour voir d’autres contacts.</p>
+                    <p className="font-medium">{t.contacts.list.emptyTitle}</p>
+                    <p className="text-sm text-muted-foreground">{t.contacts.list.emptyBody}</p>
                   </div>
                 )}
               </CardContent>
 
               <CardFooter className="justify-between border-t bg-muted/30 p-4 text-sm text-muted-foreground">
                 <p aria-live="polite">
-                  {filtered.length === 0 ? 'Aucun résultat' : from + '–' + to + ' sur ' + filtered.length + ' contacts'}
+                  {filtered.length === 0 ? t.contacts.list.noResults : t.contacts.list.range(from, to, filtered.length)}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -256,7 +260,7 @@ export default function ContactsPage() {
                     className={currentPage === 1 ? 'opacity-50' : ''}
                     onClick={() => currentPage > 1 && setPage(currentPage - 1)}
                   >
-                    Précédent
+                    {t.common.previous}
                   </Button>
                   <span className="tabular-nums">
                     {currentPage} / {pageCount}
@@ -268,7 +272,7 @@ export default function ContactsPage() {
                     className={currentPage === pageCount ? 'opacity-50' : ''}
                     onClick={() => currentPage < pageCount && setPage(currentPage + 1)}
                   >
-                    Suivant
+                    {t.common.next}
                   </Button>
                 </div>
               </CardFooter>

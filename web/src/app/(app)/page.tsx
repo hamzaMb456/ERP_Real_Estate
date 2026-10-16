@@ -14,6 +14,8 @@ import { todayTunis } from '@/lib/dates';
 import { formatTnd } from '@/lib/format';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { formatNumber } from '@/lib/format';
+import { useT } from '@/i18n/provider';
 const DASHBOARD_QUERY = `
   query Dashboard($today: date!) {
     units(where: { archived_at: { _is_null: true } }) {
@@ -42,15 +44,15 @@ type DashboardData = {
   registrations_due: { aggregate: { count: number } };
 };
 
-const STATUS_CONFIG = {
-  rented: { label: 'Loué', color: 'var(--chart-1)' },
-  vacant: { label: 'Disponible', color: 'var(--chart-3)' },
-  for_sale: { label: 'À vendre', color: 'var(--chart-2)' },
-  under_maintenance: { label: 'En travaux', color: 'var(--chart-4)' },
-  sold: { label: 'Vendu', color: 'var(--chart-5)' },
-} satisfies ChartConfig;
+const STATUS_COLORS = {
+  rented: 'var(--chart-1)',
+  vacant: 'var(--chart-3)',
+  for_sale: 'var(--chart-2)',
+  under_maintenance: 'var(--chart-4)',
+  sold: 'var(--chart-5)',
+};
 
-const formatPercent = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',') + ' %';
+const formatPercent = (n: number) => formatNumber(Math.round(n * 10) / 10, 1) + ' %';
 const formatInt = (n: number) => String(Math.round(n));
 
 function Kpi({
@@ -89,15 +91,16 @@ function Kpi({
 }
 
 export default function DashboardPage() {
+  const t = useT();
   const [today] = useState(todayTunis);
   const result = useGraphql<DashboardData>(DASHBOARD_QUERY, { today });
 
   if (result.status === 'error') {
     return (
       <div className="space-y-6">
-        <PageHeader title="Tableau de bord" />
+        <PageHeader title={t.nav.items.dashboard} />
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger les chiffres : {result.message}
+          {t.dashboard.loadError(result.message)}
         </p>
       </div>
     );
@@ -106,12 +109,12 @@ export default function DashboardPage() {
   if (result.status === 'loading') {
     return (
       <div className="space-y-6">
-        <PageHeader title="Tableau de bord" description="Vue d’ensemble de la société" />
+        <PageHeader title={t.nav.items.dashboard} description={t.dashboard.overview} />
         <SkeletonList
           count={4}
           className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
           itemClassName="h-32 rounded-xl bg-muted"
-          label="Chargement du tableau de bord…"
+          label={t.dashboard.loading}
         />
       </div>
     );
@@ -124,8 +127,14 @@ export default function DashboardPage() {
   const vacant = count('vacant');
   const occupancy = total === 0 ? 0 : (rented / total) * 100;
 
-  const chartData = (Object.keys(STATUS_CONFIG) as (keyof typeof STATUS_CONFIG)[])
-    .map((status) => ({ status, label: STATUS_CONFIG[status].label, value: count(status), fill: STATUS_CONFIG[status].color }))
+  const statusConfig: ChartConfig = Object.fromEntries(
+    (Object.keys(STATUS_COLORS) as (keyof typeof STATUS_COLORS)[]).map((status) => [
+      status,
+      { label: t.labels.unitStatuses[status], color: STATUS_COLORS[status] },
+    ]),
+  );
+  const chartData = (Object.keys(STATUS_COLORS) as (keyof typeof STATUS_COLORS)[])
+    .map((status) => ({ status, label: t.labels.unitStatuses[status], value: count(status), fill: STATUS_COLORS[status] }))
     .filter((entry) => entry.value > 0);
 
   const byBranch = new Map<string, { name: string; total: number; rented: number }>();
@@ -144,13 +153,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tableau de bord"
-        description="Vue d’ensemble de la société : occupation du parc, répartition des unités et biens."
+        title={t.nav.items.dashboard}
+        description={t.dashboard.description}
         actions={
           <Button asChild>
             <Link href="/contacts/nouveau">
               <Plus data-icon="inline-start" />
-              Ajouter un contact
+              {t.shell.command.addContact}
             </Link>
           </Button>
         }
@@ -163,9 +172,9 @@ export default function DashboardPage() {
         >
           <span className="flex items-center gap-2 font-medium">
             <ClipboardList className="size-4 text-warning" aria-hidden />
-            Fiches incomplètes : {record_gaps_aggregate.aggregate.count}
+            {t.dashboard.gaps(record_gaps_aggregate.aggregate.count)}
           </span>
-          <span className="text-muted-foreground">Compléter →</span>
+          <span className="text-muted-foreground">{t.dashboard.complete} {t.common.arrow}</span>
         </Link>
       )}
 
@@ -178,9 +187,9 @@ export default function DashboardPage() {
             >
               <span className="flex items-center gap-2 font-medium">
                 <FileClock className="size-4 text-warning" aria-hidden />
-                Baux à renouveler : {leases_to_renew.aggregate.count}
+                {t.dashboard.leasesToRenew(leases_to_renew.aggregate.count)}
               </span>
-              <span className="text-muted-foreground">Voir →</span>
+              <span className="text-muted-foreground">{t.dashboard.view} {t.common.arrow}</span>
             </Link>
           )}
           {registrations_due.aggregate.count > 0 && (
@@ -190,30 +199,30 @@ export default function DashboardPage() {
             >
               <span className="flex items-center gap-2 font-medium">
                 <FileBadge className="size-4 text-warning" aria-hidden />
-                Enregistrements à faire : {registrations_due.aggregate.count}
+                {t.dashboard.registrationsDue(registrations_due.aggregate.count)}
               </span>
-              <span className="text-muted-foreground">Voir →</span>
+              <span className="text-muted-foreground">{t.dashboard.view} {t.common.arrow}</span>
             </Link>
           )}
         </div>
       )}
 
       <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi label="Taux d’occupation" icon={KeyRound} value={occupancy} format={formatPercent} hint={rented + ' unités louées sur ' + total} />
+        <Kpi label={t.dashboard.kpiOccupancy} icon={KeyRound} value={occupancy} format={formatPercent} hint={t.dashboard.kpiOccupancyHint(rented, total)} />
         <Kpi
-          label="Unités vacantes"
+          label={t.dashboard.kpiVacant}
           icon={DoorOpen}
           value={vacant}
           format={formatInt}
-          hint={count('under_maintenance') + ' en travaux, ' + count('for_sale') + ' à vendre'}
+          hint={t.dashboard.kpiVacantHint(count('under_maintenance'), count('for_sale'))}
         />
-        <Kpi label="Biens" icon={Building2} value={properties.length} format={formatInt} hint={'dans ' + byBranch.size + (byBranch.size > 1 ? ' succursales' : ' succursale')} />
+        <Kpi label={t.dashboard.kpiProperties} icon={Building2} value={properties.length} format={formatInt} hint={t.dashboard.kpiBranches(byBranch.size)} />
         <Kpi
-          label="Contacts"
+          label={t.dashboard.kpiContacts}
           icon={Users}
           value={contacts_aggregate.aggregate.count}
           format={formatInt}
-          hint="propriétaires, locataires, acquéreurs"
+          hint={t.dashboard.kpiContactsHint}
         />
       </Stagger>
 
@@ -221,15 +230,15 @@ export default function DashboardPage() {
         <Reveal className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader>
-              <CardTitle>Répartition des unités</CardTitle>
-              <CardDescription>Par statut, toutes succursales</CardDescription>
+              <CardTitle>{t.dashboard.distributionTitle}</CardTitle>
+              <CardDescription>{t.dashboard.distributionDescription}</CardDescription>
             </CardHeader>
             <CardContent>
               {chartData.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">Aucune unité enregistrée.</p>
+                <p className="py-10 text-center text-sm text-muted-foreground">{t.dashboard.distributionEmpty}</p>
               ) : (
                 <div className="flex flex-col items-center gap-4 sm:flex-row lg:flex-col xl:flex-row">
-                  <ChartContainer config={STATUS_CONFIG} className="aspect-square h-44 shrink-0" aria-hidden>
+                  <ChartContainer config={statusConfig} className="aspect-square h-44 shrink-0" aria-hidden>
                     <PieChart>
                       <ChartTooltip content={<ChartTooltipContent nameKey="status" hideLabel />} />
                       <Pie
@@ -267,8 +276,8 @@ export default function DashboardPage() {
         <Reveal className="lg:col-span-3" delay={0.08}>
           <Card className="h-full">
             <CardHeader>
-              <CardTitle>Occupation par succursale</CardTitle>
-              <CardDescription>Part des unités louées</CardDescription>
+              <CardTitle>{t.dashboard.branchesTitle}</CardTitle>
+              <CardDescription>{t.dashboard.branchesDescription}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               {branches.map((branch) => {
@@ -288,7 +297,7 @@ export default function DashboardPage() {
                 );
               })}
               {branches.length === 0 && (
-                <p className="py-10 text-center text-sm text-muted-foreground">Aucune unité rattachée à une succursale.</p>
+                <p className="py-10 text-center text-sm text-muted-foreground">{t.dashboard.branchesEmpty}</p>
               )}
             </CardContent>
           </Card>
@@ -299,12 +308,12 @@ export default function DashboardPage() {
         <Reveal className="lg:col-span-3">
           <Card className="h-full">
             <CardHeader>
-              <CardTitle>Biens</CardTitle>
-              <CardDescription>Aperçu du parc immobilier</CardDescription>
+              <CardTitle>{t.dashboard.propertiesTitle}</CardTitle>
+              <CardDescription>{t.dashboard.propertiesDescription}</CardDescription>
               <CardAction>
                 <Button asChild variant="ghost" size="sm">
                   <Link href="/biens">
-                    Voir tout <ArrowUpRight data-icon="inline-end" />
+                    {t.dashboard.seeAll} <ArrowUpRight data-icon="inline-end" className="rtl:-scale-x-100" />
                   </Link>
                 </Button>
               </CardAction>
@@ -319,17 +328,17 @@ export default function DashboardPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{property.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {property.city ?? '—'} · {property.units.length} unités
+                        {property.city ?? '—'} · {t.dashboard.unitCount(property.units.length)}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="hidden text-sm tabular-nums text-muted-foreground sm:inline">{formatTnd(rent)}</span>
-                      <StatusBadge status="rented" label={rate === null ? '—' : rate + ' % loué'} />
+                      <StatusBadge status="rented" label={rate === null ? '—' : t.properties.list.rentedPercent(rate)} />
                     </div>
                   </div>
                 );
               })}
-              {properties.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">Aucun bien enregistré.</p>}
+              {properties.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{t.dashboard.propertiesEmpty}</p>}
             </CardContent>
           </Card>
         </Reveal>
@@ -339,17 +348,17 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Landmark className="size-4 text-muted-foreground" />
-                Finance : bientôt
+                {t.dashboard.financeTitle}
               </CardTitle>
               <CardDescription>
-                Loyers facturés, encaissés et impayés, chèques en attente et relances arriveront avec le module Finance.
+                {t.dashboard.financeDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-1.5 text-sm text-muted-foreground">
-                <li>• Factures de loyer et paiements</li>
-                <li>• Suivi des impayés et échéanciers</li>
-                <li>• Revenus et honoraires de la société</li>
+                <li>• {t.dashboard.financeBullets}</li>
+                <li>• {t.dashboard.financeBullets2}</li>
+                <li>• {t.dashboard.financeBullets3}</li>
               </ul>
             </CardContent>
           </Card>

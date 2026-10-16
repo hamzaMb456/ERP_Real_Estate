@@ -1,0 +1,33 @@
+import type { errors as fr } from '../fr/errors';
+
+export const errors: typeof fr = {
+  unknown: 'Unknown error.',
+  network: 'Could not connect. Check your network and try again.',
+  permission: 'You do not have permission for this action.',
+  sharesExceeded: (date) => `Total shares exceed 100% from ${date}.`,
+  ownershipOverlap: 'This owner already holds this unit over this period.',
+  endBeforeStart: 'The end date must come after the start date.',
+  invalidStorageFile: 'This file cannot be attached. Upload it again.',
+  unitCodeTaken: (code) => `Reference ${code} already exists in this property.`,
+  unitCodeTakenGeneric: 'This reference already exists in this property.',
+  leaseOverlap: (lease) => `This unit is already rented over this period (lease No. ${lease}).`,
+  lease: {
+    lease_needs_renter: 'Add at least one renter before activating the lease.',
+    lease_needs_unit: 'Add at least one unit before activating the lease.',
+    lease_needs_rent: 'Enter the rent of each unit before activating the lease.',
+    lease_not_draft: 'This lease can no longer be changed.',
+    lease_not_active: 'This lease can no longer be changed.',
+    lease_not_found: 'This lease cannot be found.',
+    lease_forbidden: 'You do not have permission for this action.',
+    lease_renewal_not_after: 'The new end date must be after the lease’s current end.',
+    lease_end_before_start: 'The end date must come after the start date.',
+    leases_dates_check: 'The end date must come after the start date.',
+    lease_end_in_future: 'The lease end date cannot be in the future.',
+    lease_rent_before_start: 'The rent cannot start before the lease starts.',
+    lease_draft_only: 'A lease’s units can only be changed while it is a draft.',
+    lease_unit_not_found: 'This unit is not part of the lease.',
+    lease_signed_in_future: 'The signing date cannot be in the future.',
+    leases_registration_check: 'The registration date cannot be before the signing date.',
+    lease_rents_lease_id_unit_id_effective_from_key: 'A rent already exists on this date for this unit.',
+  },
+};
