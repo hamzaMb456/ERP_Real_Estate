@@ -107,3 +107,82 @@ $$;
 
 create trigger appointments_check_staff before insert or update of assigned_user_id, organization_id on public.appointments
   for each row execute function public.check_appointment_staff();
+
+-- Staff of each organization (org_admin, manager): the "staff in charge" list and the notification
+-- recipients. Organization from auth.users.metadata, roles from auth.user_roles.
+create view public.staff_members as
+select distinct on (u.id)
+  u.id                                       as user_id,
+  (u.metadata ->> 'organization_id')::uuid   as organization_id,
+  coalesce(nullif(u.display_name, ''), u.email) as display_name,
+  u.email                                    as email,
+  r.role                                     as role
+from auth.users u
+join auth.user_roles r on r.user_id = u.id
+where u.disabled = false
+  and r.role in ('org_admin', 'manager')
+  and (u.metadata ->> 'organization_id') ~ '^[0-9a-fA-F-]{36}$'
+order by u.id, case r.role when 'org_admin' then 0 else 1 end;
+
+-- One feed for the calendar: appointments, plus all-day events derived from active leases
+-- (one per leased unit). All-day events start at midnight Tunis time and end the next midnight
+-- (end-exclusive). Cancelled appointments stay in the feed; the web hides them by default.
+-- Lease titles are 'Bail <number>'; the web adds the French label of the kind.
+create view public.calendar_feed as
+select
+  'a:' || a.id::text                      as event_id,
+  a.organization_id,
+  'appointment'::text                     as source,
+  a.kind,
+  a.title,
+  a.starts_at,
+  a.ends_at,
+  false                                   as all_day,
+  a.status,
+  a.id                                    as appointment_id,
+  a.lease_id,
+  a.unit_id,
+  p.branch_id,
+  a.assigned_user_id,
+  coalesce((select array_agg(ap.contact_id order by ap.contact_id)
+            from public.appointment_participants ap where ap.appointment_id = a.id), '{}'::uuid[]) as contact_ids,
+  a.location,
+  a.notify_by_email
+from public.appointments a
+left join public.units u on u.id = a.unit_id
+left join public.properties p on p.id = u.property_id
+union all
+select
+  'l:' || l.id::text || ':' || lu.unit_id::text || ':' || ev.kind as event_id,
+  l.organization_id,
+  'lease'::text                           as source,
+  ev.kind,
+  'Bail ' || l.number::text               as title,
+  (ev.day::timestamp at time zone 'Africa/Tunis')       as starts_at,
+  ((ev.day + 1)::timestamp at time zone 'Africa/Tunis') as ends_at,
+  true                                    as all_day,
+  l.status,
+  null::uuid                              as appointment_id,
+  l.id                                    as lease_id,
+  lu.unit_id,
+  p.branch_id,
+  null::uuid                              as assigned_user_id,
+  coalesce((select array_agg(lp.contact_id order by lp.contact_id)
+            from public.lease_parties lp where lp.lease_id = l.id), '{}'::uuid[]) as contact_ids,
+  null::text                              as location,
+  false                                   as notify_by_email
+from public.leases l
+join public.lease_units lu on lu.lease_id = l.id
+join public.units u on u.id = lu.unit_id
+join public.properties p on p.id = u.property_id
+cross join lateral (
+  values
+    ('lease_start'::text, l.start_date),
+    ('lease_end'::text, l.end_date),
+    ('registration_deadline'::text,
+     case when l.registered_at is null and l.signed_at is not null
+          then l.signed_at + public.lease_rule('registration_days') end)
+) as ev (kind, day)
+where l.status = 'active'
+  and l.archived_at is null
+  and ev.day is not null;
