@@ -409,14 +409,24 @@ if (!tracked.ok || trackErrors.length > 0) {
   process.exit(1);
 }
 
-// Step 1: drop previous versions (errors for "does not exist" are expected on the first run).
-await metadata({ type: 'bulk_keep_going', args: drops });
+// Each metadata change makes Hasura rebuild its schema, so one request with ~180 operations outlives the
+// gateway timeout on a small instance. Send small batches instead; every batch is safe to repeat.
+const BATCH = 20;
+const batches = (args) => Array.from({ length: Math.ceil(args.length / BATCH) }, (_, i) => args.slice(i * BATCH, (i + 1) * BATCH));
 
-// Step 2: create everything atomically; any error rolls the whole step back.
-const result = await metadata({ type: 'bulk', args: creates });
-if (!result.ok) {
-  console.error('Failed:', result.status, JSON.stringify(result.json, null, 2));
-  process.exit(1);
+// Step 1: drop previous versions (errors for "does not exist" are expected on the first run).
+for (const args of batches(drops)) await metadata({ type: 'bulk_keep_going', args });
+
+// Step 2: create everything, batch by batch; the first error stops the run (rerun after fixing it).
+let sent = 0;
+for (const args of batches(creates)) {
+  const result = await metadata({ type: 'bulk', args });
+  if (!result.ok) {
+    console.error(`Failed after ${sent} of ${creates.length} operations:`, result.status, JSON.stringify(result.json, null, 2));
+    process.exit(1);
+  }
+  sent += args.length;
+  console.log(`  ${sent}/${creates.length}`);
 }
 const relationshipCount = RELATIONSHIPS.length + 2;
 console.log(`Applied ${relationshipCount} relationships and ${creates.length - relationshipCount} permissions and function entries.`);
