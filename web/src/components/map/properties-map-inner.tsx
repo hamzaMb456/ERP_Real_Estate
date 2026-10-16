@@ -9,6 +9,7 @@ import { TILE_ATTRIBUTION, TILE_URL, TUNISIA_CENTER, TUNISIA_ZOOM } from '@/lib/
 import { OCCUPANCY, type OccupancyLevel } from '@/lib/occupancy';
 import { cn } from '@/lib/utils';
 
+import { useI18n } from '@/i18n/provider';
 export type MapPoint = {
   id: string;
   name: string;
@@ -21,12 +22,13 @@ export type MapPoint = {
 };
 
 export function PropertiesMapInner({ points, className }: { points: MapPoint[]; className?: string }) {
+  const { t, dir } = useI18n();
   const bounds = points.length > 0 ? L.latLngBounds(points.map((point) => [point.lat, point.lon] as [number, number])) : undefined;
   // A new key re-creates the map so it fits the filtered biens.
   const key = points.map((point) => point.id).join('|') || 'empty';
 
   return (
-    <div className={cn('isolate overflow-hidden rounded-xl border', className ?? 'h-[60vh]')}>
+    <div dir="ltr" className={cn('isolate overflow-hidden rounded-xl border', className ?? 'h-[60vh]')}>
       <MapContainer
         key={key}
         bounds={bounds}
@@ -39,14 +41,14 @@ export function PropertiesMapInner({ points, className }: { points: MapPoint[]; 
         {points.map((point) => (
           <Marker key={point.id} position={[point.lat, point.lon]} icon={pinIcon(OCCUPANCY[point.level].color)}>
             <Popup>
-              <div className="space-y-1 text-sm">
+              <div dir={dir} className="space-y-1 text-sm">
                 <p className="font-semibold">{point.name}</p>
                 {point.city && <p className="text-muted-foreground">{point.city}</p>}
                 <p>
-                  {point.rented} / {point.units} unités louées
+                  {t.properties.map.rentedOf(point.rented, point.units)}
                 </p>
                 <Link href={'/biens/' + point.id} className="font-medium text-primary underline">
-                  Ouvrir la fiche
+                  {t.properties.map.openRecord}
                 </Link>
               </div>
             </Popup>

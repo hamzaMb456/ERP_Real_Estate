@@ -1,16 +1,21 @@
-const tnd = new Intl.NumberFormat('fr-TN', {
-  minimumFractionDigits: 3,
-  maximumFractionDigits: 3,
-});
+import { getIntlLocale, getMessages } from '@/i18n/store';
 
-const area = new Intl.NumberFormat('fr-TN', { maximumFractionDigits: 2 });
+// Amounts keep three decimals (millimes) in every language; only separators and the currency name change.
+const fraction = { minimumFractionDigits: 3, maximumFractionDigits: 3 };
 
 export function formatTnd(amount: number | string | null | undefined): string {
   if (amount === null || amount === undefined) return '—';
-  return `${tnd.format(Number(amount))} TND`;
+  const { currency } = getMessages().common;
+  return `${new Intl.NumberFormat(getIntlLocale(), fraction).format(Number(amount))} ${currency}`;
 }
 
 export function formatArea(squareMeters: number | string | null | undefined): string {
   if (squareMeters === null || squareMeters === undefined) return '—';
-  return `${area.format(Number(squareMeters))} m²`;
+  const { squareMeters: unit } = getMessages().common;
+  return `${new Intl.NumberFormat(getIntlLocale(), { maximumFractionDigits: 2 }).format(Number(squareMeters))} ${unit}`;
+}
+
+/** Plain number in the current language (counts, floors, rooms). */
+export function formatNumber(value: number | string, maximumFractionDigits = 2): string {
+  return new Intl.NumberFormat(getIntlLocale(), { maximumFractionDigits }).format(Number(value));
 }

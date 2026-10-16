@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { geocodeAddress, roundPosition, type GeocodeResult, type LatLon } from '@/lib/geocode';
 
+import { useT } from '@/i18n/provider';
+import { formatNumber } from '@/lib/format';
 type Props = {
   query: string;
   latitude: number | null;
@@ -15,6 +17,7 @@ type Props = {
 };
 
 export function LocationField({ query, latitude, longitude, onChange }: Props) {
+  const t = useT();
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<GeocodeResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -46,9 +49,9 @@ export function LocationField({ query, latitude, longitude, onChange }: Props) {
             <Search />
           </InputGroupAddon>
           <InputGroupInput
-            aria-label="Rechercher l’adresse sur la carte"
+            aria-label={t.properties.locationField.searchLabel}
             value={search}
-            placeholder={query || 'Ex. Avenue Habib Bourguiba, Carthage'}
+            placeholder={query || t.properties.locationField.searchPlaceholder}
             onChange={(event) => setSearch(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
@@ -60,20 +63,20 @@ export function LocationField({ query, latitude, longitude, onChange }: Props) {
         </InputGroup>
         <Button type="button" variant="outline" onClick={() => void run()} disabled={searching}>
           {searching && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Rechercher
+          {t.properties.locationField.search}
         </Button>
       </div>
 
       {results !== null &&
         (results.length === 0 ? (
           <p role="status" className="text-sm text-muted-foreground">
-            Adresse introuvable, placez le repère sur la carte.
+            {t.properties.locationField.notFound}
           </p>
         ) : (
           <ul className="divide-y rounded-lg border text-sm">
             {results.map((result) => (
               <li key={result.lat + ',' + result.lon}>
-                <button type="button" className="w-full px-3 py-2 text-left hover:bg-muted" onClick={() => place(result)}>
+                <button type="button" className="w-full px-3 py-2 text-start hover:bg-muted" onClick={() => place(result)}>
                   {result.label}
                 </button>
               </li>
@@ -86,13 +89,13 @@ export function LocationField({ query, latitude, longitude, onChange }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>
           {value
-            ? `Position : ${String(value.lat).replace('.', ',')} · ${String(value.lon).replace('.', ',')}`
-            : 'Cliquez sur la carte pour placer le repère, puis faites-le glisser pour ajuster.'}
+            ? t.properties.locationField.position(formatNumber(value.lat, 6), formatNumber(value.lon, 6))
+            : t.properties.locationField.hint}
         </span>
         {value && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
             <MapPinOff data-icon="inline-start" />
-            Retirer la position
+            {t.properties.locationField.clear}
           </Button>
         )}
       </div>

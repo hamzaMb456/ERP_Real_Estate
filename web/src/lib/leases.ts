@@ -1,38 +1,20 @@
+import { getMessages } from '@/i18n/store';
 import { daysBetween, todayTunis } from '@/lib/dates';
 import type { EndReason, LeaseDraftInput, LeaseOverviewRow, LeaseStatus, RegistrationState } from '@/lib/lease-types';
-import { formatDateFr } from '@/lib/ownership';
-
-export const LEASE_STATUS_LABELS: Record<LeaseStatus, string> = {
-  draft: 'Brouillon',
-  active: 'Actif',
-  ended: 'Terminé',
-  expired: 'Expiré',
-};
-
-export const END_REASON_LABELS: Record<EndReason, string> = {
-  term_reached: 'Fin du bail à son terme',
-  terminated_by_renter: 'Résiliation par le locataire',
-  terminated_by_owner: 'Résiliation par le bailleur',
-  expired_auto: 'Expiré automatiquement',
-  other: 'Autre motif',
-};
+import { formatDate } from '@/lib/ownership';
 
 /** Reasons staff can pick when ending a lease (expired_auto is set by the daily job only). */
 export const ENDABLE_REASONS: EndReason[] = ['term_reached', 'terminated_by_renter', 'terminated_by_owner', 'other'];
 
-export const LEASE_DOCUMENT_CATEGORIES = {
-  signed_lease: 'Bail signé',
-  id_document: 'Pièces d’identité',
-  registration_receipt: 'Reçu d’enregistrement',
-  other: 'Autres',
-} as const;
+/** Codes stored in the database; their labels live in the dictionary (leases.documentCategories). */
+export const LEASE_DOCUMENT_CATEGORY_KEYS = ['signed_lease', 'id_document', 'registration_receipt', 'other'] as const;
 
-export type LeaseDocumentCategory = keyof typeof LEASE_DOCUMENT_CATEGORIES;
+export type LeaseDocumentCategory = (typeof LEASE_DOCUMENT_CATEGORY_KEYS)[number];
 
-export const formatLeaseNumber = (number: number): string => `Bail N° ${number}`;
+export const formatLeaseNumber = (number: number): string => getMessages().leases.number(number);
 
 export const leasePeriod = (row: Pick<LeaseOverviewRow, 'start_date' | 'end_date'>): string =>
-  `${formatDateFr(row.start_date)} → ${formatDateFr(row.end_date)}`;
+  `${formatDate(row.start_date)} ${getMessages().common.arrow} ${formatDate(row.end_date)}`;
 
 /**
  * Money typed by a person: « 980,5 », « 1 250,500 », « 1.250,500 », « 1,250.500 ».
@@ -54,26 +36,27 @@ export function parseMoney(input: string): number | null {
 }
 
 export function validateLeaseDraft(input: LeaseDraftInput): string | null {
-  if (!input.startDate) return 'Indiquez la date de début.';
-  if (!input.endDate) return 'Indiquez la date de fin.';
-  if (input.endDate <= input.startDate) return 'La date de fin doit suivre la date de début.';
+  const t = getMessages().leases.validation;
+  if (!input.startDate) return t.startRequired;
+  if (!input.endDate) return t.endRequired;
+  if (input.endDate <= input.startDate) return t.endAfterStart;
   const day = Number(input.paymentDay);
-  if (!Number.isInteger(day) || day < 1 || day > 28) return 'Le jour de paiement doit être compris entre 1 et 28.';
+  if (!Number.isInteger(day) || day < 1 || day > 28) return t.paymentDay;
   if (input.depositAmount.trim() !== '' && parseMoney(input.depositAmount) === null) {
-    return 'Le dépôt de garantie n’est pas un montant valide.';
+    return t.depositInvalid;
   }
-  if (input.units.length === 0) return 'Choisissez au moins une unité.';
+  if (input.units.length === 0) return t.unitRequired;
   for (const unit of input.units) {
-    if (parseMoney(unit.rent) === null) return 'Indiquez le loyer de chaque unité.';
+    if (parseMoney(unit.rent) === null) return t.rentRequired;
     if (unit.charges.trim() !== '' && parseMoney(unit.charges) === null) {
-      return 'Les charges d’une unité ne sont pas un montant valide.';
+      return t.chargesInvalid;
     }
   }
-  if (input.renters.length === 0) return 'Ajoutez au moins un locataire.';
+  if (input.renters.length === 0) return t.renterRequired;
   const contacts = [...input.renters, ...input.guarantors];
-  if (contacts.some((contact) => !contact)) return 'Choisissez un contact pour chaque ligne.';
+  if (contacts.some((contact) => !contact)) return t.contactEach;
   if (new Set(contacts).size !== contacts.length) {
-    return 'Un même contact ne peut apparaître qu’une fois sur le bail (locataire ou garant).';
+    return t.duplicateParty;
   }
   return null;
 }
@@ -112,7 +95,7 @@ export function planRenewalRents(rows: RentRowInput[], current: CurrentRent[]): 
   for (const row of rows) {
     const rent = parseMoney(row.rent);
     const charges = row.charges.trim() === '' ? 0 : parseMoney(row.charges);
-    if (rent === null || charges === null) return { error: 'Les loyers et charges doivent être des montants valides.' };
+    if (rent === null || charges === null) return { error: getMessages().leases.validation.renewalAmounts };
     const now = current.find((item) => item.unit_id === row.unitId);
     if (!now || Number(now.rent_amount) !== rent || Number(now.charges_amount) !== charges) {
       changed.push({ unit_id: row.unitId, rent_amount: rent, charges_amount: charges });
@@ -140,33 +123,27 @@ export function describeRegistration(
   },
   today: string,
 ): RegistrationInfo {
-  const deadline = row.registration_deadline ? formatDateFr(row.registration_deadline) : '';
+  const t = getMessages().leases.registration;
+  const deadline = row.registration_deadline ? formatDate(row.registration_deadline) : '';
   if (row.registration_state === 'registered' && row.registered_at) {
-    const receipt = row.registration_receipt ? ` · Reçu ${row.registration_receipt}` : '';
-    return { tone: 'success', text: `Enregistré le ${formatDateFr(row.registered_at)}${receipt}` };
+    const receipt = row.registration_receipt ? t.receiptSuffix(row.registration_receipt) : '';
+    return { tone: 'success', text: t.registeredOn(formatDate(row.registered_at)) + receipt };
   }
-  if (row.status === 'draft') return { tone: 'neutral', text: 'Disponible après l’activation du bail.' };
-  if (row.registration_state === 'overdue') return { tone: 'danger', text: `En retard : à enregistrer avant le ${deadline}.` };
+  if (row.status === 'draft') return { tone: 'neutral', text: t.draft };
+  if (row.registration_state === 'overdue') return { tone: 'danger', text: t.overdue(deadline) };
   if (row.registration_state === 'due_soon' && row.registration_deadline) {
     const days = daysBetween(today, row.registration_deadline);
-    const left = days <= 0 ? 'dernier jour' : days === 1 ? 'plus que 1 jour' : `plus que ${days} jours`;
-    return { tone: 'warning', text: `À enregistrer avant le ${deadline} : ${left}.` };
+    const left = days <= 0 ? t.lastDay : days === 1 ? t.oneDay : t.daysLeft(days);
+    return { tone: 'warning', text: t.dueSoon(deadline, left) };
   }
-  if (row.registration_state === 'pending') return { tone: 'neutral', text: `À enregistrer avant le ${deadline}.` };
-  return { tone: 'neutral', text: 'Bail non enregistré.' };
+  if (row.registration_state === 'pending') return { tone: 'neutral', text: t.pending(deadline) };
+  return { tone: 'neutral', text: t.notRegistered };
 }
 
 export type LeaseTab = 'all' | 'active' | 'draft' | 'renew' | 'ended';
 
-export const LEASE_TABS: { value: LeaseTab; label: string }[] = [
-  { value: 'all', label: 'Tous' },
-  { value: 'active', label: 'Actifs' },
-  { value: 'draft', label: 'Brouillons' },
-  { value: 'renew', label: 'À renouveler' },
-  { value: 'ended', label: 'Terminés' },
-];
-
-export const LEASE_TAB_VALUES = LEASE_TABS.map((item) => item.value);
+/** The tab codes, in display order; their labels live in the dictionary (leases.tabs). */
+export const LEASE_TAB_VALUES: LeaseTab[] = ['all', 'active', 'draft', 'renew', 'ended'];
 
 /** Active, ended more than the grace week ago, and not yet expired: nothing in the database flags it, so we do. */
 export function isPastGrace(row: { status?: LeaseStatus; end_date: string; in_grace: boolean }, today: string): boolean {
@@ -208,23 +185,24 @@ type FlagRow = Pick<
 
 /** The badges next to a lease's status: ending soon, grace week, registration. All thresholds come from the database flags. */
 export function leaseFlags(row: FlagRow, today: string): LeaseFlag[] {
+  const t = getMessages().leases.flags;
   const flags: LeaseFlag[] = [];
   if (row.in_grace) {
-    flags.push({ key: 'grace', label: `Échu · à renouveler (${row.grace_days_left ?? 0} j)`, tone: 'warning' });
+    flags.push({ key: 'grace', label: t.grace(row.grace_days_left ?? 0), tone: 'warning' });
   } else if (isPastGrace(row, today)) {
-    flags.push({ key: 'overdue', label: 'Échu · à terminer', tone: 'danger' });
+    flags.push({ key: 'overdue', label: t.overdue, tone: 'danger' });
   } else if (row.is_ending_soon) {
     const days = daysBetween(today, row.end_date);
-    const label = days <= 0 ? 'Fin aujourd’hui' : days === 1 ? 'Fin demain' : `Fin dans ${days} jours`;
+    const label = days <= 0 ? t.endsToday : days === 1 ? t.endsTomorrow : t.endsIn(days);
     flags.push({ key: 'ending', label, tone: 'info' });
   }
   if (row.registration_state === 'due_soon' && row.registration_deadline) {
-    flags.push({ key: 'registration', label: `Enregistrement avant le ${formatDateFr(row.registration_deadline)}`, tone: 'warning' });
+    flags.push({ key: 'registration', label: t.registration(formatDate(row.registration_deadline)), tone: 'warning' });
   }
   if (row.registration_state === 'overdue' && row.registration_deadline) {
     flags.push({
       key: 'registration',
-      label: `Enregistrement en retard (échéance ${formatDateFr(row.registration_deadline)})`,
+      label: t.registrationLate(formatDate(row.registration_deadline)),
       tone: 'danger',
     });
   }

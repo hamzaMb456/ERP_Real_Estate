@@ -4,14 +4,16 @@ import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import type { LeaseDetails } from '@/components/leases/lease-details';
 import { LeaseActionDialog } from '@/components/leases/lease-action-dialog';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { FieldLabelWithHelp } from '@/components/field-help';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addDays, todayTunis } from '@/lib/dates';
 import { graphql } from '@/lib/graphql';
 import { parseMoney } from '@/lib/leases';
-import { formatDateFr } from '@/lib/ownership';
+import { formatDate } from '@/lib/ownership';
 
+import { useT } from '@/i18n/provider';
 const CHANGE_RENT = `
   mutation ChangeRent($id: uuid!, $unit: uuid!, $on: date!, $rent: numeric!, $charges: numeric!, $reason: String) {
     change_rent(args: { p_lease_id: $id, p_unit_id: $unit, p_effective_from: $on, p_rent: $rent, p_charges: $charges, p_reason: $reason }) { id }
@@ -21,6 +23,7 @@ const CHANGE_RENT = `
 type Props = { lease: Pick<LeaseDetails, 'id' | 'units' | 'current_rents'>; trigger: ReactNode; onDone: () => void };
 
 export function ChangeRentDialog({ lease, trigger, onDone }: Props) {
+  const t = useT();
   const firstUnit = lease.units[0]?.unit.id ?? '';
   const [unitId, setUnitId] = useState(firstUnit);
   const [effectiveOn, setEffectiveOn] = useState(addDays(todayTunis(), 1));
@@ -39,22 +42,24 @@ export function ChangeRentDialog({ lease, trigger, onDone }: Props) {
   return (
     <LeaseActionDialog
       trigger={trigger}
-      title="Changer le loyer"
-      description="Le nouveau loyer s’applique à partir de la date choisie ; l’historique est conservé."
-      submitLabel="Enregistrer"
+      title={t.leases.changeRent.title}
+      description={t.leases.changeRent.description}
+      submitLabel={t.common.save}
       disabled={!unitId || !effectiveOn}
       onSubmit={async () => {
         const newRent = parseMoney(rent);
         const newCharges = charges.trim() === '' ? 0 : parseMoney(charges);
-        if (newRent === null || newCharges === null) throw new Error('Le loyer et les charges doivent être des montants valides.');
+        if (newRent === null || newCharges === null) throw new Error(t.leases.changeRent.invalid);
         await graphql(CHANGE_RENT, { id: lease.id, unit: unitId, on: effectiveOn, rent: newRent, charges: newCharges, reason: reason.trim() || null });
-        toast.success('Loyer enregistré', { description: 'À partir du ' + formatDateFr(effectiveOn) });
+        toast.success(t.leases.changeRent.done, { description: t.common.from(formatDate(effectiveOn)) });
         onDone();
       }}
     >
       {lease.units.length > 1 && (
         <Field>
-          <FieldLabel htmlFor="rent-unit">Unité</FieldLabel>
+          <FieldLabelWithHelp htmlFor="rent-unit" help={t.leases.changeRent.unitHelp}>
+            {t.leases.changeRent.unit}
+          </FieldLabelWithHelp>
           <Select value={unitId} onValueChange={pickUnit}>
             <SelectTrigger id="rent-unit" className="w-full">
               <SelectValue />
@@ -70,22 +75,30 @@ export function ChangeRentDialog({ lease, trigger, onDone }: Props) {
         </Field>
       )}
       <Field>
-        <FieldLabel htmlFor="rent-date">À partir du</FieldLabel>
+        <FieldLabelWithHelp htmlFor="rent-date" help={t.leases.changeRent.fromHelp}>
+          {t.leases.changeRent.from}
+        </FieldLabelWithHelp>
         <Input id="rent-date" type="date" required value={effectiveOn} onChange={(event) => setEffectiveOn(event.target.value)} className="w-48" />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <FieldLabel htmlFor="rent-amount">Loyer (TND)</FieldLabel>
+          <FieldLabelWithHelp htmlFor="rent-amount" help={t.leases.changeRent.rentHelp}>
+            {t.leases.changeRent.rent}
+          </FieldLabelWithHelp>
           <Input id="rent-amount" inputMode="decimal" value={rent} onChange={(event) => setRent(event.target.value)} />
         </Field>
         <Field>
-          <FieldLabel htmlFor="rent-charges">Charges (TND)</FieldLabel>
+          <FieldLabelWithHelp htmlFor="rent-charges" help={t.leases.changeRent.chargesHelp}>
+            {t.leases.changeRent.charges}
+          </FieldLabelWithHelp>
           <Input id="rent-charges" inputMode="decimal" value={charges} onChange={(event) => setCharges(event.target.value)} />
         </Field>
       </div>
       <Field>
-        <FieldLabel htmlFor="rent-reason">Motif (facultatif)</FieldLabel>
-        <Input id="rent-reason" placeholder="Indexation annuelle" value={reason} onChange={(event) => setReason(event.target.value)} />
+        <FieldLabelWithHelp htmlFor="rent-reason" help={t.leases.changeRent.reasonHelp}>
+          {t.leases.changeRent.reason}
+        </FieldLabelWithHelp>
+        <Input id="rent-reason" placeholder={t.leases.changeRent.reasonPlaceholder} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
     </LeaseActionDialog>
   );

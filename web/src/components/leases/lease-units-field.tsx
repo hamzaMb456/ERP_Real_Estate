@@ -1,10 +1,12 @@
 'use client';
 
+import { FieldHelp } from '@/components/field-help';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FieldDescription, FieldLegend, FieldSet } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import type { LeaseUnitInput } from '@/lib/lease-types';
 
+import { useT } from '@/i18n/provider';
 export type UnitOption = {
   id: string;
   code: string;
@@ -21,6 +23,7 @@ type Props = {
 const labelOf = (option: UnitOption) => `${option.code} · ${option.property.name}`;
 
 export function LeaseUnitsField({ options, value, onChange }: Props) {
+  const t = useT();
   function toggle(option: UnitOption, checked: boolean) {
     if (!checked) {
       onChange(value.filter((unit) => unit.unitId !== option.id));
@@ -36,9 +39,14 @@ export function LeaseUnitsField({ options, value, onChange }: Props) {
 
   return (
     <FieldSet>
-      <FieldLegend variant="label">Unités</FieldLegend>
-      <FieldDescription>Les unités disponibles. Le loyer proposé est celui de la fiche de l’unité ; vous pouvez le modifier.</FieldDescription>
-      {options.length === 0 && <p className="text-sm text-muted-foreground">Aucune unité disponible.</p>}
+      <FieldLegend variant="label" className="flex items-center gap-1.5">
+        {t.leases.unitsField.legend}
+        <FieldHelp>
+          {t.leases.unitsField.help}
+        </FieldHelp>
+      </FieldLegend>
+      <FieldDescription>{t.leases.unitsField.description}</FieldDescription>
+      {options.length === 0 && <p className="text-sm text-muted-foreground">{t.leases.unitsField.none}</p>}
       <ul className="divide-y rounded-lg border">
         {options.map((option) => {
           const chosen = value.find((unit) => unit.unitId === option.id);
@@ -56,16 +64,16 @@ export function LeaseUnitsField({ options, value, onChange }: Props) {
               {chosen && (
                 <div className="flex gap-2">
                   <Input
-                    aria-label={'Loyer ' + option.code}
-                    placeholder="Loyer (TND)"
+                    aria-label={t.leases.unitsField.rentAria(option.code)}
+                    placeholder={t.leases.unitsField.rentPlaceholder}
                     inputMode="decimal"
                     className="w-32"
                     value={chosen.rent}
                     onChange={(event) => edit(option.id, { rent: event.target.value })}
                   />
                   <Input
-                    aria-label={'Charges ' + option.code}
-                    placeholder="Charges (TND)"
+                    aria-label={t.leases.unitsField.chargesAria(option.code)}
+                    placeholder={t.leases.unitsField.chargesPlaceholder}
                     inputMode="decimal"
                     className="w-32"
                     value={chosen.charges}

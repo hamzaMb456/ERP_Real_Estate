@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/i18n/provider';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 type Props = {
@@ -14,7 +15,8 @@ type Props = {
   onConfirm: () => Promise<void>;
 };
 
-export function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel = 'Supprimer', onConfirm }: Props) {
+export function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel, onConfirm }: Props) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
@@ -25,7 +27,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
         </DialogHeader>
         <DialogFooter>
           <Button variant="ghost" disabled={busy} onClick={() => onOpenChange(false)}>
-            Annuler
+            {t.common.cancel}
           </Button>
           <Button
             variant="destructive"
@@ -41,7 +43,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
             }}
           >
             {busy && <Loader2 data-icon="inline-start" className="animate-spin" />}
-            {confirmLabel}
+            {confirmLabel ?? t.common.delete}
           </Button>
         </DialogFooter>
       </DialogContent>

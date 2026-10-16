@@ -1,0 +1,33 @@
+// Sentences for database and Hasura errors (codes raised by db/migrations). Used by src/lib/errors.ts.
+
+export const errors = {
+  unknown: 'Erreur inconnue.',
+  network: 'Connexion impossible. Vérifiez votre réseau puis réessayez.',
+  permission: 'Vous n’avez pas les droits pour cette action.',
+  sharesExceeded: (date: string) => `Le total des parts dépasse 100 % à partir du ${date}.`,
+  ownershipOverlap: 'Ce propriétaire détient déjà cette unité sur cette période.',
+  endBeforeStart: 'La date de fin doit suivre la date de début.',
+  invalidStorageFile: 'Ce fichier ne peut pas être rattaché. Envoyez-le à nouveau.',
+  unitCodeTaken: (code: string) => `La référence ${code} existe déjà dans ce bien.`,
+  unitCodeTakenGeneric: 'Cette référence existe déjà dans ce bien.',
+  leaseOverlap: (lease: string) => `Cette unité est déjà louée sur cette période (bail N° ${lease}).`,
+  lease: {
+    lease_needs_renter: 'Ajoutez au moins un locataire avant d’activer le bail.',
+    lease_needs_unit: 'Ajoutez au moins une unité avant d’activer le bail.',
+    lease_needs_rent: 'Indiquez le loyer de chaque unité avant d’activer le bail.',
+    lease_not_draft: 'Ce bail ne peut plus être modifié.',
+    lease_not_active: 'Ce bail ne peut plus être modifié.',
+    lease_not_found: 'Ce bail est introuvable.',
+    lease_forbidden: 'Vous n’avez pas les droits pour cette action.',
+    lease_renewal_not_after: 'La nouvelle date de fin doit être postérieure à la fin actuelle du bail.',
+    lease_end_before_start: 'La date de fin doit suivre la date de début.',
+    leases_dates_check: 'La date de fin doit suivre la date de début.',
+    lease_end_in_future: 'La date de fin du bail ne peut pas être dans le futur.',
+    lease_rent_before_start: 'Le loyer ne peut pas commencer avant le début du bail.',
+    lease_draft_only: 'Les unités d’un bail ne peuvent être modifiées que tant qu’il est en brouillon.',
+    lease_unit_not_found: 'Cette unité ne fait pas partie du bail.',
+    lease_signed_in_future: 'La date de signature ne peut pas être dans le futur.',
+    leases_registration_check: 'La date d’enregistrement ne peut pas précéder la signature.',
+    lease_rents_lease_id_unit_id_effective_from_key: 'Un loyer existe déjà à cette date pour cette unité.',
+  },
+};

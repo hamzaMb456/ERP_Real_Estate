@@ -16,7 +16,6 @@ import type { LeaseOverviewRow } from '@/lib/lease-types';
 import {
   formatLeaseNumber,
   LEASE_TAB_VALUES,
-  LEASE_TABS,
   leasePeriod,
   matchesLeaseSearch,
   matchesLeaseTab,
@@ -26,6 +25,7 @@ import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 import { useHashTab } from '@/lib/use-hash';
 
+import { useT } from '@/i18n/provider';
 const LEASES_QUERY = `
   query Leases {
     lease_overview(where: { archived_at: { _is_null: true } }, order_by: [{ number: desc }], limit: 500) {
@@ -36,6 +36,7 @@ const LEASES_QUERY = `
 `;
 
 export default function LeasesPage() {
+  const t = useT();
   const result = useGraphql<{ lease_overview: LeaseOverviewRow[] }>(LEASES_QUERY);
   const canEdit = useCanEdit();
   const [tab, setTab] = useHashTab(LEASE_TAB_VALUES, 'all');
@@ -49,14 +50,14 @@ export default function LeasesPage() {
     <Stagger className="space-y-6">
       <StaggerItem>
         <PageHeader
-          title="Baux"
-          description={result.status === 'success' ? `${leases.length} baux` : 'Chargement des baux…'}
+          title={t.leases.list.title}
+          description={result.status === 'success' ? t.leases.list.count(leases.length) : t.leases.list.loadingDescription}
           actions={
             canEdit && (
               <Button asChild>
                 <Link href="/baux/nouveau">
                   <Plus data-icon="inline-start" />
-                  Nouveau bail
+                  {t.leases.list.new}
                 </Link>
               </Button>
             )
@@ -74,12 +75,12 @@ export default function LeasesPage() {
               value={tab}
               onValueChange={(value) => setTab((value || 'all') as LeaseTab)}
               className="flex-wrap justify-start"
-              aria-label="Filtrer les baux"
+              aria-label={t.leases.list.filterLabel}
             >
-              {LEASE_TABS.map((item) => (
-                <ToggleGroupItem key={item.value} value={item.value} className="gap-1.5">
-                  {item.label}
-                  <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">{count(item.value)}</span>
+              {LEASE_TAB_VALUES.map((value) => (
+                <ToggleGroupItem key={value} value={value} className="gap-1.5">
+                  {t.leases.tabs[value]}
+                  <span className="rounded-full bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">{count(value)}</span>
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
@@ -90,8 +91,8 @@ export default function LeasesPage() {
               <InputGroupInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Numéro, locataire ou unité"
-                aria-label="Rechercher un bail"
+                placeholder={t.leases.list.searchPlaceholder}
+                aria-label={t.leases.list.searchLabel}
               />
             </InputGroup>
           </CardContent>
@@ -100,11 +101,11 @@ export default function LeasesPage() {
 
       <StaggerItem>
         {result.status === 'loading' && (
-          <SkeletonList count={5} className="space-y-2" itemClassName="h-14 rounded-lg bg-muted" label="Chargement des baux…" />
+          <SkeletonList count={5} className="space-y-2" itemClassName="h-14 rounded-lg bg-muted" label={t.leases.list.loading} />
         )}
         {result.status === 'error' && (
           <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            Impossible de charger les baux : {result.message}
+            {t.leases.list.loadError(result.message)}
           </p>
         )}
         {result.status === 'success' && rows.length === 0 && (
@@ -113,9 +114,9 @@ export default function LeasesPage() {
               <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <FileText className="size-5" />
               </span>
-              <p className="font-medium">{leases.length === 0 ? 'Aucun bail pour le moment' : 'Aucun bail ne correspond'}</p>
+              <p className="font-medium">{leases.length === 0 ? t.leases.list.emptyTitle : t.leases.list.noMatchTitle}</p>
               <p className="text-sm text-muted-foreground">
-                {leases.length === 0 ? 'Créez le premier bail pour suivre les loyers et l’occupation.' : 'Changez le filtre ou la recherche.'}
+                {leases.length === 0 ? t.leases.list.emptyBody : t.leases.list.noMatchBody}
               </p>
             </CardContent>
           </Card>
@@ -125,12 +126,12 @@ export default function LeasesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Bail</TableHead>
-                  <TableHead>Locataires</TableHead>
-                  <TableHead>Unités</TableHead>
-                  <TableHead>Période</TableHead>
-                  <TableHead className="text-right">Loyer + charges</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <TableHead>{t.leases.list.colLease}</TableHead>
+                  <TableHead>{t.leases.list.colRenters}</TableHead>
+                  <TableHead>{t.leases.list.colUnits}</TableHead>
+                  <TableHead>{t.leases.list.colPeriod}</TableHead>
+                  <TableHead className="text-end">{t.leases.list.colRent}</TableHead>
+                  <TableHead>{t.leases.list.colStatus}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -144,7 +145,7 @@ export default function LeasesPage() {
                     <TableCell>{lease.renter_names ?? '—'}</TableCell>
                     <TableCell>{lease.unit_codes ?? '—'}</TableCell>
                     <TableCell className="whitespace-nowrap">{leasePeriod(lease)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatTnd(Number(lease.total_rent) + Number(lease.total_charges))}</TableCell>
+                    <TableCell className="text-end tabular-nums">{formatTnd(Number(lease.total_rent) + Number(lease.total_charges))}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1.5">
                         <LeaseStatusBadge status={lease.status} />

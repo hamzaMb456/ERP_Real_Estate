@@ -1,12 +1,17 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Plus, X } from 'lucide-react';
+import { FieldHelp } from '@/components/field-help';
 import { ContactPicker, type ContactOption } from '@/components/ownership/contact-picker';
 import { Button } from '@/components/ui/button';
 import { FieldLegend, FieldSet } from '@/components/ui/field';
 
+import { useT } from '@/i18n/provider';
 type Props = {
   legend: string;
+  /** Explanation shown in the help popover next to the legend. */
+  help: ReactNode;
   addLabel: string;
   /** Singular noun used in the accessible names of the rows: « Retirer locataire 1 ». */
   rowLabel: string;
@@ -18,10 +23,14 @@ type Props = {
   minRows: number;
 };
 
-export function LeasePartiesField({ legend, addLabel, rowLabel, value, onChange, options, taken, minRows }: Props) {
+export function LeasePartiesField({ legend, help, addLabel, rowLabel, value, onChange, options, taken, minRows }: Props) {
+  const t = useT();
   return (
     <FieldSet>
-      <FieldLegend variant="label">{legend}</FieldLegend>
+      <FieldLegend variant="label" className="flex items-center gap-1.5">
+        {legend}
+        <FieldHelp>{help}</FieldHelp>
+      </FieldLegend>
       {value.map((contactId, index) => (
         <div key={index} className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -37,7 +46,7 @@ export function LeasePartiesField({ legend, addLabel, rowLabel, value, onChange,
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label={`Retirer ${rowLabel} ${index + 1}`}
+            aria-label={t.leases.form.removeRow(rowLabel, index + 1)}
             disabled={value.length <= minRows}
             onClick={() => onChange(value.filter((_, position) => position !== index))}
           >

@@ -6,8 +6,8 @@ import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, ArrowLeft, Banknote, DoorOpen, Layers, Loader2, Maximize2, Pencil, SearchX } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/domain/badges';
-import { UNIT_STATUSES, UNIT_TYPES } from '@/components/domain/labels';
 import { UnitDialog, type UnitFormUnit } from '@/components/domain/unit-dialog';
+import { FieldHelp } from '@/components/field-help';
 import { DocumentList } from '@/components/files/document-list';
 import { PhotoGallery } from '@/components/files/photo-gallery';
 import { UnitLeaseCard } from '@/components/leases/unit-lease-card';
@@ -18,13 +18,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { formatArea, formatTnd } from '@/lib/format';
 import { graphql } from '@/lib/graphql';
 import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 import { useHash, useHashTab } from '@/lib/use-hash';
 
+import { useT } from '@/i18n/provider';
 const UNIT_QUERY = `
   query Unit($id: uuid!) {
     unit: units_by_pk(id: $id) {
@@ -63,6 +64,7 @@ function Fact({ icon: Icon, label, value }: { icon: typeof Layers; label: string
 }
 
 export default function UnitDetailPage() {
+  const t = useT();
   const { id, unitId } = useParams<{ id: string; unitId: string }>();
   const canEdit = useCanEdit();
   const [hash, setHash] = useHash();
@@ -72,10 +74,10 @@ export default function UnitDetailPage() {
   const result = useGraphql<{ unit: UnitDetails | null }>(UNIT_QUERY, { id: unitId }, reload);
 
   const back = (
-    <Button asChild variant="ghost" size="sm" className="-ml-2">
+    <Button asChild variant="ghost" size="sm" className="-ms-2">
       <Link href={'/biens/' + id}>
-        <ArrowLeft data-icon="inline-start" />
-        Retour au bien
+        <ArrowLeft data-icon="inline-start" className="rtl:-scale-x-100" />
+        {t.properties.backToProperty}
       </Link>
     </Button>
   );
@@ -84,7 +86,7 @@ export default function UnitDetailPage() {
     return (
       <div className="space-y-6">
         {back}
-        <Pulse className="text-sm text-muted-foreground">Chargement de l’unité…</Pulse>
+        <Pulse className="text-sm text-muted-foreground">{t.properties.unit.loading}</Pulse>
       </div>
     );
   }
@@ -94,7 +96,7 @@ export default function UnitDetailPage() {
       <div className="space-y-6">
         {back}
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger cette unité : {result.message}
+          {t.properties.unit.loadError(result.message)}
         </p>
       </div>
     );
@@ -110,8 +112,8 @@ export default function UnitDetailPage() {
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <SearchX className="size-5" />
             </span>
-            <p className="font-medium">Unité introuvable</p>
-            <p className="text-sm text-muted-foreground">Cette fiche n’existe pas ou vous n’y avez pas accès.</p>
+            <p className="font-medium">{t.properties.unit.notFoundTitle}</p>
+            <p className="text-sm text-muted-foreground">{t.properties.unit.notFoundBody}</p>
           </CardContent>
         </Card>
       </div>
@@ -128,7 +130,7 @@ export default function UnitDetailPage() {
       toast.success(success, { description: current.code });
       setReload((value) => value + 1);
     } catch (error) {
-      toast.error('Modification impossible', { description: toFrenchError(error) });
+      toast.error(t.properties.unit.updateFailed, { description: toUserMessage(error) });
     } finally {
       setSaving(false);
     }
@@ -137,18 +139,18 @@ export default function UnitDetailPage() {
   return (
     <Stagger className="space-y-6">
       <StaggerItem>
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
+        <Button asChild variant="ghost" size="sm" className="-ms-2">
           <Link href={'/biens/' + current.property.id}>
-            <ArrowLeft data-icon="inline-start" />
-            Retour à {current.property.name}
+            <ArrowLeft data-icon="inline-start" className="rtl:-scale-x-100" />
+            {t.properties.unit.backTo(current.property.name)}
           </Link>
         </Button>
       </StaggerItem>
 
       <StaggerItem>
         <PageHeader
-          title={'Unité ' + current.code}
-          description={(UNIT_TYPES[current.type] ?? current.type) + ' · ' + current.property.name + (archived ? ' · Archivée' : '')}
+          title={t.properties.unit.title(current.code)}
+          description={(t.labels.unitTypes[current.type] ?? current.type) + ' · ' + current.property.name + (archived ? t.properties.unit.archivedSuffix : '')}
           actions={
             <>
               <StatusBadge status={current.status} />
@@ -162,7 +164,7 @@ export default function UnitDetailPage() {
                     trigger={
                       <Button variant="outline">
                         <Pencil data-icon="inline-start" />
-                        Modifier
+                        {t.common.edit}
                       </Button>
                     }
                     onSaved={() => setReload((value) => value + 1)}
@@ -171,7 +173,7 @@ export default function UnitDetailPage() {
                     variant="outline"
                     disabled={saving}
                     onClick={() =>
-                      void update({ archived_at: archived ? null : new Date().toISOString() }, archived ? 'Unité restaurée' : 'Unité archivée')
+                      void update({ archived_at: archived ? null : new Date().toISOString() }, archived ? t.properties.unit.restoredToast : t.properties.unit.archivedToast)
                     }
                   >
                     {saving ? (
@@ -181,7 +183,7 @@ export default function UnitDetailPage() {
                     ) : (
                       <Archive data-icon="inline-start" />
                     )}
-                    {archived ? 'Restaurer' : 'Archiver'}
+                    {archived ? t.properties.detail.restore : t.properties.detail.archive}
                   </Button>
                 </>
               )}
@@ -193,34 +195,39 @@ export default function UnitDetailPage() {
       <StaggerItem>
         <Tabs value={tab} onValueChange={(value) => setTab(value as (typeof UNIT_TABS)[number])}>
           <TabsList>
-            <TabsTrigger value="apercu">Aperçu</TabsTrigger>
-            <TabsTrigger value="proprietaires">Propriétaires</TabsTrigger>
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="apercu">{t.properties.unit.tabOverview}</TabsTrigger>
+            <TabsTrigger value="proprietaires">{t.properties.unit.tabOwners}</TabsTrigger>
+            <TabsTrigger value="photos">{t.properties.unit.tabPhotos}</TabsTrigger>
+            <TabsTrigger value="documents">{t.properties.unit.tabDocuments}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="apercu" className="space-y-6 pt-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Fact icon={Banknote} label="Loyer mensuel" value={formatTnd(current.rent_amount)} />
-              <Fact icon={Maximize2} label="Surface" value={formatArea(current.surface_m2)} />
-              <Fact icon={DoorOpen} label="Pièces" value={current.rooms === null ? '—' : String(current.rooms)} />
-              <Fact icon={Layers} label="Étage" value={current.floor === null ? '—' : String(current.floor)} />
+              <Fact icon={Banknote} label={t.properties.unit.factRent} value={formatTnd(current.rent_amount)} />
+              <Fact icon={Maximize2} label={t.properties.unit.factSurface} value={formatArea(current.surface_m2)} />
+              <Fact icon={DoorOpen} label={t.properties.unit.factRooms} value={current.rooms === null ? '—' : String(current.rooms)} />
+              <Fact icon={Layers} label={t.properties.unit.factFloor} value={current.floor === null ? '—' : String(current.floor)} />
             </div>
             <UnitLeaseCard unitId={current.id} canCreate={canEdit && !archived} />
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Statut de l’unité</CardTitle>
+                <CardTitle className="flex items-center gap-1.5 text-base">
+                  {t.properties.unit.statusTitle}
+                  <FieldHelp>
+                    {t.properties.unit.statusHelp}
+                  </FieldHelp>
+                </CardTitle>
                 <CardDescription>
-                  Le statut suit les baux : loué dès qu’un bail est actif, disponible sinon. Les ventes viendront avec le module Ventes. Vous pouvez le corriger ici en cas d’exception.
+                  {t.properties.unit.statusDescription}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Select value={current.status} disabled={saving || archived || !canEdit} onValueChange={(value) => void update({ status: value }, 'Statut mis à jour')}>
-                  <SelectTrigger className="w-full sm:w-64" aria-label="Statut de l’unité">
+                <Select value={current.status} disabled={saving || archived || !canEdit} onValueChange={(value) => void update({ status: value }, t.properties.unit.statusUpdated)}>
+                  <SelectTrigger className="w-full sm:w-64" aria-label={t.properties.unit.statusTitle}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(UNIT_STATUSES).map(([value, label]) => (
+                    {Object.entries(t.labels.unitStatuses).map(([value, label]) => (
                       <SelectItem key={value} value={value}>
                         {label}
                       </SelectItem>

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { StoredSession } from '@nhost/nhost-js';
 import { FetchError } from '@nhost/nhost-js/fetch';
+import { getMessages } from '@/i18n/store';
 import { nhost } from '@/lib/nhost';
 
 type AuthState = {
@@ -15,17 +16,18 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null);
 
 function describeSignInError(code: string | undefined, serverMessage: string | undefined, status: number): string {
+  const { auth } = getMessages().shell;
   switch (code) {
     case 'invalid-email-password':
-      return 'Mot de passe incorrect, ou aucun compte avec cette adresse e-mail.';
+      return auth.invalidCredentials;
     case 'unverified-user':
-      return "Votre adresse e-mail n'est pas encore vérifiée. Ouvrez le lien reçu par e-mail, puis réessayez.";
+      return auth.unverified;
     case 'disabled-user':
-      return 'Ce compte est désactivé. Contactez votre administrateur.';
+      return auth.disabled;
     case 'invalid-request':
-      return "Adresse e-mail ou mot de passe mal formé. Vérifiez les deux champs.";
+      return auth.malformed;
     default:
-      return 'Connexion impossible (' + (code ?? 'erreur ' + status) + ')' + (serverMessage ? ' : ' + serverMessage : '.');
+      return auth.other(code ?? auth.errorStatus(status), serverMessage);
   }
 }
 
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await nhost.auth.signInEmailPassword({ email, password });
       if (!response.body.session) {
-        throw new Error('Connexion impossible. Vérifiez votre compte.');
+        throw new Error(getMessages().shell.auth.noSession);
       }
     } catch (error) {
       if (error instanceof FetchError) {
@@ -64,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(describeSignInError(body?.error, body?.message, error.status));
       }
       if (error instanceof TypeError) {
-        throw new Error('Serveur injoignable. Vérifiez votre connexion Internet et réessayez.');
+        throw new Error(getMessages().shell.auth.unreachable);
       }
       throw error;
     }

@@ -21,21 +21,24 @@ import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 import { useHashTab } from '@/lib/use-hash';
 
+import { useT } from '@/i18n/provider';
 const LEASE_TABS = ['apercu', 'loyers', 'documents', 'calendrier'] as const;
 type LeaseTabName = (typeof LEASE_TABS)[number];
 
 function BackLink() {
+  const t = useT();
   return (
-    <Button asChild variant="ghost" size="sm" className="-ml-2">
+    <Button asChild variant="ghost" size="sm" className="-ms-2">
       <Link href="/baux">
-        <ArrowLeft data-icon="inline-start" />
-        Retour aux baux
+        <ArrowLeft data-icon="inline-start" className="rtl:-scale-x-100" />
+        {t.leases.new.backToList}
       </Link>
     </Button>
   );
 }
 
 export default function LeaseDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const canEdit = useCanEdit();
   const [tab, setTab] = useHashTab(LEASE_TABS, 'apercu');
@@ -47,7 +50,7 @@ export default function LeaseDetailPage() {
     return (
       <div className="space-y-6">
         <BackLink />
-        <Pulse className="text-sm text-muted-foreground">Chargement du bail…</Pulse>
+        <Pulse className="text-sm text-muted-foreground">{t.leases.detail.loading}</Pulse>
       </div>
     );
   }
@@ -56,7 +59,7 @@ export default function LeaseDetailPage() {
       <div className="space-y-6">
         <BackLink />
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger ce bail : {result.message}
+          {t.leases.detail.loadError(result.message)}
         </p>
       </div>
     );
@@ -71,8 +74,8 @@ export default function LeaseDetailPage() {
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <SearchX className="size-5" />
             </span>
-            <p className="font-medium">Bail introuvable</p>
-            <p className="text-sm text-muted-foreground">Cette fiche n’existe pas ou vous n’y avez pas accès.</p>
+            <p className="font-medium">{t.leases.detail.notFoundTitle}</p>
+            <p className="text-sm text-muted-foreground">{t.leases.detail.notFoundBody}</p>
           </CardContent>
         </Card>
       </div>
@@ -98,7 +101,7 @@ export default function LeaseDetailPage() {
       <StaggerItem>
         <PageHeader
           title={formatLeaseNumber(lease.number)}
-          description={[lease.units.map(({ unit }) => unit.code).join(', '), renters.join(', ')].filter(Boolean).join(' · ') + (lease.archived_at ? ' · Archivé' : '')}
+          description={[lease.units.map(({ unit }) => unit.code).join(', '), renters.join(', ')].filter(Boolean).join(' · ') + (lease.archived_at ? t.leases.detail.archivedSuffix : '')}
           actions={
             <>
               <LeaseStatusBadge status={lease.status} />
@@ -111,10 +114,10 @@ export default function LeaseDetailPage() {
       <StaggerItem>
         <Tabs value={tab} onValueChange={(value) => setTab(value as LeaseTabName)}>
           <TabsList className="h-auto flex-wrap">
-            <TabsTrigger value="apercu">Aperçu</TabsTrigger>
-            <TabsTrigger value="loyers">Loyers</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="calendrier">Calendrier</TabsTrigger>
+            <TabsTrigger value="apercu">{t.leases.detail.tabOverview}</TabsTrigger>
+            <TabsTrigger value="loyers">{t.leases.detail.tabRents}</TabsTrigger>
+            <TabsTrigger value="documents">{t.leases.detail.tabDocuments}</TabsTrigger>
+            <TabsTrigger value="calendrier">{t.leases.detail.tabCalendar}</TabsTrigger>
           </TabsList>
           <TabsContent value="apercu" className="pt-4">
             <LeaseOverviewTab lease={lease} canEdit={canEdit} onChanged={refresh} />

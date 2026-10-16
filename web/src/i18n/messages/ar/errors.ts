@@ -1,0 +1,33 @@
+import type { errors as fr } from '../fr/errors';
+
+export const errors: typeof fr = {
+  unknown: 'خطأ غير معروف.',
+  network: 'تعذّر الاتصال. تحقّق من الشبكة ثم أعد المحاولة.',
+  permission: 'ليست لديك صلاحية القيام بهذا الإجراء.',
+  sharesExceeded: (date) => `مجموع الحصص يتجاوز 100٪ ابتداءً من ${date}.`,
+  ownershipOverlap: 'هذا المالك يملك هذه الوحدة مسبقًا خلال هذه الفترة.',
+  endBeforeStart: 'يجب أن يكون تاريخ النهاية بعد تاريخ البداية.',
+  invalidStorageFile: 'لا يمكن إرفاق هذا الملف. أعد إرساله.',
+  unitCodeTaken: (code) => `المرجع ${code} موجود مسبقًا في هذا العقار.`,
+  unitCodeTakenGeneric: 'هذا المرجع موجود مسبقًا في هذا العقار.',
+  leaseOverlap: (lease) => `هذه الوحدة مُكتراة مسبقًا خلال هذه الفترة (العقد عدد ${lease}).`,
+  lease: {
+    lease_needs_renter: 'أضف مستأجرًا واحدًا على الأقل قبل تفعيل العقد.',
+    lease_needs_unit: 'أضف وحدة واحدة على الأقل قبل تفعيل العقد.',
+    lease_needs_rent: 'حدّد معلوم كراء كل وحدة قبل تفعيل العقد.',
+    lease_not_draft: 'لم يعد بالإمكان تعديل هذا العقد.',
+    lease_not_active: 'لم يعد بالإمكان تعديل هذا العقد.',
+    lease_not_found: 'هذا العقد غير موجود.',
+    lease_forbidden: 'ليست لديك صلاحية القيام بهذا الإجراء.',
+    lease_renewal_not_after: 'يجب أن يكون تاريخ النهاية الجديد بعد النهاية الحالية للعقد.',
+    lease_end_before_start: 'يجب أن يكون تاريخ النهاية بعد تاريخ البداية.',
+    leases_dates_check: 'يجب أن يكون تاريخ النهاية بعد تاريخ البداية.',
+    lease_end_in_future: 'لا يمكن أن يكون تاريخ نهاية العقد في المستقبل.',
+    lease_rent_before_start: 'لا يمكن أن يبدأ الكراء قبل بداية العقد.',
+    lease_draft_only: 'لا يمكن تعديل وحدات العقد إلا ما دام مسودة.',
+    lease_unit_not_found: 'هذه الوحدة ليست ضمن العقد.',
+    lease_signed_in_future: 'لا يمكن أن يكون تاريخ الإمضاء في المستقبل.',
+    leases_registration_check: 'لا يمكن أن يسبق تاريخ التسجيل تاريخ الإمضاء.',
+    lease_rents_lease_id_unit_id_effective_from_key: 'يوجد معلوم كراء في هذا التاريخ لهذه الوحدة.',
+  },
+};

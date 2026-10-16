@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./polish.css";
+@import "./gloss.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -87,6 +89,22 @@
   --sidebar-accent-foreground: oklch(0.34 0.085 165);
   --sidebar-border: oklch(0.915 0.015 165);
   --sidebar-ring: oklch(0.6 0.13 165);
+  /* Theme-owned tokens beyond shadcn: the sidebar panel, aurora, active item and logo. The palette
+     generator (src/theme/generate.ts) overrides all of these; the values here are EAM Green. */
+  --theme-hue: 165;
+  --sidebar-panel: oklch(0.25 0.055 165);
+  --sidebar-fg: oklch(0.95 0.02 165);
+  --sidebar-glow-a: oklch(0.62 0.15 165 / 0.45);
+  --sidebar-glow-b: oklch(0.7 0.13 190 / 0.28);
+  --sidebar-grad-top: oklch(0.3 0.06 165);
+  --sidebar-grad-bottom: oklch(0.2 0.045 175);
+  --sidebar-active-from: oklch(0.7 0.16 165);
+  --sidebar-active-to: oklch(0.5 0.13 168);
+  --sidebar-active-glow: oklch(0.72 0.17 165 / 0.6);
+  --sidebar-marker: oklch(0.85 0.16 165);
+  --sidebar-muted: oklch(0.8 0.045 165);
+  --sidebar-ring-panel: oklch(0.82 0.12 165);
+  --sidebar-logo: oklch(0.68 0.16 165);
 }
 
 .dark {
@@ -153,6 +171,301 @@
     linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
 }
 
+/* ---- Glossy buttons -------------------------------------------------------
+   --gloss-base: the button colour. ::before = glass highlight on the top half,
+   ::after = diagonal shine streak that sweeps across on hover. */
+@utility btn-gloss {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--gloss-base) 74%, white) 0%,
+    var(--gloss-base) 55%,
+    color-mix(in oklch, var(--gloss-base) 86%, black) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    inset 0 -1px 0 rgb(0 0 0 / 0.2),
+    0 1px 2px rgb(0 0 0 / 0.25),
+    0 8px 16px -8px color-mix(in oklch, var(--gloss-base) 85%, transparent);
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s,
+    filter 0.25s,
+    background-color 0.25s;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: -1;
+  }
+  &::before {
+    inset: 0 0 48% 0;
+    border-radius: inherit;
+    background: linear-gradient(to bottom, rgb(255 255 255 / 0.42), rgb(255 255 255 / 0.05));
+  }
+  &::after {
+    top: -20%;
+    bottom: -20%;
+    left: -70%;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
+    transform: skewX(-22deg);
+    transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  &:hover {
+    filter: brightness(1.07) saturate(1.08);
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.65),
+      inset 0 -1px 0 rgb(0 0 0 / 0.2),
+      0 2px 4px rgb(0 0 0 / 0.25),
+      0 14px 24px -8px color-mix(in oklch, var(--gloss-base) 90%, transparent);
+  }
+  &:hover::after {
+    transform: translateX(480%) skewX(-22deg);
+  }
+  &:active {
+    transform: scale(0.97);
+    filter: brightness(0.96);
+    box-shadow:
+      inset 0 2px 4px rgb(0 0 0 / 0.28),
+      0 1px 1px rgb(0 0 0 / 0.2);
+  }
+}
+
+/* Light variants (outline / secondary): frosted-glass gloss. */
+@utility btn-gloss-soft {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-image: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.9),
+    rgb(255 255 255 / 0.15) 55%,
+    rgb(0 0 0 / 0.04)
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 -1px 0 rgb(0 0 0 / 0.07),
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 6px 12px -8px rgb(0 0 0 / 0.25);
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s,
+    background-color 0.25s;
+
+  &::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: -1;
+    top: -20%;
+    bottom: -20%;
+    left: -70%;
+    width: 40%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklch, var(--primary) 28%, white),
+      transparent
+    );
+    transform: skewX(-22deg);
+    transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 1),
+      inset 0 -1px 0 rgb(0 0 0 / 0.08),
+      0 2px 4px rgb(0 0 0 / 0.14),
+      0 12px 20px -10px rgb(0 0 0 / 0.3);
+  }
+  &:hover::after {
+    transform: translateX(480%) skewX(-22deg);
+  }
+  &:active {
+    transform: scale(0.97);
+    box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.14);
+  }
+  &:where(.dark, .dark *) {
+    background-image: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.16),
+      rgb(255 255 255 / 0.02) 55%,
+      rgb(0 0 0 / 0.12)
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.22),
+      inset 0 -1px 0 rgb(0 0 0 / 0.35),
+      0 1px 2px rgb(0 0 0 / 0.4);
+  }
+}
+
+/* ---- Bold entrance keyframes ----------------------------------------------- */
+@keyframes dialog-pop {
+  0% {
+    opacity: 0;
+    scale: 0.82;
+    transform: perspective(800px) translateY(24px) rotateX(14deg);
+  }
+  55% {
+    opacity: 1;
+    scale: 1.035;
+    transform: perspective(800px) translateY(-4px) rotateX(0deg);
+  }
+  80% {
+    scale: 0.99;
+    transform: perspective(800px) translateY(1px);
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    transform: perspective(800px) translateY(0);
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes icon-wiggle {
+  0%,
+  100% {
+    transform: rotate(0) scale(1);
+  }
+  25% {
+    transform: rotate(-14deg) scale(1.18);
+  }
+  60% {
+    transform: rotate(10deg) scale(1.18);
+  }
+}
+
+@utility animate-dialog-pop {
+  animation: dialog-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center;
+}
+
+/* Table rows cascade in (stagger via sibling-index where supported). */
+[data-slot="table-body"] > [data-slot="table-row"] {
+  animation: row-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: min(calc(sibling-index() * 45ms), 600ms);
+}
+
+/* ---- Sidebar -----------------------------------------------------------------
+   Deep brand-coloured panel with a slow aurora. Tokens are re-scoped on the sidebar
+   element so every shadcn sidebar class (text-sidebar-*, bg-sidebar-accent,
+   text-muted-foreground…) resolves against the dark palette in both themes. */
+[data-sidebar="sidebar"] {
+  --sidebar: var(--sidebar-panel);
+  --sidebar-foreground: var(--sidebar-fg);
+  --sidebar-accent: oklch(1 0 0 / 0.1);
+  --sidebar-accent-foreground: oklch(0.99 0.01 var(--theme-hue));
+  --sidebar-border: oklch(1 0 0 / 0.12);
+  --sidebar-ring: var(--sidebar-ring-panel);
+  --muted-foreground: var(--sidebar-muted);
+  color: var(--sidebar-fg);
+  background-image:
+    radial-gradient(60% 40% at 15% 100%, var(--sidebar-glow-a), transparent 70%),
+    radial-gradient(50% 35% at 100% 0%, var(--sidebar-glow-b), transparent 70%),
+    linear-gradient(180deg, var(--sidebar-grad-top), var(--sidebar-grad-bottom));
+  background-size: 150% 150%, 150% 150%, 100% 100%;
+  animation: sidebar-aurora 18s ease-in-out infinite alternate;
+}
+
+@keyframes sidebar-aurora {
+  from {
+    background-position: 0% 0%, 100% 100%, 0 0;
+  }
+  to {
+    background-position: 100% 60%, 0% 40%, 0 0;
+  }
+}
+
+[data-sidebar="group-label"] {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: oklch(1 0 0 / 0.42);
+}
+
+[data-sidebar="menu-button"] {
+  border-radius: 0.65rem;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s;
+}
+
+[data-sidebar="menu-button"]:not([data-active="true"], [data-size="lg"]):hover {
+  transform: translateX(4px);
+  background-color: oklch(1 0 0 / 0.09);
+}
+
+[data-sidebar="menu-button"][data-active="true"] {
+  font-weight: 600;
+  color: white;
+  background-image: linear-gradient(135deg, var(--sidebar-active-from), var(--sidebar-active-to));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    inset 0 -1px 0 rgb(0 0 0 / 0.2),
+    0 8px 20px -6px var(--sidebar-active-glow);
+}
+
+[data-sidebar="menu-button"][data-active="true"] > svg:first-child {
+  filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.65));
+}
+
+[data-sidebar="menu-sub"] {
+  border-inline-start-color: oklch(1 0 0 / 0.16);
+}
+
+[data-sidebar="menu-sub-button"] {
+  border-radius: 0.5rem;
+  transition:
+    background-color 0.2s,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s;
+}
+
+[data-sidebar="menu-sub-button"]:not([data-active="true"]):hover {
+  transform: translateX(3px);
+}
+
+[data-sidebar="menu-sub-button"][data-active="true"] {
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--sidebar-marker);
+  background-image: linear-gradient(90deg, oklch(1 0 0 / 0.16), transparent);
+}
+
+[data-sidebar="header"] {
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+[data-sidebar="footer"] {
+  border-top: 1px solid var(--sidebar-border);
+  background-color: oklch(0 0 0 / 0.14);
+  backdrop-filter: blur(8px);
+}
+
+/* Sidebar icons wiggle on hover. */
+[data-sidebar="menu-button"]:hover > svg:first-child {
+  animation: icon-wiggle 0.5s ease-in-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -161,5 +474,45 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Languages ---------------------------------------------------------------
+   Arabic is written right to left (<html dir="rtl">, set by the I18nProvider) and
+   joins its letters: any letter-spacing would break the words apart. */
+:lang(ar) {
+  font-family: var(--font-arabic), var(--font-geist-sans), sans-serif;
+}
+
+:lang(ar) * {
+  letter-spacing: 0 !important;
+}
+
+/* The sidebar's hover nudges and active marker point towards the content: mirror them. */
+[dir="rtl"] [data-sidebar="menu-button"]:not([data-active="true"], [data-size="lg"]):hover {
+  transform: translateX(-4px);
+}
+
+[dir="rtl"] [data-sidebar="menu-sub-button"]:not([data-active="true"]):hover {
+  transform: translateX(-3px);
+}
+
+[dir="rtl"] [data-sidebar="menu-sub-button"][data-active="true"] {
+  box-shadow: inset -2px 0 0 var(--sidebar-marker);
+  background-image: linear-gradient(270deg, oklch(1 0 0 / 0.16), transparent);
+}
+
+[dir="rtl"] [data-slot="table-body"] > [data-slot="table-row"] {
+  animation-name: row-in-rtl;
+}
+
+@keyframes row-in-rtl {
+  from {
+    opacity: 0;
+    transform: translateX(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

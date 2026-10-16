@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatTnd } from '@/lib/format';
-import { formatDateFr } from '@/lib/ownership';
+import { formatDate } from '@/lib/ownership';
 
+import { useT } from '@/i18n/provider';
 type Props = { lease: LeaseDetails; canEdit: boolean; onChanged: () => void };
 
 /** Rent and charges history per unit; the row in force today is marked « En vigueur ». */
 export function RentsTab({ lease, canEdit, onChanged }: Props) {
+  const t = useT();
   return (
     <div className="space-y-4">
       {canEdit && lease.status === 'active' && (
@@ -24,7 +26,7 @@ export function RentsTab({ lease, canEdit, onChanged }: Props) {
             trigger={
               <Button variant="outline">
                 <Banknote data-icon="inline-start" />
-                Changer le loyer
+                {t.leases.rentsTab.change}
               </Button>
             }
           />
@@ -44,21 +46,21 @@ export function RentsTab({ lease, canEdit, onChanged }: Props) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>À partir du</TableHead>
-                    <TableHead className="text-right">Loyer</TableHead>
-                    <TableHead className="text-right">Charges</TableHead>
-                    <TableHead>Motif</TableHead>
+                    <TableHead>{t.leases.rentsTab.colFrom}</TableHead>
+                    <TableHead className="text-end">{t.leases.rentsTab.colRent}</TableHead>
+                    <TableHead className="text-end">{t.leases.rentsTab.colCharges}</TableHead>
+                    <TableHead>{t.leases.rentsTab.colReason}</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((rent) => (
                     <TableRow key={rent.id}>
-                      <TableCell>{formatDateFr(rent.effective_from)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatTnd(rent.rent_amount)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatTnd(rent.charges_amount)}</TableCell>
+                      <TableCell>{formatDate(rent.effective_from)}</TableCell>
+                      <TableCell className="text-end tabular-nums">{formatTnd(rent.rent_amount)}</TableCell>
+                      <TableCell className="text-end tabular-nums">{formatTnd(rent.charges_amount)}</TableCell>
                       <TableCell className="text-muted-foreground">{rent.reason ?? '—'}</TableCell>
-                      <TableCell>{rent.effective_from === inForce && <Badge variant="secondary" className="bg-success/12 text-success">En vigueur</Badge>}</TableCell>
+                      <TableCell>{rent.effective_from === inForce && <Badge variant="secondary" className="bg-success/12 text-success">{t.leases.rentsTab.inForce}</Badge>}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

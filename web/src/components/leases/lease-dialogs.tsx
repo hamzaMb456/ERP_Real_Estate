@@ -4,15 +4,17 @@ import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import type { LeaseDetails } from '@/components/leases/lease-details';
 import { LeaseActionDialog } from '@/components/leases/lease-action-dialog';
-import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import { FieldLabelWithHelp } from '@/components/field-help';
+import { Field, FieldDescription } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addDays, todayTunis } from '@/lib/dates';
 import { graphql } from '@/lib/graphql';
 import type { EndReason } from '@/lib/lease-types';
-import { END_REASON_LABELS, ENDABLE_REASONS, endDateBounds, planRenewalRents } from '@/lib/leases';
-import { formatDateFr } from '@/lib/ownership';
+import { ENDABLE_REASONS, endDateBounds, planRenewalRents } from '@/lib/leases';
+import { formatDate } from '@/lib/ownership';
 
+import { useT } from '@/i18n/provider';
 const ACTIVATE = `
   mutation ActivateLease($id: uuid!, $signed: date!) {
     activate_lease(args: { p_lease_id: $id, p_signed_on: $signed }) { id status }
@@ -32,22 +34,25 @@ const END = `
 `;
 
 export function ActivateDialog({ leaseId, trigger, onDone }: { leaseId: string; trigger: ReactNode; onDone: () => void }) {
+  const t = useT();
   const [signedOn, setSignedOn] = useState(todayTunis());
   return (
     <LeaseActionDialog
       trigger={trigger}
-      title="Activer le bail"
-      description="Le bail passe en « Actif » et les unités sont marquées louées. Indiquez la date de signature."
-      submitLabel="Activer le bail"
+      title={t.leases.dialogs.activateTitle}
+      description={t.leases.dialogs.activateDescription}
+      submitLabel={t.leases.dialogs.activateSubmit}
       disabled={!signedOn}
       onSubmit={async () => {
         await graphql(ACTIVATE, { id: leaseId, signed: signedOn });
-        toast.success('Bail activé');
+        toast.success(t.leases.dialogs.activated);
         onDone();
       }}
     >
       <Field>
-        <FieldLabel htmlFor="activate-signed">Date de signature</FieldLabel>
+        <FieldLabelWithHelp htmlFor="activate-signed" help={t.leases.dialogs.signedOnHelp}>
+          {t.leases.dialogs.signedOn}
+        </FieldLabelWithHelp>
         <Input id="activate-signed" type="date" required value={signedOn} onChange={(event) => setSignedOn(event.target.value)} className="w-48" />
       </Field>
     </LeaseActionDialog>
@@ -57,6 +62,7 @@ export function ActivateDialog({ leaseId, trigger, onDone }: { leaseId: string; 
 type RenewLease = Pick<LeaseDetails, 'id' | 'end_date' | 'units' | 'current_rents'>;
 
 export function RenewDialog({ lease, trigger, onDone }: { lease: RenewLease; trigger: ReactNode; onDone: () => void }) {
+  const t = useT();
   const today = todayTunis();
   const [newEnd, setNewEnd] = useState(addDays(lease.end_date > today ? lease.end_date : today, 365));
   const [note, setNote] = useState('');
@@ -77,35 +83,39 @@ export function RenewDialog({ lease, trigger, onDone }: { lease: RenewLease; tri
   return (
     <LeaseActionDialog
       trigger={trigger}
-      title="Renouveler le bail"
-      description={`Le bail actuel se termine le ${formatDateFr(lease.end_date)}. Le même bail est prolongé ; les loyers modifiés commencent le lendemain de la fin actuelle.`}
-      submitLabel="Renouveler le bail"
+      title={t.leases.dialogs.renewTitle}
+      description={t.leases.dialogs.renewDescription(formatDate(lease.end_date))}
+      submitLabel={t.leases.dialogs.renewSubmit}
       disabled={!newEnd}
       onSubmit={async () => {
         const plan = planRenewalRents(rows, lease.current_rents);
         if ('error' in plan) throw new Error(plan.error);
         await graphql(RENEW, { id: lease.id, end: newEnd, rents: plan.rents, note: note.trim() || null });
-        toast.success('Bail renouvelé', { description: 'Jusqu’au ' + formatDateFr(newEnd) });
+        toast.success(t.leases.dialogs.renewed, { description: t.common.until(formatDate(newEnd)) });
         onDone();
       }}
     >
       <Field>
-        <FieldLabel htmlFor="renew-end">Nouvelle date de fin</FieldLabel>
+        <FieldLabelWithHelp htmlFor="renew-end" help={t.leases.dialogs.newEndHelp}>
+          {t.leases.dialogs.newEnd}
+        </FieldLabelWithHelp>
         <Input id="renew-end" type="date" required value={newEnd} onChange={(event) => setNewEnd(event.target.value)} className="w-48" />
       </Field>
       <div className="space-y-2">
-        <p className="text-sm font-medium">Loyers à partir du renouvellement</p>
+        <p className="text-sm font-medium">{t.leases.dialogs.rentsFromRenewal}</p>
         {rows.map((row) => (
           <div key={row.unitId} className="flex flex-wrap items-center gap-2">
             <span className="w-16 text-sm font-medium">{row.code}</span>
-            <Input aria-label={'Nouveau loyer ' + row.code} inputMode="decimal" className="w-32" value={row.rent} onChange={(event) => edit(row.unitId, { rent: event.target.value })} />
-            <Input aria-label={'Nouvelles charges ' + row.code} inputMode="decimal" placeholder="Charges" className="w-32" value={row.charges} onChange={(event) => edit(row.unitId, { charges: event.target.value })} />
+            <Input aria-label={t.leases.dialogs.newRentAria(row.code)} inputMode="decimal" className="w-32" value={row.rent} onChange={(event) => edit(row.unitId, { rent: event.target.value })} />
+            <Input aria-label={t.leases.dialogs.newChargesAria(row.code)} inputMode="decimal" placeholder={t.leases.dialogs.chargesPlaceholder} className="w-32" value={row.charges} onChange={(event) => edit(row.unitId, { charges: event.target.value })} />
           </div>
         ))}
-        <FieldDescription>Laissez les montants tels quels pour garder les loyers actuels.</FieldDescription>
+        <FieldDescription>{t.leases.dialogs.keepAmounts}</FieldDescription>
       </div>
       <Field>
-        <FieldLabel htmlFor="renew-note">Note (facultatif)</FieldLabel>
+        <FieldLabelWithHelp htmlFor="renew-note" help={t.leases.dialogs.noteHelp}>
+          {t.leases.dialogs.note}
+        </FieldLabelWithHelp>
         <Input id="renew-note" value={note} onChange={(event) => setNote(event.target.value)} />
       </Field>
     </LeaseActionDialog>
@@ -115,29 +125,34 @@ export function RenewDialog({ lease, trigger, onDone }: { lease: RenewLease; tri
 type EndLease = Pick<LeaseDetails, 'id' | 'start_date'>;
 
 export function EndDialog({ lease, trigger, onDone }: { lease: EndLease; trigger: ReactNode; onDone: () => void }) {
+  const t = useT();
   const bounds = endDateBounds(lease.start_date, todayTunis());
   const [endedOn, setEndedOn] = useState(bounds.initial);
   const [reason, setReason] = useState<EndReason>('terminated_by_renter');
   return (
     <LeaseActionDialog
       trigger={trigger}
-      title="Terminer le bail"
-      description="Le locataire est parti : le bail passe en « Terminé » et les unités redeviennent disponibles. L’état des lieux de sortie et le dépôt de garantie se traitent ensuite."
-      submitLabel="Terminer le bail"
+      title={t.leases.dialogs.endTitle}
+      description={t.leases.dialogs.endDescription}
+      submitLabel={t.leases.dialogs.endSubmit}
       disabled={!endedOn}
       onSubmit={async () => {
         await graphql(END, { id: lease.id, on: endedOn, reason });
-        toast.success('Bail terminé');
+        toast.success(t.leases.dialogs.ended);
         onDone();
       }}
     >
       <Field>
-        <FieldLabel htmlFor="end-date">Date de départ</FieldLabel>
+        <FieldLabelWithHelp htmlFor="end-date" help={t.leases.dialogs.departureHelp}>
+          {t.leases.dialogs.departure}
+        </FieldLabelWithHelp>
         <Input id="end-date" type="date" required min={bounds.min} max={bounds.max} value={endedOn} onChange={(event) => setEndedOn(event.target.value)} className="w-48" />
-        <FieldDescription>{bounds.max ? 'Au plus tard aujourd’hui.' : 'Le bail n’a pas encore commencé : il sera annulé à sa date de début.'}</FieldDescription>
+        <FieldDescription>{bounds.max ? t.leases.dialogs.latestToday : t.leases.dialogs.notStarted}</FieldDescription>
       </Field>
       <Field>
-        <FieldLabel htmlFor="end-reason">Motif</FieldLabel>
+        <FieldLabelWithHelp htmlFor="end-reason" help={t.leases.dialogs.reasonHelp}>
+          {t.leases.dialogs.reason}
+        </FieldLabelWithHelp>
         <Select value={reason} onValueChange={(value) => setReason(value as EndReason)}>
           <SelectTrigger id="end-reason" className="w-full">
             <SelectValue />
@@ -145,7 +160,7 @@ export function EndDialog({ lease, trigger, onDone }: { lease: EndLease; trigger
           <SelectContent>
             {ENDABLE_REASONS.map((value) => (
               <SelectItem key={value} value={value}>
-                {END_REASON_LABELS[value]}
+                {t.leases.endReasons[value]}
               </SelectItem>
             ))}
           </SelectContent>

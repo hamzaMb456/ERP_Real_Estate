@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatArea, formatTnd } from '@/lib/format';
 
+import { useT } from '@/i18n/provider';
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
     <HoverLift className="h-full rounded-xl">
@@ -25,6 +26,7 @@ function Stat({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function PropertyOverview({ property, units }: { property: PropertyDetails; units: PropertyUnit[] }) {
+  const t = useT();
   const rented = units.filter((unit) => unit.status === 'rented');
   const occupancy = units.length === 0 ? 0 : Math.round((rented.length / units.length) * 100);
   const rentTotal = rented.reduce((sum, unit) => sum + Number(unit.rent_amount ?? 0), 0);
@@ -34,17 +36,17 @@ export function PropertyOverview({ property, units }: { property: PropertyDetail
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Unités">
+        <Stat label={t.properties.overview.units}>
           <AnimatedNumber value={units.length} />
         </Stat>
-        <Stat label="Taux d’occupation">
+        <Stat label={t.properties.overview.occupancy}>
           <AnimatedNumber value={occupancy} format={(n) => Math.round(n) + ' %'} />
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
             <GrowBar percent={occupancy} className="bg-primary" />
           </div>
         </Stat>
-        <Stat label="Loyers mensuels">{formatTnd(rentTotal)}</Stat>
-        <Stat label="Surface totale">{formatArea(surfaceTotal)}</Stat>
+        <Stat label={t.properties.overview.monthlyRents}>{formatTnd(rentTotal)}</Stat>
+        <Stat label={t.properties.overview.totalSurface}>{formatArea(surfaceTotal)}</Stat>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -52,16 +54,16 @@ export function PropertyOverview({ property, units }: { property: PropertyDetail
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <MapPin className="size-4 text-muted-foreground" aria-hidden />
-              Adresse
+              {t.properties.overview.address}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            {address ? <p className="font-medium">{address}</p> : <p className="text-muted-foreground">Adresse non renseignée.</p>}
+            {address ? <p className="font-medium">{address}</p> : <p className="text-muted-foreground">{t.properties.overview.noAddress}</p>}
             {property.latitude !== null && property.longitude !== null ? (
               <LocationPicker value={{ lat: Number(property.latitude), lon: Number(property.longitude) }} className="h-48" />
             ) : (
               <Button asChild variant="outline" size="sm">
-                <Link href={'/biens/' + property.id + '/modifier'}>Placer sur la carte</Link>
+                <Link href={'/biens/' + property.id + '/modifier'}>{t.properties.overview.placeOnMap}</Link>
               </Button>
             )}
           </CardContent>
@@ -71,12 +73,12 @@ export function PropertyOverview({ property, units }: { property: PropertyDetail
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Users className="size-4 text-muted-foreground" aria-hidden />
-              Propriétaires
+              {t.properties.overview.owners}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
             {property.owners.length === 0 ? (
-              <p className="text-muted-foreground">Aucun propriétaire enregistré. Définissez-le depuis l’onglet Unités.</p>
+              <p className="text-muted-foreground">{t.properties.overview.noOwners}</p>
             ) : (
               <ul className="divide-y">
                 {property.owners.map((owner) => (
@@ -86,13 +88,13 @@ export function PropertyOverview({ property, units }: { property: PropertyDetail
                         {owner.contact.full_name}
                       </Link>
                       {owner.contact.is_organization && (
-                        <Badge variant="secondary" className="ml-2">
-                          Votre société
+                        <Badge variant="secondary" className="ms-2">
+                          {t.properties.overview.yourCompany}
                         </Badge>
                       )}
                     </span>
                     <span className="shrink-0 text-muted-foreground tabular-nums">
-                      {owner.units_count} unité{owner.units_count > 1 ? 's' : ''}
+                      {t.properties.overview.unitCount(owner.units_count)}
                     </span>
                   </li>
                 ))}

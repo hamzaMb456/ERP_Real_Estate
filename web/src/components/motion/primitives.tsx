@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, type PointerEvent, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -8,11 +8,15 @@ import {
   animate,
   motion,
   useInView,
+  useMotionValue,
   useReducedMotion,
   useScroll,
+  useSpring,
+  useTransform,
   type Variants,
 } from 'motion/react';
 import { motionTokens, springs } from '@/lib/motion-tokens';
+import { useT } from '@/i18n/provider';
 
 export function MotionProvider({ children }: { children: ReactNode }) {
   return <MotionConfig reducedMotion="user">{children}</MotionConfig>;
@@ -24,8 +28,8 @@ export const staggerContainer: Variants = {
 };
 
 export const staggerItem: Variants = {
-  hidden: { opacity: 0, y: motionTokens.distance.md },
-  visible: { opacity: 1, y: 0, transition: springs.gentle },
+  hidden: { opacity: 0, y: motionTokens.distance.lg, scale: 0.92 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: springs.gentle },
 };
 
 export const pressable = {
@@ -94,12 +98,37 @@ export function StaggerItem({ children, className }: { children: ReactNode; clas
   );
 }
 
+const TILT_DEGREES = 8;
+const TILT_SPRING = { stiffness: 220, damping: 20, mass: 0.6 };
+
+/** Card that lifts, scales and tilts in 3D toward the pointer. */
 export function HoverLift({ children, className }: { children: ReactNode; className?: string }) {
+  const reduce = useReducedMotion();
+  const pointerX = useMotionValue(0);
+  const pointerY = useMotionValue(0);
+  const rotateX = useSpring(useTransform(pointerY, [-0.5, 0.5], [TILT_DEGREES, -TILT_DEGREES]), TILT_SPRING);
+  const rotateY = useSpring(useTransform(pointerX, [-0.5, 0.5], [-TILT_DEGREES, TILT_DEGREES]), TILT_SPRING);
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (reduce || event.pointerType === 'touch') return;
+    const box = event.currentTarget.getBoundingClientRect();
+    pointerX.set((event.clientX - box.left) / box.width - 0.5);
+    pointerY.set((event.clientY - box.top) / box.height - 0.5);
+  }
+
+  function handlePointerLeave() {
+    pointerX.set(0);
+    pointerY.set(0);
+  }
+
   return (
     <motion.div
-      className={'transition-shadow duration-200 hover:shadow-lg ' + (className ?? '')}
-      whileHover={{ y: -3 }}
+      className={'transition-shadow duration-300 hover:shadow-2xl ' + (className ?? '')}
+      style={reduce ? undefined : { rotateX, rotateY, transformPerspective: 900 }}
+      whileHover={{ y: -6, scale: 1.02 }}
       transition={springs.snappy}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
     >
       {children}
     </motion.div>
@@ -131,16 +160,17 @@ export function SkeletonList({
   count,
   itemClassName,
   className,
-  label = 'Chargement…',
+  label,
 }: {
   count: number;
   itemClassName: string;
   className?: string;
   label?: string;
 }) {
+  const t = useT();
   return (
     <div role="status" aria-live="polite" className={className}>
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{label ?? t.common.loading}</span>
       {Array.from({ length: count }, (_, index) => (
         <Pulse key={index} className={itemClassName} delay={index * 0.1} />
       ))}
@@ -191,7 +221,7 @@ export function AnimatedNumber({
 export function GrowBar({ percent, className }: { percent: number; className?: string }) {
   return (
     <motion.div
-      className={'h-full origin-left rounded-full ' + (className ?? 'bg-emerald-600')}
+      className={'h-full origin-left rounded-full ' + (className ?? 'bg-primary')}
       style={{ width: '100%' }}
       initial={{ scaleX: 0 }}
       whileInView={{ scaleX: Math.max(0, Math.min(100, percent)) / 100 }}
@@ -218,9 +248,9 @@ export function PageTransition({ children }: { children: ReactNode }) {
     <motion.div
       key={pathname}
       className="space-y-6"
-      initial={{ opacity: 0, y: motionTokens.distance.sm }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: motionTokens.duration.normal, ease: motionTokens.easing.smooth }}
+      initial={{ opacity: 0, y: motionTokens.distance.lg, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: motionTokens.duration.slow, ease: motionTokens.easing.smooth }}
     >
       {children}
     </motion.div>

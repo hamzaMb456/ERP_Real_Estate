@@ -16,12 +16,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { graphql } from '@/lib/graphql';
 import { springs } from '@/lib/motion-tokens';
 import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { getMessages } from '@/i18n/store';
+import { useT } from '@/i18n/provider';
 const CONTACT_QUERY = `
   query Contact($id: uuid!) {
     contact: contacts_by_pk(id: $id) {
@@ -51,8 +53,6 @@ type ContactDetails = {
   roles: { role: ContactRole }[];
 };
 
-const BUYER_LATER_MODULE = 'Les offres et achats apparaîtront ici avec le module Ventes.';
-
 function initials(name: string): string {
   return name
     .split(/\s+/)
@@ -63,11 +63,12 @@ function initials(name: string): string {
 }
 
 async function copy(value: string, label: string) {
+  const t = getMessages().contacts.detail;
   try {
     await navigator.clipboard.writeText(value);
-    toast.success(label + ' copié');
+    toast.success(t.copied(label));
   } catch {
-    toast.error('Copie impossible', { description: 'Le navigateur a refusé l’accès au presse-papiers.' });
+    toast.error(t.copyFailed, { description: t.clipboardDenied });
   }
 }
 
@@ -84,6 +85,7 @@ function InfoRow({
   href?: string;
   copyLabel?: string;
 }) {
+  const t = useT();
   return (
     <div className="space-y-1">
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
@@ -101,16 +103,16 @@ function InfoRow({
             {copyLabel && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" aria-label={'Copier ' + copyLabel} onClick={() => void copy(value, copyLabel)}>
+                  <Button variant="ghost" size="icon-xs" aria-label={t.contacts.detail.copyAria(copyLabel)} onClick={() => void copy(value, copyLabel)}>
                     <Copy />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Copier</TooltipContent>
+                <TooltipContent>{t.contacts.detail.copy}</TooltipContent>
               </Tooltip>
             )}
           </>
         ) : (
-          <span className="text-muted-foreground">Non renseigné</span>
+          <span className="text-muted-foreground">{t.contacts.detail.notProvided}</span>
         )}
       </dd>
     </div>
@@ -118,17 +120,19 @@ function InfoRow({
 }
 
 function BackLink() {
+  const t = useT();
   return (
-    <Button asChild variant="ghost" size="sm" className="-ml-2">
+    <Button asChild variant="ghost" size="sm" className="-ms-2">
       <Link href="/contacts">
-        <ArrowLeft data-icon="inline-start" />
-        Retour aux contacts
+        <ArrowLeft data-icon="inline-start" className="rtl:-scale-x-100" />
+        {t.contacts.backToList}
       </Link>
     </Button>
   );
 }
 
 export default function ContactDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const canEdit = useCanEdit();
   const [reload, setReload] = useState(0);
@@ -139,7 +143,7 @@ export default function ContactDetailPage() {
     return (
       <div className="space-y-6">
         <BackLink />
-        <Pulse className="text-sm text-muted-foreground">Chargement du contact…</Pulse>
+        <Pulse className="text-sm text-muted-foreground">{t.contacts.detail.loading}</Pulse>
       </div>
     );
   }
@@ -149,7 +153,7 @@ export default function ContactDetailPage() {
       <div className="space-y-6">
         <BackLink />
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger ce contact : {result.message}
+          {t.contacts.detail.loadError(result.message)}
         </p>
       </div>
     );
@@ -165,8 +169,8 @@ export default function ContactDetailPage() {
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <UserX className="size-5" />
             </span>
-            <p className="font-medium">Contact introuvable</p>
-            <p className="text-sm text-muted-foreground">Cette fiche n’existe pas ou a été supprimée.</p>
+            <p className="font-medium">{t.contacts.detail.notFoundTitle}</p>
+            <p className="text-sm text-muted-foreground">{t.contacts.detail.notFoundBody}</p>
           </CardContent>
         </Card>
       </div>
@@ -181,10 +185,10 @@ export default function ContactDetailPage() {
     setArchiving(true);
     try {
       await graphql(SET_ARCHIVED, { id: current.id, archived_at: archived ? null : new Date().toISOString() });
-      toast.success(archived ? 'Contact restauré' : 'Contact archivé', { description: current.full_name });
+      toast.success(archived ? t.contacts.detail.restoredToast : t.contacts.detail.archivedToast, { description: current.full_name });
       setReload((value) => value + 1);
     } catch (error) {
-      toast.error('Action impossible', { description: toFrenchError(error) });
+      toast.error(t.contacts.detail.actionFailed, { description: toUserMessage(error) });
     } finally {
       setArchiving(false);
     }
@@ -209,15 +213,15 @@ export default function ContactDetailPage() {
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight">{current.full_name}</h1>
                   <p className="text-sm text-muted-foreground">
-                    {current.kind === 'company' ? 'Société' : 'Personne'}
-                    {current.is_organization && ' · votre société'}
+                    {t.contacts.kinds[current.kind]}
+                    {current.is_organization && t.contacts.orgSuffix}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {current.roles.map((item) => (
                     <RoleBadge key={item.role} role={item.role} />
                   ))}
-                  {archived && <Badge variant="secondary">Archivé</Badge>}
+                  {archived && <Badge variant="secondary">{t.contacts.archivedBadge}</Badge>}
                 </div>
               </div>
             </div>
@@ -226,7 +230,7 @@ export default function ContactDetailPage() {
                 <Button asChild variant="outline">
                   <Link href={'/contacts/' + current.id + '/modifier'}>
                     <Pencil data-icon="inline-start" />
-                    Modifier
+                    {t.common.edit}
                   </Link>
                 </Button>
                 {!current.is_organization && (
@@ -238,7 +242,7 @@ export default function ContactDetailPage() {
                     ) : (
                       <Archive data-icon="inline-start" />
                     )}
-                    {archived ? 'Restaurer' : 'Archiver'}
+                    {archived ? t.contacts.detail.restore : t.contacts.detail.archive}
                   </Button>
                 )}
               </div>
@@ -250,14 +254,14 @@ export default function ContactDetailPage() {
       <StaggerItem>
         <Card>
           <CardHeader>
-            <CardTitle>Coordonnées</CardTitle>
+            <CardTitle>{t.contacts.detail.coordinates}</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <InfoRow label="Téléphone" icon={Phone} value={current.phone} href={current.phone ? 'tel:' + current.phone.replace(/\s/g, '') : undefined} copyLabel="le téléphone" />
-              <InfoRow label="E-mail" icon={Mail} value={current.email} href={current.email ? 'mailto:' + current.email : undefined} copyLabel="l’e-mail" />
-              <InfoRow label={current.kind === 'company' ? 'Matricule fiscal' : 'CIN (identité)'} icon={IdCard} value={current.national_id} />
-              <InfoRow label="Adresse" icon={MapPin} value={current.address} />
+              <InfoRow label={t.contacts.detail.phone} icon={Phone} value={current.phone} href={current.phone ? 'tel:' + current.phone.replace(/\s/g, '') : undefined} copyLabel={t.contacts.detail.copyPhone} />
+              <InfoRow label={t.contacts.detail.email} icon={Mail} value={current.email} href={current.email ? 'mailto:' + current.email : undefined} copyLabel={t.contacts.detail.copyEmail} />
+              <InfoRow label={current.kind === 'company' ? t.contacts.detail.taxId : t.contacts.detail.nationalId} icon={IdCard} value={current.national_id} />
+              <InfoRow label={t.contacts.detail.address} icon={MapPin} value={current.address} />
             </dl>
           </CardContent>
         </Card>
@@ -276,15 +280,15 @@ export default function ContactDetailPage() {
                       <span className={'flex size-7 items-center justify-center rounded-md ' + (active ? role.tile : 'bg-muted text-muted-foreground')}>
                         <Icon className="size-4" />
                       </span>
-                      {role.label}
+                      {t.labels.contactRoles[role.value].label}
                     </CardTitle>
-                    <CardDescription>{active ? 'Rôle actif' : 'Non applicable'}</CardDescription>
+                    <CardDescription>{active ? t.contacts.detail.roleActive : t.contacts.detail.roleInactive}</CardDescription>
                   </CardHeader>
                   <CardContent className="text-sm text-muted-foreground">
-                    {!active && 'Ce contact n’a pas ce rôle.'}
+                    {!active && t.contacts.detail.noRole}
                     {active && role.value === 'owner' && <ContactOwnedUnits contactId={current.id} />}
                     {active && role.value === 'renter' && <ContactRenterLeases contactId={current.id} />}
-                    {active && role.value === 'buyer' && BUYER_LATER_MODULE}
+                    {active && role.value === 'buyer' && t.contacts.detail.buyerLater}
                   </CardContent>
                 </Card>
               </HoverLift>
@@ -306,14 +310,14 @@ export default function ContactDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText className="size-4 text-muted-foreground" />
-              Notes
+              {t.contacts.detail.notes}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {current.notes ? (
               <p className="whitespace-pre-line text-sm leading-relaxed">{current.notes}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">Aucune note pour ce contact.</p>
+              <p className="text-sm text-muted-foreground">{t.contacts.detail.noNotes}</p>
             )}
           </CardContent>
         </Card>

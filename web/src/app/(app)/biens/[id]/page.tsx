@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, ArrowLeft, Loader2, Pencil, Plus, SearchX } from 'lucide-react';
 import { toast } from 'sonner';
-import { PROPERTY_TYPES } from '@/components/domain/labels';
 import { CommonAreasTab } from '@/components/common-areas/common-areas-tab';
 import { UnitDialog } from '@/components/domain/unit-dialog';
 import { DocumentList } from '@/components/files/document-list';
@@ -18,12 +17,13 @@ import type { PropertyDetails } from '@/components/property/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { graphql } from '@/lib/graphql';
 import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 import { useHashTab } from '@/lib/use-hash';
 
+import { useT } from '@/i18n/provider';
 const PROPERTY_QUERY = `
   query Property($id: uuid!) {
     property: properties_by_pk(id: $id) {
@@ -49,17 +49,19 @@ const PROPERTY_TABS = ['apercu', 'unites', 'photos', 'documents', 'parties-commu
 type PropertyTab = (typeof PROPERTY_TABS)[number];
 
 function BackLink() {
+  const t = useT();
   return (
-    <Button asChild variant="ghost" size="sm" className="-ml-2">
+    <Button asChild variant="ghost" size="sm" className="-ms-2">
       <Link href="/biens">
-        <ArrowLeft data-icon="inline-start" />
-        Retour aux biens
+        <ArrowLeft data-icon="inline-start" className="rtl:-scale-x-100" />
+        {t.properties.backToList}
       </Link>
     </Button>
   );
 }
 
 export default function PropertyDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const canEdit = useCanEdit();
   const [tab, setTab] = useHashTab(PROPERTY_TABS, 'apercu');
@@ -72,7 +74,7 @@ export default function PropertyDetailPage() {
     return (
       <div className="space-y-6">
         <BackLink />
-        <Pulse className="text-sm text-muted-foreground">Chargement du bien…</Pulse>
+        <Pulse className="text-sm text-muted-foreground">{t.properties.detail.loading}</Pulse>
       </div>
     );
   }
@@ -82,7 +84,7 @@ export default function PropertyDetailPage() {
       <div className="space-y-6">
         <BackLink />
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger ce bien : {result.message}
+          {t.properties.detail.loadError(result.message)}
         </p>
       </div>
     );
@@ -98,8 +100,8 @@ export default function PropertyDetailPage() {
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <SearchX className="size-5" />
             </span>
-            <p className="font-medium">Bien introuvable</p>
-            <p className="text-sm text-muted-foreground">Cette fiche n’existe pas ou vous n’y avez pas accès.</p>
+            <p className="font-medium">{t.properties.detail.notFoundTitle}</p>
+            <p className="text-sm text-muted-foreground">{t.properties.detail.notFoundBody}</p>
           </CardContent>
         </Card>
       </div>
@@ -114,10 +116,10 @@ export default function PropertyDetailPage() {
     setArchiving(true);
     try {
       await graphql(SET_ARCHIVED, { id: current.id, archived_at: archived ? null : new Date().toISOString() });
-      toast.success(archived ? 'Bien restauré' : 'Bien archivé', { description: current.name });
+      toast.success(archived ? t.properties.detail.restoredToast : t.properties.detail.archivedToast, { description: current.name });
       refresh();
     } catch (error) {
-      toast.error('Action impossible', { description: toFrenchError(error) });
+      toast.error(t.properties.detail.actionFailed, { description: toUserMessage(error) });
     } finally {
       setArchiving(false);
     }
@@ -133,9 +135,9 @@ export default function PropertyDetailPage() {
         <PageHeader
           title={current.name}
           description={
-            (PROPERTY_TYPES[current.type] ?? current.type) +
-            (current.branch ? ' · Succursale ' + current.branch.name : '') +
-            (archived ? ' · Archivé' : '')
+            (t.labels.propertyTypes[current.type] ?? current.type) +
+            (current.branch ? t.properties.detail.branchSuffix(current.branch.name) : '') +
+            (archived ? t.properties.detail.archivedSuffix : '')
           }
           actions={
             canEdit && (
@@ -143,7 +145,7 @@ export default function PropertyDetailPage() {
                 <Button asChild variant="outline">
                   <Link href={'/biens/' + current.id + '/modifier'}>
                     <Pencil data-icon="inline-start" />
-                    Modifier
+                    {t.common.edit}
                   </Link>
                 </Button>
                 <Button variant="outline" onClick={() => void toggleArchive()} disabled={archiving}>
@@ -154,7 +156,7 @@ export default function PropertyDetailPage() {
                   ) : (
                     <Archive data-icon="inline-start" />
                   )}
-                  {archived ? 'Restaurer' : 'Archiver'}
+                  {archived ? t.properties.detail.restore : t.properties.detail.archive}
                 </Button>
                 {!archived && current.type === 'building' && (
                   <UnitDialog
@@ -162,7 +164,7 @@ export default function PropertyDetailPage() {
                     trigger={
                       <Button>
                         <Plus data-icon="inline-start" />
-                        Ajouter une unité
+                        {t.properties.detail.addUnit}
                       </Button>
                     }
                     onSaved={refresh}
@@ -177,11 +179,11 @@ export default function PropertyDetailPage() {
       <StaggerItem>
         <Tabs value={tab} onValueChange={(value) => setTab(value as PropertyTab)}>
           <TabsList className="h-auto flex-wrap">
-            <TabsTrigger value="apercu">Aperçu</TabsTrigger>
-            <TabsTrigger value="unites">Unités ({units.length})</TabsTrigger>
-            <TabsTrigger value="photos">Photos</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            {current.type === 'building' && <TabsTrigger value="parties-communes">Parties communes</TabsTrigger>}
+            <TabsTrigger value="apercu">{t.properties.detail.tabOverview}</TabsTrigger>
+            <TabsTrigger value="unites">{t.properties.detail.tabUnits(units.length)}</TabsTrigger>
+            <TabsTrigger value="photos">{t.properties.detail.tabPhotos}</TabsTrigger>
+            <TabsTrigger value="documents">{t.properties.detail.tabDocuments}</TabsTrigger>
+            {current.type === 'building' && <TabsTrigger value="parties-communes">{t.properties.detail.tabCommonAreas}</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="apercu" className="pt-4">

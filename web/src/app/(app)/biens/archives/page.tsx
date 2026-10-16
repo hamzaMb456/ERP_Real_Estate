@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArchiveRestore, ArchiveX, ArrowLeft, Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PROPERTY_TYPES } from '@/components/domain/labels';
 import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { graphql } from '@/lib/graphql';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
+import { getIntlLocale } from '@/i18n/store';
 const ARCHIVED_QUERY = `
   query ArchivedProperties {
     properties(where: { archived_at: { _is_null: false } }, order_by: { archived_at: desc }) {
@@ -40,9 +41,12 @@ type ArchivedProperty = {
   units_aggregate: { aggregate: { count: number } | null };
 };
 
-const dateFormat = new Intl.DateTimeFormat('fr-TN', { day: '2-digit', month: 'long', year: 'numeric' });
+function longDate(iso: string): string {
+  return new Intl.DateTimeFormat(getIntlLocale(), { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(iso));
+}
 
 export default function ArchivedPropertiesPage() {
+  const t = useT();
   const [reload, setReload] = useState(0);
   const [restoring, setRestoring] = useState<string | null>(null);
   const result = useGraphql<{ properties: ArchivedProperty[] }>(ARCHIVED_QUERY, undefined, reload);
@@ -51,10 +55,10 @@ export default function ArchivedPropertiesPage() {
     setRestoring(property.id);
     try {
       await graphql(RESTORE, { id: property.id });
-      toast.success('Bien restauré', { description: property.name });
+      toast.success(t.properties.archives.restoredToast, { description: property.name });
       setReload((value) => value + 1);
     } catch (error) {
-      toast.error('Restauration impossible', { description: error instanceof Error ? error.message : 'Erreur inconnue.' });
+      toast.error(t.properties.archives.restoreFailed, { description: error instanceof Error ? error.message : t.common.unknownError });
     } finally {
       setRestoring(null);
     }
@@ -63,28 +67,28 @@ export default function ArchivedPropertiesPage() {
   return (
     <Stagger className="space-y-6">
       <StaggerItem>
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
+        <Button asChild variant="ghost" size="sm" className="-ms-2">
           <Link href="/biens">
-            <ArrowLeft data-icon="inline-start" />
-            Retour aux biens
+            <ArrowLeft data-icon="inline-start" className="rtl:-scale-x-100" />
+            {t.properties.backToList}
           </Link>
         </Button>
       </StaggerItem>
 
       <StaggerItem>
         <PageHeader
-          title="Biens archivés"
-          description="Les biens archivés n’apparaissent plus dans la liste principale. Restaurez-les pour les réactiver."
+          title={t.properties.archives.title}
+          description={t.properties.archives.description}
         />
       </StaggerItem>
 
       {result.status === 'loading' && (
-        <SkeletonList count={3} className="space-y-3" itemClassName="h-20 rounded-xl bg-muted" label="Chargement des biens archivés…" />
+        <SkeletonList count={3} className="space-y-3" itemClassName="h-20 rounded-xl bg-muted" label={t.properties.archives.loading} />
       )}
 
       {result.status === 'error' && (
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger les biens archivés : {result.message}
+          {t.properties.archives.loadError(result.message)}
         </p>
       )}
 
@@ -95,8 +99,8 @@ export default function ArchivedPropertiesPage() {
               <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <ArchiveX className="size-5" />
               </span>
-              <p className="font-medium">Aucun bien archivé</p>
-              <p className="text-sm text-muted-foreground">Les biens que vous archivez apparaîtront ici.</p>
+              <p className="font-medium">{t.properties.archives.emptyTitle}</p>
+              <p className="text-sm text-muted-foreground">{t.properties.archives.emptyBody}</p>
             </CardContent>
           </Card>
         </StaggerItem>
@@ -116,9 +120,9 @@ export default function ArchivedPropertiesPage() {
                       {property.name}
                     </Link>
                     <p className="text-xs text-muted-foreground">
-                      {PROPERTY_TYPES[property.type] ?? property.type}
-                      {property.city ? ' · ' + property.city : ''} · {property.units_aggregate.aggregate?.count ?? 0} unités · archivé le{' '}
-                      {dateFormat.format(new Date(property.archived_at))}
+                      {t.labels.propertyTypes[property.type] ?? property.type}
+                      {property.city ? ' · ' + property.city : ''} · {t.properties.archives.unitCount(property.units_aggregate.aggregate?.count ?? 0)} ·{' '}
+                      {t.properties.archives.archivedOn(longDate(property.archived_at))}
                     </p>
                   </div>
                 </div>
@@ -128,7 +132,7 @@ export default function ArchivedPropertiesPage() {
                   ) : (
                     <ArchiveRestore data-icon="inline-start" />
                   )}
-                  Restaurer
+                  {t.properties.archives.restore}
                 </Button>
               </CardContent>
             </Card>

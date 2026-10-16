@@ -5,7 +5,9 @@ import { Upload } from 'lucide-react';
 import { ACCEPT_ATTR, formatsLabel, type FileKind } from '@/lib/files';
 import { cn } from '@/lib/utils';
 
+import { useT } from '@/i18n/provider';
 export function FileDrop({ kind, disabled = false, onFiles }: { kind: FileKind; disabled?: boolean; onFiles: (files: File[]) => void }) {
+  const t = useT();
   const [over, setOver] = useState(false);
   const inputId = useId();
 
@@ -29,8 +31,8 @@ export function FileDrop({ kind, disabled = false, onFiles }: { kind: FileKind; 
       )}
     >
       <Upload className="size-6 text-muted-foreground" aria-hidden />
-      <span className="font-medium">Déposez vos fichiers ici ou cliquez pour choisir</span>
-      <span className="text-xs text-muted-foreground">{formatsLabel(kind)} · 10 Mo maximum par fichier</span>
+      <span className="font-medium">{t.files.drop.title}</span>
+      <span className="text-xs text-muted-foreground">{t.files.drop.limit(formatsLabel(kind))}</span>
       <input
         id={inputId}
         type="file"

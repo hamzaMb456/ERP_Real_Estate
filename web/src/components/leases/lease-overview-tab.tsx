@@ -6,12 +6,14 @@ import { TermsTimeline } from '@/components/leases/terms-timeline';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatTnd } from '@/lib/format';
 import { todayTunis } from '@/lib/dates';
-import { END_REASON_LABELS, isPastGrace } from '@/lib/leases';
-import { formatDateFr } from '@/lib/ownership';
+import { isPastGrace } from '@/lib/leases';
+import { formatDate } from '@/lib/ownership';
 
+import { useT } from '@/i18n/provider';
 type Props = { lease: LeaseDetails; canEdit: boolean; onChanged: () => void };
 
 export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
+  const t = useT();
   const renters = lease.parties.filter((party) => party.role === 'renter');
   const guarantors = lease.parties.filter((party) => party.role === 'guarantor');
   const owners = new Map<string, { name: string; units: string[] }>();
@@ -29,8 +31,7 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
         <div className="flex items-start gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
           <p>
-            Ce bail est échu depuis le {formatDateFr(lease.end_date)}. Renouvelez-le ou terminez-le : il expirera automatiquement dans{' '}
-            {lease.overview.grace_days_left ?? 0} jour(s) et ses unités seront libérées.
+            {t.leases.overview.graceNotice(formatDate(lease.end_date), lease.overview.grace_days_left ?? 0)}
           </p>
         </div>
       )}
@@ -39,7 +40,7 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
         <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
           <p>
-            Ce bail est échu depuis le {formatDateFr(lease.end_date)} et la semaine de grâce est passée. Renouvelez-le ou terminez-le : son unité reste marquée louée tant que le bail est actif.
+            {t.leases.overview.pastGraceNotice(formatDate(lease.end_date))}
           </p>
         </div>
       )}
@@ -47,34 +48,34 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Conditions</CardTitle>
+            <CardTitle className="text-base">{t.leases.overview.conditions}</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-xs font-medium text-muted-foreground">Période</dt>
+                <dt className="text-xs font-medium text-muted-foreground">{t.leases.overview.period}</dt>
                 <dd className="font-medium">
-                  {formatDateFr(lease.start_date)} → {formatDateFr(lease.end_date)}
+                  {formatDate(lease.start_date)} {t.common.arrow} {formatDate(lease.end_date)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium text-muted-foreground">Jour de paiement</dt>
-                <dd className="font-medium">Le {lease.payment_day} de chaque mois</dd>
+                <dt className="text-xs font-medium text-muted-foreground">{t.leases.overview.payDay}</dt>
+                <dd className="font-medium">{t.leases.overview.payDayValue(lease.payment_day)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium text-muted-foreground">Dépôt de garantie</dt>
+                <dt className="text-xs font-medium text-muted-foreground">{t.leases.overview.deposit}</dt>
                 <dd className="font-medium tabular-nums">{formatTnd(lease.deposit_amount)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium text-muted-foreground">Signé le</dt>
-                <dd className="font-medium">{lease.signed_at ? formatDateFr(lease.signed_at) : '—'}</dd>
+                <dt className="text-xs font-medium text-muted-foreground">{t.leases.overview.signedOn}</dt>
+                <dd className="font-medium">{lease.signed_at ? formatDate(lease.signed_at) : '—'}</dd>
               </div>
               {lease.ended_on && (
                 <div className="col-span-2">
-                  <dt className="text-xs font-medium text-muted-foreground">Fin du bail</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t.leases.overview.leaseEnd}</dt>
                   <dd className="font-medium">
-                    Le {formatDateFr(lease.ended_on)}
-                    {lease.end_reason ? ' · ' + END_REASON_LABELS[lease.end_reason] : ''}
+                    {t.common.on(formatDate(lease.ended_on))}
+                    {lease.end_reason ? ' · ' + t.leases.endReasons[lease.end_reason] : ''}
                   </dd>
                 </div>
               )}
@@ -84,16 +85,16 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Locataires et garants</CardTitle>
+            <CardTitle className="text-base">{t.leases.overview.partiesTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            {[...renters.map((party) => ({ ...party, label: 'Locataire' })), ...guarantors.map((party) => ({ ...party, label: 'Garant' }))].map((party) => (
+            {[...renters.map((party) => ({ ...party, label: t.leases.overview.renter })), ...guarantors.map((party) => ({ ...party, label: t.leases.overview.guarantor }))].map((party) => (
               <div key={party.contact.id} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Link href={'/contacts/' + party.contact.id} className="font-medium text-primary hover:underline">
                     {party.contact.full_name}
                   </Link>
-                  <p className="truncate text-xs text-muted-foreground">{[party.contact.phone, party.contact.email].filter(Boolean).join(' · ') || 'Aucune coordonnée'}</p>
+                  <p className="truncate text-xs text-muted-foreground">{[party.contact.phone, party.contact.email].filter(Boolean).join(' · ') || t.leases.overview.noContactInfo}</p>
                 </div>
                 <span className="shrink-0 text-xs text-muted-foreground">{party.label}</span>
               </div>
@@ -103,8 +104,8 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Unités</CardTitle>
-            <CardDescription>Loyer et charges en vigueur aujourd’hui.</CardDescription>
+            <CardTitle className="text-base">{t.leases.overview.units}</CardTitle>
+            <CardDescription>{t.leases.overview.unitsDescription}</CardDescription>
           </CardHeader>
           <CardContent className="divide-y text-sm">
             {lease.units.map(({ unit }) => {
@@ -117,12 +118,12 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
                     </Link>
                     <p className="text-xs text-muted-foreground">{unit.property.name}</p>
                   </div>
-                  <div className="text-right tabular-nums">
+                  <div className="text-end tabular-nums">
                     <p className="font-medium">{rent ? formatTnd(rent.rent_amount) : '—'}</p>
-                    {rent && Number(rent.charges_amount) > 0 && <p className="text-xs text-muted-foreground">+ {formatTnd(rent.charges_amount)} de charges</p>}
+                    {rent && Number(rent.charges_amount) > 0 && <p className="text-xs text-muted-foreground">{t.leases.overview.plusCharges(formatTnd(rent.charges_amount))}</p>}
                     {rent?.next_change_on && rent.next_rent_amount !== null && (
                       <p className="text-xs text-muted-foreground">
-                        {formatTnd(rent.next_rent_amount)} dès le {formatDateFr(rent.next_change_on)}
+                        {t.leases.overview.nextRent(formatTnd(rent.next_rent_amount), formatDate(rent.next_change_on))}
                       </p>
                     )}
                   </div>
@@ -134,11 +135,11 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Bailleur</CardTitle>
-            <CardDescription>Propriétaire actuel des unités louées.</CardDescription>
+            <CardTitle className="text-base">{t.leases.overview.landlord}</CardTitle>
+            <CardDescription>{t.leases.overview.landlordDescription}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {owners.size === 0 && <p className="text-muted-foreground">Aucun propriétaire renseigné.</p>}
+            {owners.size === 0 && <p className="text-muted-foreground">{t.leases.overview.noOwner}</p>}
             {[...owners.entries()].map(([id, owner]) => (
               <div key={id} className="flex items-center justify-between gap-3">
                 <Link href={'/contacts/' + id} className="font-medium text-primary hover:underline">
@@ -155,7 +156,7 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
         <RegistrationCard lease={lease} canEdit={canEdit} onChanged={onChanged} />
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Durées</CardTitle>
+            <CardTitle className="text-base">{t.leases.overview.terms}</CardTitle>
           </CardHeader>
           <CardContent>
             <TermsTimeline lease={lease} />

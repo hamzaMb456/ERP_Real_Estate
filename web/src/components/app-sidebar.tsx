@@ -30,13 +30,8 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
+import { useI18n } from '@/i18n/provider';
 import { NAV_GROUPS, sectionOf, type NavItem } from '@/lib/navigation';
-
-const ROLE_LABELS: Record<string, string> = {
-  org_admin: 'Administrateur',
-  manager: 'Gestionnaire',
-  viewer: 'Lecture seule',
-};
 
 function initials(name: string): string {
   return name
@@ -50,15 +45,17 @@ function initials(name: string): string {
 function NavEntry({ item, pathname }: { item: NavItem; pathname: string }) {
   const active = item.href === sectionOf(pathname);
   const [toggled, setToggled] = useState<boolean | null>(null);
+  const { t } = useI18n();
   const Icon = item.icon;
+  const label = t.nav.items[item.key];
 
   if (!item.children) {
     return (
       <SidebarMenuItem>
-        <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+        <SidebarMenuButton asChild isActive={active} tooltip={label}>
           <Link href={item.href} aria-current={active ? 'page' : undefined}>
             <Icon />
-            <span>{item.label}</span>
+            <span>{label}</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -69,10 +66,10 @@ function NavEntry({ item, pathname }: { item: NavItem; pathname: string }) {
     <Collapsible open={toggled ?? active} onOpenChange={setToggled} className="group/collapsible">
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton isActive={active} tooltip={item.label}>
+          <SidebarMenuButton isActive={active} tooltip={label}>
             <Icon />
-            <span>{item.label}</span>
-            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <span>{label}</span>
+            <ChevronRight className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 rtl:-scale-x-100" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -81,7 +78,7 @@ function NavEntry({ item, pathname }: { item: NavItem; pathname: string }) {
               <SidebarMenuSubItem key={child.href}>
                 <SidebarMenuSubButton asChild isActive={pathname === child.href}>
                   <Link href={child.href} aria-current={pathname === child.href ? 'page' : undefined}>
-                    <span>{child.label}</span>
+                    <span>{t.nav.items[child.key]}</span>
                   </Link>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
@@ -96,22 +93,23 @@ function NavEntry({ item, pathname }: { item: NavItem; pathname: string }) {
 export function AppSidebar() {
   const pathname = usePathname();
   const { session, signOut } = useAuth();
+  const { t, dir } = useI18n();
   const user = session?.user;
-  const displayName = user?.displayName || user?.email || 'Utilisateur';
+  const displayName = user?.displayName || user?.email || t.shell.user;
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" side={dir === 'rtl' ? 'right' : 'left'}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="ERP Immobilier">
+            <SidebarMenuButton size="lg" asChild tooltip={t.common.appName}>
               <Link href="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <div className="btn-gloss flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-white [--gloss-base:var(--sidebar-logo)]">
                   <Building2 className="size-4" />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">ERP Immobilier</span>
-                  <span className="truncate text-xs text-muted-foreground">Immobilière Carthage</span>
+                <div className="grid flex-1 text-start text-sm leading-tight">
+                  <span className="truncate font-semibold">{t.common.appName}</span>
+                  <span className="truncate text-xs text-muted-foreground">{t.shell.organization}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -120,14 +118,14 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <nav aria-label="Navigation principale">
+        <nav aria-label={t.shell.mainNavigation}>
           {NAV_GROUPS.map((group) => (
-            <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroup key={group.key}>
+              <SidebarGroupLabel>{t.nav.groups[group.key]}</SidebarGroupLabel>
               <SidebarMenu>
                 {group.items.map((item) => (
                   <NavEntry
-                    key={item.label + (item.href === sectionOf(pathname) ? ':active' : '')}
+                    key={item.key +(item.href === sectionOf(pathname) ? ':active' : '')}
                     item={item}
                     pathname={pathname}
                   />
@@ -145,17 +143,17 @@ export function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton size="lg" tooltip={displayName} className="data-[state=open]:bg-sidebar-accent">
                   <Avatar className="size-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-accent text-xs font-semibold text-accent-foreground">
+                    <AvatarFallback className="rounded-lg bg-white/15 text-xs font-semibold text-white ring-1 ring-white/25">
                       {initials(displayName)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
+                  <div className="grid flex-1 text-start text-sm leading-tight">
                     <span className="truncate font-medium">{displayName}</span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {ROLE_LABELS[user?.defaultRole ?? ''] ?? 'Utilisateur'}
+                      {t.shell.roles[user?.defaultRole ?? ''] ?? t.shell.user}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
+                  <ChevronsUpDown className="ms-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-56">
@@ -165,8 +163,8 @@ export function AppSidebar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => void signOut()}>
-                  <LogOut />
-                  Se déconnecter
+                  <LogOut className="rtl:-scale-x-100" />
+                  {t.shell.signOut}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

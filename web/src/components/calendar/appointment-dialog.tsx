@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { findStaffConflicts } from '@/lib/appointments';
 import type { FeedRow } from '@/lib/appointment-types';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { AppointmentFormFields } from './appointment-form-fields';
 import {
   changedFields,
@@ -114,7 +114,7 @@ function AppointmentForm({ initial, editingId, existing, staff, contacts, onSave
       }
       onClose();
     } catch (caught) {
-      setError(toFrenchError(caught));
+      setError(toUserMessage(caught));
     }
   }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   dayBefore,
-  formatDateFr,
+  formatDate,
   formatPercent,
   isCurrent,
   ownershipPhase,
@@ -32,7 +32,7 @@ describe('dates', () => {
     expect(dayBefore('2026-01-01')).toBe('2025-12-31');
   });
   it('formats dates the French way', () => {
-    expect(formatDateFr('2026-03-15')).toBe('15/03/2026');
+    expect(formatDate('2026-03-15')).toBe('15/03/2026');
   });
   it('formats percents with a comma', () => {
     expect(formatPercent(33.333)).toBe('33,33 %');

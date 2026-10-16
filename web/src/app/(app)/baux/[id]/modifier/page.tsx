@@ -11,6 +11,7 @@ import type { LeaseStatus } from '@/lib/lease-types';
 import { formatLeaseNumber } from '@/lib/leases';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const DRAFT_QUERY = `
   query DraftLease($id: uuid!) {
     lease: leases_by_pk(id: $id) {
@@ -56,13 +57,14 @@ function toInitial(lease: DraftLease): LeaseFormInitial {
 }
 
 export default function EditLeasePage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const result = useGraphql<{ lease: DraftLease | null }>(DRAFT_QUERY, { id });
   const back = (
-    <Button asChild variant="ghost" size="sm" className="-ml-2">
+    <Button asChild variant="ghost" size="sm" className="-ms-2">
       <Link href={'/baux/' + id}>
-        <ArrowLeft data-icon="inline-start" />
-        Retour au bail
+        <ArrowLeft data-icon="inline-start" className="rtl:-scale-x-100" />
+        {t.leases.edit.backToLease}
       </Link>
     </Button>
   );
@@ -71,7 +73,7 @@ export default function EditLeasePage() {
     return (
       <div className="space-y-6">
         {back}
-        <Pulse className="text-sm text-muted-foreground">Chargement du bail…</Pulse>
+        <Pulse className="text-sm text-muted-foreground">{t.leases.edit.loading}</Pulse>
       </div>
     );
   }
@@ -80,7 +82,7 @@ export default function EditLeasePage() {
       <div className="space-y-6">
         {back}
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger ce bail : {result.message}
+          {t.leases.edit.loadError(result.message)}
         </p>
       </div>
     );
@@ -90,7 +92,7 @@ export default function EditLeasePage() {
     return (
       <div className="space-y-6">
         {back}
-        <p className="text-sm text-muted-foreground">Ce bail ne peut plus être modifié.</p>
+        <p className="text-sm text-muted-foreground">{t.leases.edit.locked}</p>
       </div>
     );
   }
@@ -98,7 +100,7 @@ export default function EditLeasePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {back}
-      <PageHeader title={'Modifier ' + formatLeaseNumber(lease.number)} description="Corrigez le brouillon avant de l’activer." />
+      <PageHeader title={t.leases.edit.title(formatLeaseNumber(lease.number))} description={t.leases.edit.description} />
       <LeaseForm initial={toInitial(lease)} />
     </div>
   );

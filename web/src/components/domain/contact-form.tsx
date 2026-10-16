@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,10 +10,11 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { CONTACT_ROLES, type ContactRole } from '@/components/domain/badges';
 import { DuplicateNotice } from '@/components/domain/duplicate-notice';
+import { FieldHelp, FieldLabelWithHelp } from '@/components/field-help';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field';
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLegend, FieldSet } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -25,10 +26,12 @@ import {
   type DuplicateCandidate,
   type DuplicateMatch,
 } from '@/lib/contact-duplicates';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { graphql } from '@/lib/graphql';
 import { cn } from '@/lib/utils';
 
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/provider';
 const ADD_CONTACT = `
   mutation AddContact($object: contacts_insert_input!) {
     insert_contacts_one(object: $object) { id }
@@ -55,24 +58,26 @@ const DUPLICATES_QUERY = `
   }
 `;
 
-const schema = z.object({
+function makeSchema(m: Messages['contacts']['form']) {
+  return z.object({
   kind: z.enum(['person', 'company']),
-  full_name: z.string().trim().min(2, 'Saisissez le nom complet (2 caractères minimum).'),
+  full_name: z.string().trim().min(2, m.nameRequired),
   phone: z
     .string()
     .trim()
-    .refine((value) => value === '' || normalizePhone(value).length === 8, 'Numéro invalide : 8 chiffres attendus (ex. 98 123 456).'),
+    .refine((value) => value === '' || normalizePhone(value).length === 8, m.phoneInvalid),
   email: z
     .string()
     .trim()
-    .refine((value) => value === '' || z.string().email().safeParse(value).success, 'Adresse e-mail invalide.'),
+    .refine((value) => value === '' || z.string().email().safeParse(value).success, m.emailInvalid),
   national_id: z.string().trim(),
   address: z.string().trim(),
   notes: z.string().trim(),
-  roles: z.array(z.enum(['owner', 'renter', 'buyer'])).min(1, 'Choisissez au moins un rôle.'),
-});
+  roles: z.array(z.enum(['owner', 'renter', 'buyer'])).min(1, m.rolesRequired),
+  });
+}
 
-export type ContactFormValues = z.infer<typeof schema>;
+export type ContactFormValues = z.infer<ReturnType<typeof makeSchema>>;
 
 const EMPTY: ContactFormValues = {
   kind: 'person',
@@ -97,6 +102,8 @@ type Props =
   | { mode: 'edit'; contactId: string; initial: ContactFormValues; lockedRoles: ContactRole[] };
 
 export function ContactForm(props: Props) {
+  const t = useT();
+  const schema = useMemo(() => makeSchema(t.contacts.form), [t]);
   const router = useRouter();
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
@@ -142,7 +149,7 @@ export function ContactForm(props: Props) {
           removed: before.filter((role) => !values.roles.includes(role)),
           added: values.roles.filter((role) => !before.includes(role)).map((role) => ({ contact_id: props.contactId, role })),
         });
-        toast.success('Contact mis à jour', { description: values.full_name });
+        toast.success(t.contacts.form.updated, { description: values.full_name });
         router.push('/contacts/' + props.contactId);
         return;
       }
@@ -154,10 +161,10 @@ export function ContactForm(props: Props) {
         setCreatedId(contactId);
       }
       await graphql(ADD_ROLES, { objects: values.roles.map((role) => ({ contact_id: contactId, role })) });
-      toast.success('Contact créé', { description: values.full_name + ' a été ajouté.' });
+      toast.success(t.contacts.form.created, { description: t.contacts.form.createdBody(values.full_name) });
       router.push('/contacts/' + contactId);
     } catch (error) {
-      toast.error('Enregistrement impossible', { description: toFrenchError(error) });
+      toast.error(t.contacts.form.saveFailed, { description: toUserMessage(error) });
     }
   }
 
@@ -173,12 +180,15 @@ export function ContactForm(props: Props) {
               name="kind"
               render={({ field }) => (
                 <FieldSet>
-                  <FieldLegend variant="label">Type de contact</FieldLegend>
+                  <FieldLegend variant="label" className="flex items-center gap-1.5">
+                    {t.contacts.form.kind}
+                    <FieldHelp>{t.contacts.form.kindHelp}</FieldHelp>
+                  </FieldLegend>
                   <RadioGroup value={field.value} onValueChange={field.onChange} className="grid max-w-md grid-cols-2 gap-3">
                     {(
                       [
-                        { value: 'person', label: 'Personne', icon: User },
-                        { value: 'company', label: 'Société', icon: Building2 },
+                        { value: 'person', label: t.contacts.kinds.person, icon: User },
+                        { value: 'company', label: t.contacts.kinds.company, icon: Building2 },
                       ] as const
                     ).map((option) => {
                       const Icon = option.icon;
@@ -204,10 +214,12 @@ export function ContactForm(props: Props) {
             />
 
             <Field data-invalid={!!errors.full_name}>
-              <FieldLabel htmlFor="full_name">Nom complet *</FieldLabel>
+              <FieldLabelWithHelp htmlFor="full_name" help={t.contacts.form.fullNameHelp}>
+                {t.contacts.form.fullName}
+              </FieldLabelWithHelp>
               <Input
                 id="full_name"
-                placeholder="Ex. Salma Gharbi"
+                placeholder={t.contacts.form.fullNamePlaceholder}
                 aria-invalid={!!errors.full_name}
                 aria-describedby={errors.full_name ? 'full_name-error' : undefined}
                 {...register('full_name')}
@@ -217,7 +229,9 @@ export function ContactForm(props: Props) {
 
             <div className="grid gap-6 sm:grid-cols-2">
               <Field data-invalid={!!errors.phone}>
-                <FieldLabel htmlFor="phone">Téléphone</FieldLabel>
+                <FieldLabelWithHelp htmlFor="phone" help={t.contacts.form.phoneHelp}>
+                  {t.contacts.form.phone}
+                </FieldLabelWithHelp>
                 <InputGroup>
                   <InputGroupAddon>
                     <InputGroupText>+216</InputGroupText>
@@ -226,7 +240,7 @@ export function ContactForm(props: Props) {
                     id="phone"
                     type="tel"
                     inputMode="tel"
-                    placeholder="98 123 456"
+                    placeholder={t.contacts.form.phonePlaceholder}
                     aria-invalid={!!errors.phone}
                     aria-describedby={errors.phone ? 'phone-error' : undefined}
                     {...register('phone', { onBlur: () => void checkDuplicates() })}
@@ -235,11 +249,13 @@ export function ContactForm(props: Props) {
                 <FieldError id="phone-error" errors={[errors.phone]} />
               </Field>
               <Field data-invalid={!!errors.email}>
-                <FieldLabel htmlFor="email">E-mail</FieldLabel>
+                <FieldLabelWithHelp htmlFor="email" help={t.contacts.form.emailHelp}>
+                  {t.contacts.form.email}
+                </FieldLabelWithHelp>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="salma.gharbi@email.tn"
+                  placeholder={t.contacts.form.emailPlaceholder}
                   aria-invalid={!!errors.email}
                   aria-describedby={errors.email ? 'email-error' : undefined}
                   {...register('email', { onBlur: () => void checkDuplicates() })}
@@ -249,10 +265,12 @@ export function ContactForm(props: Props) {
             </div>
 
             <Field>
-              <FieldLabel htmlFor="national_id">CIN ou matricule fiscal</FieldLabel>
+              <FieldLabelWithHelp htmlFor="national_id" help={t.contacts.form.nationalIdHelp}>
+                {t.contacts.form.nationalId}
+              </FieldLabelWithHelp>
               <Input
                 id="national_id"
-                placeholder="Ex. 08942155 ou 1489201/A"
+                placeholder={t.contacts.form.nationalIdPlaceholder}
                 {...register('national_id', { onBlur: () => void checkDuplicates() })}
               />
             </Field>
@@ -260,13 +278,17 @@ export function ContactForm(props: Props) {
             <DuplicateNotice matches={duplicates} />
 
             <Field>
-              <FieldLabel htmlFor="address">Adresse</FieldLabel>
-              <Input id="address" placeholder="Ex. 14 Rue des Jardins, Carthage, Tunis" {...register('address')} />
+              <FieldLabelWithHelp htmlFor="address" help={t.contacts.form.addressHelp}>
+                {t.contacts.form.address}
+              </FieldLabelWithHelp>
+              <Input id="address" placeholder={t.contacts.form.addressPlaceholder} {...register('address')} />
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="notes">Notes</FieldLabel>
-              <Input id="notes" placeholder="Informations utiles pour l’équipe" {...register('notes')} />
+              <FieldLabelWithHelp htmlFor="notes" help={t.contacts.form.notesHelp}>
+                {t.contacts.form.notes}
+              </FieldLabelWithHelp>
+              <Input id="notes" placeholder={t.contacts.form.notesPlaceholder} {...register('notes')} />
             </Field>
 
             <Controller
@@ -274,8 +296,13 @@ export function ContactForm(props: Props) {
               name="roles"
               render={({ field }) => (
                 <FieldSet data-invalid={!!errors.roles}>
-                  <FieldLegend variant="label">Rôles *</FieldLegend>
-                  <FieldDescription>Un contact peut avoir plusieurs rôles.</FieldDescription>
+                  <FieldLegend variant="label" className="flex items-center gap-1.5">
+                    {t.contacts.form.roles}
+                    <FieldHelp>
+                      {t.contacts.form.rolesHelp}
+                    </FieldHelp>
+                  </FieldLegend>
+                  <FieldDescription>{t.contacts.form.rolesHint}</FieldDescription>
                   <div className="grid gap-3 md:grid-cols-3">
                     {CONTACT_ROLES.map((role) => {
                       const Icon = role.icon;
@@ -306,9 +333,9 @@ export function ContactForm(props: Props) {
                               }
                             />
                           </span>
-                          <span className="text-sm font-medium">{role.label}</span>
+                          <span className="text-sm font-medium">{t.labels.contactRoles[role.value].label}</span>
                           <span className="text-xs text-muted-foreground">
-                            {locked ? 'Ce contact détient des unités : ce rôle reste actif.' : role.description}
+                            {locked ? t.contacts.form.roleLocked : t.labels.contactRoles[role.value].description}
                           </span>
                         </label>
                       );
@@ -322,11 +349,11 @@ export function ContactForm(props: Props) {
         </CardContent>
         <CardFooter className="justify-end gap-2 border-t">
           <Button asChild variant="ghost">
-            <Link href={cancelHref}>Annuler</Link>
+            <Link href={cancelHref}>{t.common.cancel}</Link>
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />}
-            {isSubmitting ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Enregistrer le contact'}
+            {isSubmitting ? t.common.saving : editing ? t.common.saveChanges : t.contacts.form.saveContact}
           </Button>
         </CardFooter>
       </Card>

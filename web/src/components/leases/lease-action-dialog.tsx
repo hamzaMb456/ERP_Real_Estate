@@ -4,8 +4,9 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 
+import { useT } from '@/i18n/provider';
 type Props = {
   trigger: ReactNode;
   title: string;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function LeaseActionDialog({ trigger, title, description, submitLabel, onSubmit, disabled = false, children }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function LeaseActionDialog({ trigger, title, description, submitLabel, on
       await onSubmit();
       setOpen(false);
     } catch (caught) {
-      setError(toFrenchError(caught));
+      setError(toUserMessage(caught));
     } finally {
       setSaving(false);
     }
@@ -60,7 +62,7 @@ export function LeaseActionDialog({ trigger, title, description, submitLabel, on
           )}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={saving}>
-              Annuler
+              {t.common.cancel}
             </Button>
             <Button type="submit" disabled={saving || disabled}>
               {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}

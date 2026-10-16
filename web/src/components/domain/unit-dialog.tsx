@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { UNIT_STATUSES, UNIT_TYPES } from '@/components/domain/labels';
+import { FieldLabelWithHelp } from '@/components/field-help';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,13 +17,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { graphql } from '@/lib/graphql';
 
+import type { Messages } from '@/i18n/messages';
+import { useT } from '@/i18n/provider';
 const ADD_UNIT = `
   mutation AddUnit($object: units_insert_input!) {
     insert_units_one(object: $object) { id }
@@ -52,17 +54,19 @@ const optionalNumber = (label: string, minExclusive: boolean) =>
       return Number.isFinite(parsed) && (minExclusive ? parsed > 0 : parsed >= 0);
     }, label);
 
-const schema = z.object({
-  code: z.string().trim().min(1, 'Saisissez la référence de l’unité (ex. B-101).'),
+function makeSchema(m: Messages['properties']['unitForm']) {
+  return z.object({
+  code: z.string().trim().min(1, m.codeRequired),
   type: z.enum(['apartment', 'office', 'shop', 'parking', 'house', 'land']),
   status: z.enum(['vacant', 'rented', 'for_sale', 'sold', 'under_maintenance']),
-  floor: optionalInt('Étage invalide : nombre entier attendu.', -10),
-  rooms: optionalInt('Nombre de pièces invalide.', 0),
-  surface_m2: optionalNumber('Surface invalide : nombre positif attendu.', true),
-  rent_amount: optionalNumber('Loyer invalide : nombre positif ou nul attendu.', false),
-});
+  floor: optionalInt(m.floorInvalid, -10),
+  rooms: optionalInt(m.roomsInvalid, 0),
+  surface_m2: optionalNumber(m.surfaceInvalid, true),
+  rent_amount: optionalNumber(m.rentInvalid, false),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof makeSchema>>;
 
 export type UnitFormUnit = {
   id: string;
@@ -102,6 +106,7 @@ type Props = {
 };
 
 export function UnitDialog({ propertyId, unit, trigger, open, onOpenChange, onSaved }: Props) {
+  const t = useT();
   const [innerOpen, setInnerOpen] = useState(false);
   const isOpen = open ?? innerOpen;
   const setOpen = (next: boolean) => {
@@ -114,9 +119,9 @@ export function UnitDialog({ propertyId, unit, trigger, open, onOpenChange, onSa
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{unit ? 'Modifier l’unité ' + unit.code : 'Ajouter une unité'}</DialogTitle>
+          <DialogTitle>{unit ? t.properties.unitForm.editTitle(unit.code) : t.properties.unitForm.addTitle}</DialogTitle>
           <DialogDescription>
-            {unit ? 'Corrigez les caractéristiques de l’unité.' : 'Appartement, bureau, commerce ou parking rattaché à ce bien.'}
+            {unit ? t.properties.unitForm.editDescription : t.properties.unitForm.addDescription}
           </DialogDescription>
         </DialogHeader>
         {/* Mounted only while open, so every opening starts from fresh values. */}
@@ -145,6 +150,8 @@ function UnitForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
+  const schema = useMemo(() => makeSchema(t.properties.unitForm), [t]);
   const { control, register, handleSubmit, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: unit ? toFormValues(unit) : EMPTY,
@@ -164,14 +171,14 @@ function UnitForm({
     try {
       if (unit) {
         await graphql(UPDATE_UNIT, { id: unit.id, set: fields });
-        toast.success('Unité mise à jour', { description: values.code });
+        toast.success(t.properties.unitForm.updated, { description: values.code });
       } else {
         await graphql(ADD_UNIT, { object: { ...fields, property_id: propertyId } });
-        toast.success('Unité créée', { description: values.code + ' a été ajoutée au bien.' });
+        toast.success(t.properties.unitForm.created, { description: t.properties.unitForm.createdBody(values.code) });
       }
       onSaved();
     } catch (error) {
-      toast.error('Enregistrement impossible', { description: toFrenchError(error, { unitCode: values.code }) });
+      toast.error(t.properties.form.saveFailed, { description: toUserMessage(error, { unitCode: values.code }) });
     }
   }
 
@@ -180,10 +187,12 @@ function UnitForm({
       <FieldGroup>
         <div className="grid gap-6 sm:grid-cols-2">
           <Field data-invalid={!!errors.code}>
-            <FieldLabel htmlFor="unit-code">Référence *</FieldLabel>
+            <FieldLabelWithHelp htmlFor="unit-code" help={t.properties.unitForm.codeHelp}>
+              {t.properties.unitForm.code}
+            </FieldLabelWithHelp>
             <Input
               id="unit-code"
-              placeholder="Ex. B-101"
+              placeholder={t.properties.unitForm.codePlaceholder}
               aria-invalid={!!errors.code}
               aria-describedby={errors.code ? 'unit-code-error' : undefined}
               {...register('code')}
@@ -195,13 +204,15 @@ function UnitForm({
             name="type"
             render={({ field }) => (
               <Field>
-                <FieldLabel htmlFor="unit-type">Type *</FieldLabel>
+                <FieldLabelWithHelp htmlFor="unit-type" help={t.properties.unitForm.typeHelp}>
+                  {t.properties.unitForm.type}
+                </FieldLabelWithHelp>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="unit-type" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(UNIT_TYPES).map(([value, label]) => (
+                    {Object.entries(t.labels.unitTypes).map(([value, label]) => (
                       <SelectItem key={value} value={value}>
                         {label}
                       </SelectItem>
@@ -215,21 +226,27 @@ function UnitForm({
 
         <div className="grid gap-6 sm:grid-cols-3">
           <Field data-invalid={!!errors.floor}>
-            <FieldLabel htmlFor="unit-floor">Étage</FieldLabel>
+            <FieldLabelWithHelp htmlFor="unit-floor" help={t.properties.unitForm.floorHelp}>
+              {t.properties.unitForm.floor}
+            </FieldLabelWithHelp>
             <Input id="unit-floor" inputMode="numeric" placeholder="1" aria-invalid={!!errors.floor} {...register('floor')} />
             <FieldError errors={[errors.floor]} />
           </Field>
           <Field data-invalid={!!errors.rooms}>
-            <FieldLabel htmlFor="unit-rooms">Pièces</FieldLabel>
+            <FieldLabelWithHelp htmlFor="unit-rooms" help={t.properties.unitForm.roomsHelp}>
+              {t.properties.unitForm.rooms}
+            </FieldLabelWithHelp>
             <Input id="unit-rooms" inputMode="numeric" placeholder="3" aria-invalid={!!errors.rooms} {...register('rooms')} />
             <FieldError errors={[errors.rooms]} />
           </Field>
           <Field data-invalid={!!errors.surface_m2}>
-            <FieldLabel htmlFor="unit-surface">Surface</FieldLabel>
+            <FieldLabelWithHelp htmlFor="unit-surface" help={t.properties.unitForm.surfaceHelp}>
+              {t.properties.unitForm.surface}
+            </FieldLabelWithHelp>
             <InputGroup>
               <InputGroupInput id="unit-surface" inputMode="decimal" placeholder="92" aria-invalid={!!errors.surface_m2} {...register('surface_m2')} />
               <InputGroupAddon align="inline-end">
-                <InputGroupText>m²</InputGroupText>
+                <InputGroupText>{t.common.squareMeters}</InputGroupText>
               </InputGroupAddon>
             </InputGroup>
             <FieldError errors={[errors.surface_m2]} />
@@ -238,11 +255,13 @@ function UnitForm({
 
         <div className="grid gap-6 sm:grid-cols-2">
           <Field data-invalid={!!errors.rent_amount}>
-            <FieldLabel htmlFor="unit-rent">Loyer mensuel</FieldLabel>
+            <FieldLabelWithHelp htmlFor="unit-rent" help={t.properties.unitForm.rentHelp}>
+              {t.properties.unitForm.rent}
+            </FieldLabelWithHelp>
             <InputGroup>
               <InputGroupInput id="unit-rent" inputMode="decimal" placeholder="980,000" aria-invalid={!!errors.rent_amount} {...register('rent_amount')} />
               <InputGroupAddon align="inline-end">
-                <InputGroupText>TND</InputGroupText>
+                <InputGroupText>{t.common.currency}</InputGroupText>
               </InputGroupAddon>
             </InputGroup>
             <FieldError errors={[errors.rent_amount]} />
@@ -252,13 +271,18 @@ function UnitForm({
             name="status"
             render={({ field }) => (
               <Field>
-                <FieldLabel htmlFor="unit-status">Statut *</FieldLabel>
+                <FieldLabelWithHelp
+                  htmlFor="unit-status"
+                  help={t.properties.unitForm.statusHelp}
+                >
+                  {t.properties.unitForm.status}
+                </FieldLabelWithHelp>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="unit-status" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(UNIT_STATUSES).map(([value, label]) => (
+                    {Object.entries(t.labels.unitStatuses).map(([value, label]) => (
                       <SelectItem key={value} value={value}>
                         {label}
                       </SelectItem>
@@ -272,11 +296,11 @@ function UnitForm({
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onCancel}>
-          Annuler
+          {t.common.cancel}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          {isSubmitting ? 'Enregistrement…' : unit ? 'Enregistrer' : 'Ajouter l’unité'}
+          {isSubmitting ? t.common.saving : unit ? t.common.save : t.properties.unitForm.submitAdd}
         </Button>
       </DialogFooter>
     </form>

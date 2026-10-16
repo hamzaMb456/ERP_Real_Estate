@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { FieldHelp, FieldLabelWithHelp } from '@/components/field-help';
 import { Pulse } from '@/components/motion/primitives';
 import { OwnersEditor } from '@/components/ownership/owners-editor';
 import { useContactOptions } from '@/components/ownership/use-contact-options';
@@ -16,12 +17,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field';
+import { Field, FieldDescription, FieldLegend, FieldSet } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { toFrenchError } from '@/lib/errors';
+import { toUserMessage } from '@/lib/errors';
 import { graphql } from '@/lib/graphql';
-import { formatDateFr, planTransfer, todayIso, type NewOwner, type OwnershipRow } from '@/lib/ownership';
+import { formatDate, planTransfer, todayIso, type NewOwner, type OwnershipRow } from '@/lib/ownership';
 
+import { useT } from '@/i18n/provider';
 const TRANSFER = `
   mutation TransferOwnership($endIds: [uuid!]!, $endOn: date!, $objects: [ownerships_insert_input!]!) {
     update_ownerships(where: { id: { _in: $endIds } }, _set: { ends_on: $endOn }) { affected_rows }
@@ -73,6 +75,7 @@ function TransferForm({
   onCancel: () => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const contacts = useContactOptions();
   const [date, setDate] = useState(todayIso());
   const [owners, setOwners] = useState<NewOwner[]>([{ contactId: null, sharePercent: 100 }]);
@@ -90,12 +93,12 @@ function TransferForm({
     setSaving(true);
     try {
       await graphql(TRANSFER, plan);
-      toast.success(unitIds.length > 1 ? `Propriétaire défini pour ${unitIds.length} unités` : 'Propriété enregistrée', {
-        description: 'À partir du ' + formatDateFr(date),
+      toast.success(unitIds.length > 1 ? t.ownership.transfer.definedMany(unitIds.length) : t.ownership.transfer.saved, {
+        description: t.common.from(formatDate(date)),
       });
       onDone();
     } catch (caught) {
-      setError(toFrenchError(caught));
+      setError(toUserMessage(caught));
     } finally {
       setSaving(false);
     }
@@ -104,14 +107,19 @@ function TransferForm({
   return (
     <form onSubmit={submit} noValidate className="space-y-5">
       <Field>
-        <FieldLabel htmlFor="transfer-date">À partir du</FieldLabel>
+        <FieldLabelWithHelp htmlFor="transfer-date" help={t.ownership.transfer.dateHelp}>
+          {t.ownership.transfer.date}
+        </FieldLabelWithHelp>
         <Input id="transfer-date" type="date" required value={date} onChange={(event) => setDate(event.target.value)} className="w-48" />
-        <FieldDescription>Les propriétaires actuels cessent de détenir l’unité la veille de cette date.</FieldDescription>
+        <FieldDescription>{t.ownership.transfer.dateHint}</FieldDescription>
       </Field>
       <FieldSet>
-        <FieldLegend variant="label">Propriétaires à partir de cette date</FieldLegend>
-        {contacts.status === 'loading' && <Pulse className="text-sm text-muted-foreground">Chargement des contacts…</Pulse>}
-        {contacts.status === 'error' && <p role="alert" className="text-sm text-destructive">Impossible de charger les contacts : {contacts.message}</p>}
+        <FieldLegend variant="label" className="flex items-center gap-1.5">
+          {t.ownership.transfer.owners}
+          <FieldHelp>{t.ownership.transfer.ownersHelp}</FieldHelp>
+        </FieldLegend>
+        {contacts.status === 'loading' && <Pulse className="text-sm text-muted-foreground">{t.ownership.coOwner.loadingContacts}</Pulse>}
+        {contacts.status === 'error' && <p role="alert" className="text-sm text-destructive">{t.ownership.coOwner.contactsError(contacts.message)}</p>}
         {contacts.status === 'success' && <OwnersEditor value={owners} onChange={setOwners} options={contacts.data} />}
       </FieldSet>
       {error && (
@@ -121,11 +129,11 @@ function TransferForm({
       )}
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onCancel}>
-          Annuler
+          {t.common.cancel}
         </Button>
         <Button type="submit" disabled={saving || !date || contacts.status !== 'success'}>
           {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
-          Enregistrer
+          {t.common.save}
         </Button>
       </DialogFooter>
     </form>

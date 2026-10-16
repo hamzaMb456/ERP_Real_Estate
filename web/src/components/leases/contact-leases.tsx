@@ -8,6 +8,7 @@ import type { LeaseStatus, RegistrationState } from '@/lib/lease-types';
 import { formatLeaseNumber, leasePeriod } from '@/lib/leases';
 import { useGraphql } from '@/lib/use-graphql';
 
+import { useT } from '@/i18n/provider';
 const QUERY = `
   query ContactLeases($id: uuid!, $role: String!) {
     lease_parties(where: { contact_id: { _eq: $id }, role: { _eq: $role } }, order_by: [{ lease: { number: desc } }]) {
@@ -57,22 +58,24 @@ function LeaseRows({ rows }: { rows: Row[] }) {
 
 /** Leases rented by this contact, shown inside the « Locataire » role card. */
 export function ContactRenterLeases({ contactId }: { contactId: string }) {
+  const t = useT();
   const result = useGraphql<{ lease_parties: Row[] }>(QUERY, { id: contactId, role: 'renter' });
-  if (result.status === 'loading') return <Pulse>Chargement des baux…</Pulse>;
-  if (result.status === 'error') return <p role="alert" className="text-destructive">Impossible de charger les baux : {result.message}</p>;
-  if (result.data.lease_parties.length === 0) return <p>Aucun bail pour le moment.</p>;
+  if (result.status === 'loading') return <Pulse>{t.leases.contactLeases.loading}</Pulse>;
+  if (result.status === 'error') return <p role="alert" className="text-destructive">{t.leases.contactLeases.loadError(result.message)}</p>;
+  if (result.data.lease_parties.length === 0) return <p>{t.leases.contactLeases.none}</p>;
   return <LeaseRows rows={result.data.lease_parties} />;
 }
 
 /** Leases this contact guarantees: its own card, absent when there are none. */
 export function ContactGuaranteedLeases({ contactId }: { contactId: string }) {
+  const t = useT();
   const result = useGraphql<{ lease_parties: Row[] }>(QUERY, { id: contactId, role: 'guarantor' });
   if (result.status !== 'success' || result.data.lease_parties.length === 0) return null;
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Garant</CardTitle>
-        <CardDescription>Baux que ce contact garantit.</CardDescription>
+        <CardTitle className="text-base">{t.leases.contactLeases.guarantorTitle}</CardTitle>
+        <CardDescription>{t.leases.contactLeases.guarantorDescription}</CardDescription>
       </CardHeader>
       <CardContent className="text-sm">
         <LeaseRows rows={result.data.lease_parties} />

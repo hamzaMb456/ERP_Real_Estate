@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getMessages } from '@/i18n/store';
 import { graphql } from '@/lib/graphql';
 
 export type QueryState<T> =
@@ -23,7 +24,7 @@ export function useGraphql<T>(query: string, variables?: Record<string, unknown>
         active &&
         setSettled({
           key,
-          state: { status: 'error', message: error instanceof Error ? error.message : 'Erreur inconnue.' },
+          state: { status: 'error', message: error instanceof Error ? error.message : getMessages().common.unknownError },
         }),
       );
     return () => {
