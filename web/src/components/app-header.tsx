@@ -3,8 +3,8 @@
 import { Fragment } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell } from 'lucide-react';
 import { CommandPalette } from '@/components/command-palette';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
   Breadcrumb,
@@ -14,14 +14,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { buildCrumbs } from '@/lib/navigation';
@@ -56,18 +48,7 @@ export function AppHeader() {
       <div className="ml-auto flex items-center gap-1.5">
         <CommandPalette />
         <ThemeToggle />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Notifications">
-              <Bell />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <p className="px-2 py-6 text-center text-sm text-muted-foreground">Vous êtes à jour. Aucune notification.</p>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationBell />
       </div>
     </header>
   );
