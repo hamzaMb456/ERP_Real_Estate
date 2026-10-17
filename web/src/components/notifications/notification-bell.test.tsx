@@ -82,7 +82,7 @@ describe('NotificationBell', () => {
     useGraphql.mockReturnValue(success([], 0));
     render(<NotificationBell />);
     await userEvent.click(screen.getByRole('button', { name: 'Notifications' }));
-    expect(await screen.findByText('Aucune notification.')).toBeInTheDocument();
+    expect(await screen.findByText('Vous êtes à jour. Aucune notification.')).toBeInTheDocument();
   });
 
   it('lists the French label, the title and links each row to its target', async () => {

@@ -10,6 +10,7 @@ export const dashboard: typeof fr = {
   complete: 'Complete',
   leasesToRenew: (count) => `Leases to renew: ${count}`,
   registrationsDue: (count) => `Registrations to do: ${count}`,
+  appointmentsToday: (count) => `Appointments today: ${count}`,
   view: 'View',
   kpiOccupancy: 'Occupancy rate',
   kpiOccupancyHint: (rented, total) => `${rented} units rented out of ${total}`,

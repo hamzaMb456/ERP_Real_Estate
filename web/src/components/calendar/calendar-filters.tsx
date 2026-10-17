@@ -7,8 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { APPOINTMENT_KIND_LABELS } from '@/lib/appointments';
-import { LEASE_EVENT_KIND_LABELS } from '@/lib/calendar';
+import { useT } from '@/i18n/provider';
 import type { BranchOption, CalendarFilterState, StaffOption } from './calendar-types';
 
 type Props = {
@@ -20,9 +19,10 @@ type Props = {
 };
 
 const ALL = 'all';
-const KIND_LABELS: Record<string, string> = { ...APPOINTMENT_KIND_LABELS, ...LEASE_EVENT_KIND_LABELS };
 
 export function CalendarFilters({ value, staff, contacts, branches, onChange }: Props) {
+  const { filters: t, kinds, leaseKinds } = useT().calendar;
+  const kindLabels: [string, string][] = [...Object.entries(kinds), ...Object.entries(leaseKinds)];
   const patch = (next: Partial<CalendarFilterState>) => onChange({ ...value, ...next });
 
   return (
@@ -32,26 +32,26 @@ export function CalendarFilters({ value, staff, contacts, branches, onChange }: 
         variant="outline"
         size="sm"
         value={value.kinds}
-        onValueChange={(kinds) => patch({ kinds })}
+        onValueChange={(next) => patch({ kinds: next })}
         className="flex-wrap justify-start"
-        aria-label="Types d’événements"
+        aria-label={t.kinds}
       >
-        {Object.entries(KIND_LABELS).map(([kind, label]) => (
+        {kindLabels.map(([kind, label]) => (
           <ToggleGroupItem key={kind} value={kind}>
             {label}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Field>
-          <FieldLabel htmlFor="filter-staff">Collaborateur</FieldLabel>
+          <FieldLabel htmlFor="filter-staff">{t.staff}</FieldLabel>
           <Select value={value.staffId ?? ALL} onValueChange={(id) => patch({ staffId: id === ALL ? null : id })}>
             <SelectTrigger id="filter-staff" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Tous les collaborateurs</SelectItem>
+              <SelectItem value={ALL}>{t.allStaff}</SelectItem>
               {staff.map((member) => (
                 <SelectItem key={member.user_id} value={member.user_id}>
                   {member.display_name}
@@ -62,13 +62,13 @@ export function CalendarFilters({ value, staff, contacts, branches, onChange }: 
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="filter-branch">Agence</FieldLabel>
+          <FieldLabel htmlFor="filter-branch">{t.branch}</FieldLabel>
           <Select value={value.branchId ?? ALL} onValueChange={(id) => patch({ branchId: id === ALL ? null : id })}>
             <SelectTrigger id="filter-branch" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Toutes les agences</SelectItem>
+              <SelectItem value={ALL}>{t.allBranches}</SelectItem>
               {branches.map((branch) => (
                 <SelectItem key={branch.id} value={branch.id}>
                   {branch.name}
@@ -79,13 +79,13 @@ export function CalendarFilters({ value, staff, contacts, branches, onChange }: 
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="filter-contact">Contact</FieldLabel>
+          <FieldLabel htmlFor="filter-contact">{t.contact}</FieldLabel>
           <div className="flex items-center gap-1">
             <div className="min-w-0 flex-1">
               <ContactPicker id="filter-contact" options={contacts} value={value.contactId} onChange={(id) => patch({ contactId: id })} />
             </div>
             {value.contactId && (
-              <Button type="button" variant="ghost" size="icon-sm" aria-label="Retirer le filtre contact" onClick={() => patch({ contactId: null })}>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={t.clearContact} onClick={() => patch({ contactId: null })}>
                 <X />
               </Button>
             )}
@@ -95,11 +95,11 @@ export function CalendarFilters({ value, staff, contacts, branches, onChange }: 
 
       <label className="flex items-center gap-2 text-sm">
         <Checkbox
-          aria-label="Afficher les rendez-vous annulés"
+          aria-label={t.includeCancelled}
           checked={value.includeCancelled}
           onCheckedChange={(checked) => patch({ includeCancelled: checked === true })}
         />
-        Afficher les rendez-vous annulés
+        {t.includeCancelled}
       </label>
     </div>
   );

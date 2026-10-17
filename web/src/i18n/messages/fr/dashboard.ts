@@ -11,6 +11,7 @@ export const dashboard = {
   complete: 'Compléter',
   leasesToRenew: (count: string | number) => `Baux à renouveler : ${count}`,
   registrationsDue: (count: string | number) => `Enregistrements à faire : ${count}`,
+  appointmentsToday: (count: string | number) => `Rendez-vous aujourd’hui : ${count}`,
   view: 'Voir',
   kpiOccupancy: 'Taux d’occupation',
   kpiOccupancyHint: (rented: string | number, total: string | number) => `${rented} unités louées sur ${total}`,

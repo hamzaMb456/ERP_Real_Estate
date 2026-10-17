@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarDays } from 'lucide-react';
-import { Pulse } from '@/components/motion/primitives';
+import { CalendarClock, CalendarDays, History } from 'lucide-react';
+import { SkeletonList } from '@/components/motion/primitives';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useT } from '@/i18n/provider';
 import type { AppointmentKind, AppointmentStatus } from '@/lib/appointment-types';
 import { useGraphql } from '@/lib/use-graphql';
 import { AppointmentList, type AppointmentListItem } from './appointment-list';
@@ -62,20 +63,25 @@ function split(participations: Participation[], now: number): { upcoming: Appoin
 
 /** Upcoming and past appointments of a contact, read through the contact's participations. */
 export function ContactAppointments({ contactId }: { contactId: string }) {
+  const t = useT().calendar.contactCard;
   const [now] = useState(() => Date.now());
   const result = useGraphql<{ appointment_participants: Participation[] }>(CONTACT_APPOINTMENTS_QUERY, { contactId });
 
   return (
-    <Card>
+    <Card className="rounded-xl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <CalendarDays className="size-4 text-muted-foreground" />
-          Rendez-vous
+        <CardTitle className="flex items-center gap-2 text-base font-medium">
+          <CalendarDays className="size-4 text-muted-foreground" aria-hidden />
+          {t.title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 text-sm">
-        {result.status === 'loading' && <Pulse className="text-muted-foreground">Chargement des rendez-vous…</Pulse>}
-        {result.status === 'error' && <p role="alert" className="text-destructive">Impossible de charger les rendez-vous : {result.message}</p>}
+      <CardContent className="space-y-6 text-sm">
+        {result.status === 'loading' && <SkeletonList count={3} className="space-y-2" itemClassName="h-10 rounded-lg bg-muted" label={t.loading} />}
+        {result.status === 'error' && (
+          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
+            {t.loadError(result.message)}
+          </p>
+        )}
         {result.status === 'success' && <Lists participations={result.data.appointment_participants} now={now} />}
       </CardContent>
     </Card>
@@ -83,16 +89,17 @@ export function ContactAppointments({ contactId }: { contactId: string }) {
 }
 
 function Lists({ participations, now }: { participations: Participation[]; now: number }) {
+  const t = useT().calendar.contactCard;
   const { upcoming, past } = split(participations, now);
   return (
     <>
-      <section className="space-y-2">
-        <h3 className="font-medium">À venir</h3>
-        <AppointmentList rows={upcoming} emptyText="Aucun rendez-vous à venir." />
+      <section className="space-y-3">
+        <h3 className="font-medium">{t.upcoming}</h3>
+        <AppointmentList rows={upcoming} empty={{ icon: CalendarClock, title: t.noUpcoming }} />
       </section>
-      <section className="space-y-2">
-        <h3 className="font-medium">Passés</h3>
-        <AppointmentList rows={past} emptyText="Aucun rendez-vous passé." />
+      <section className="space-y-3">
+        <h3 className="font-medium">{t.past}</h3>
+        <AppointmentList rows={past} empty={{ icon: History, title: t.noPast }} />
       </section>
     </>
   );

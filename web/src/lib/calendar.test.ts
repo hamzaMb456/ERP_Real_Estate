@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FeedRow } from '@/lib/appointment-types';
-import { LEASE_EVENT_KIND_LABELS, calendarRangeQuery, filterFeed, toEventInput, type CalendarFilters } from '@/lib/calendar';
+import { activateLocale } from '@/i18n/store';
+import { leaseEventKindLabels, calendarRangeQuery, filterFeed, toEventInput, type CalendarFilters } from '@/lib/calendar';
 
 const row = (over: Partial<FeedRow> = {}): FeedRow => ({
   event_id: 'a:1',
@@ -106,13 +107,22 @@ describe('toEventInput', () => {
   });
 
   it('titles every lease kind in French', () => {
-    expect(LEASE_EVENT_KIND_LABELS).toEqual({
+    expect(leaseEventKindLabels()).toEqual({
       lease_start: 'Début du bail',
       lease_end: 'Fin du bail',
       registration_deadline: 'Échéance d’enregistrement',
     });
     expect(toEventInput(leaseRow({ kind: 'lease_start' })).title).toBe('Début du bail · Bail 12');
     expect(toEventInput(leaseRow({ kind: 'registration_deadline' })).title).toBe('Échéance d’enregistrement · Bail 12');
+  });
+
+  it('titles lease rows in the interface language', () => {
+    activateLocale('ar');
+    try {
+      expect(toEventInput(leaseRow()).title).toBe('نهاية العقد · Bail 12');
+    } finally {
+      activateLocale('fr');
+    }
   });
 
   it('falls back to the raw kind for an unknown lease kind', () => {

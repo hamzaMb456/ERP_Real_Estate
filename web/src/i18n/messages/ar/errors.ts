@@ -30,4 +30,9 @@ export const errors: typeof fr = {
     leases_registration_check: 'لا يمكن أن يسبق تاريخ التسجيل تاريخ الإمضاء.',
     lease_rents_lease_id_unit_id_effective_from_key: 'يوجد معلوم كراء في هذا التاريخ لهذه الوحدة.',
   },
+  appointment: {
+    appointment_staff_invalid: 'لا يمكن لهذا الموظف أن يتولّى المواعيد: اختر مسيّرًا أو مشرفًا ناشطًا في المؤسسة.',
+    appointment_participants_pkey: 'لا يمكن لجهة الاتصال نفسها أن تشارك في الموعد إلا مرة واحدة.',
+    appointments_dates_check: 'يجب أن يكون تاريخ النهاية بعد تاريخ البداية.',
+  },
 };

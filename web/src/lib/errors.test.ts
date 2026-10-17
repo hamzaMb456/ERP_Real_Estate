@@ -62,6 +62,24 @@ describe('toUserMessage', () => {
     expect(toUserMessage(new Error(message))).toBe(expected);
   });
 
+  it.each([
+    [
+      'appointment_staff_invalid',
+      'Ce collaborateur ne peut pas mener de rendez-vous : choisissez un gestionnaire ou un administrateur actif de l’organisation.',
+    ],
+    [
+      'Uniqueness violation. duplicate key value violates unique constraint "appointment_participants_pkey"',
+      'Un même contact ne peut participer qu’une fois au rendez-vous.',
+    ],
+    ['new row violates check constraint "appointments_dates_check"', 'La date de fin doit suivre la date de début.'],
+  ])('explains appointment error %s', (message, expected) => {
+    expect(toUserMessage(new Error(message))).toBe(expected);
+  });
+
+  it('does not treat an appointment business error as retryable', () => {
+    expect(isRetryable(new Error('appointment_staff_invalid'))).toBe(false);
+  });
+
   it('keeps an unknown message and handles non-errors', () => {
     expect(toUserMessage(new Error('Something odd'))).toBe('Something odd');
     expect(toUserMessage(new Error(''))).toBe('Erreur inconnue.');

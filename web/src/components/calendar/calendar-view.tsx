@@ -6,9 +6,15 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
+import type { LocaleInput } from '@fullcalendar/core';
+import arLocale from '@fullcalendar/core/locales/ar-tn';
+import enLocale from '@fullcalendar/core/locales/en-gb';
 import frLocale from '@fullcalendar/core/locales/fr';
+import type { Locale } from '@/i18n/config';
+import { useI18n } from '@/i18n/provider';
 import { isoToTunisParts, tunisToIso } from '@/lib/appointments';
 import type { CalendarEventInput } from '@/lib/calendar';
+import { CALENDAR_STYLES } from './calendar-view-styles';
 import type { CalendarViewName } from './calendar-types';
 
 // The only file that imports @fullcalendar/*; the page loads it with next/dynamic (ssr: false).
@@ -17,44 +23,15 @@ import type { CalendarViewName } from './calendar-types';
 // shifted to its Tunis wall clock before it goes in (and shifted back on the way out). Tunis is
 // UTC+1 all year, and this keeps the grid right whatever time zone the browser is in.
 
-const STYLES = `
-.erp-calendar .fc {
-  --fc-border-color: var(--border);
-  --fc-page-bg-color: var(--card);
-  --fc-neutral-bg-color: var(--muted);
-  --fc-neutral-text-color: var(--muted-foreground);
-  --fc-today-bg-color: color-mix(in oklch, var(--primary) 10%, transparent);
-  --fc-now-indicator-color: var(--destructive);
-  --fc-event-bg-color: var(--primary);
-  --fc-event-border-color: var(--primary);
-  --fc-event-text-color: var(--primary-foreground);
-  --fc-list-event-hover-bg-color: var(--muted);
-  --fc-button-bg-color: var(--secondary);
-  --fc-button-border-color: var(--border);
-  --fc-button-text-color: var(--secondary-foreground);
-  --fc-button-hover-bg-color: var(--accent);
-  --fc-button-hover-border-color: var(--border);
-  --fc-button-active-bg-color: var(--primary);
-  --fc-button-active-border-color: var(--primary);
-  color: var(--foreground);
-  font-size: 0.875rem;
-}
-.erp-calendar .fc-button-primary:not(:disabled):active,
-.erp-calendar .fc-button-primary:not(:disabled).fc-button-active { color: var(--primary-foreground); }
-.erp-calendar .fc-toolbar { flex-wrap: wrap; gap: 0.5rem; }
-.erp-calendar .fc-toolbar-title { font-size: 1.125rem; text-transform: capitalize; }
-.erp-calendar a { color: inherit; text-decoration: none; }
-.erp-calendar .fc-event { cursor: pointer; }
-.erp-calendar .ev-lease {
-  --fc-event-bg-color: color-mix(in oklch, var(--info) 18%, var(--card));
-  --fc-event-border-color: var(--info);
-  --fc-event-text-color: var(--foreground);
-}
-.erp-calendar .ev-status-done { opacity: 0.7; }
-.erp-calendar .ev-status-cancelled { opacity: 0.5; text-decoration: line-through; }
-`;
+/**
+ * FullCalendar locale per interface language: day and month names, week numbering. Arabic uses the Tunisian
+ * variant so dates keep Latin digits like the rest of the app (ar-TN); every visible text comes from our dictionary.
+ */
+const FC_LOCALES: Record<Locale, LocaleInput> = { fr: frLocale, en: enLocale, ar: arLocale };
 
 const DEFAULT_SLOT_TIME = '09:00';
+/** Monday, for every language (DESIGN: weeks start on Monday). */
+const FIRST_DAY_MONDAY = 1;
 
 /** The Tunis wall clock of an instant, without offset: what the UTC-based grid must be given. */
 function wallClock(iso: string): string {
@@ -83,6 +60,8 @@ type Props = {
 };
 
 export default function CalendarView({ events, view, date, onViewChange, onDateChange, onEventClick, onSelectSlot }: Props) {
+  const { locale, dir, t } = useI18n();
+  const v = t.calendar.view;
   const calendar = useRef<FullCalendar>(null);
   const shown = useMemo(
     () => events.map((event) => (event.allDay ? event : { ...event, start: wallClock(event.start), end: wallClock(event.end) })),
@@ -97,29 +76,41 @@ export default function CalendarView({ events, view, date, onViewChange, onDateC
     if (dayOf(api.getDate()) !== date) api.gotoDate(date);
   }, [view, date]);
 
+  const fcLocale = FC_LOCALES[locale];
+
   return (
-    <div className="erp-calendar overflow-hidden rounded-xl border bg-card p-2 sm:p-4">
-      <style>{STYLES}</style>
+    <div className="erp-calendar" role="region" aria-label={v.label}>
+      <style>{CALENDAR_STYLES}</style>
       <FullCalendar
         ref={calendar}
         plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
-        locales={[frLocale]}
-        locale="fr"
+        locales={[fcLocale]}
+        locale={fcLocale.code}
+        direction={dir}
         timeZone="UTC"
         now={tunisNow}
-        firstDay={1}
+        firstDay={FIRST_DAY_MONDAY}
         initialView={view}
         initialDate={date}
-        headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' }}
-        buttonText={{ today: 'Aujourd’hui', month: 'Mois', week: 'Semaine', list: 'Liste' }}
+        // start / end follow the reading direction, so the toolbar mirrors itself in Arabic.
+        headerToolbar={{ start: 'prev,next today', center: 'title', end: 'dayGridMonth,timeGridWeek,listWeek' }}
+        buttonText={{ today: v.today, month: v.month, week: v.week, day: v.day, list: v.list }}
+        buttonHints={{ prev: v.prevHint, next: v.nextHint, today: v.todayHint }}
+        viewHint={v.viewHint}
+        navLinkHint={v.navLinkHint}
+        moreLinkText={v.moreLink}
+        moreLinkHint={v.moreLinkHint}
+        closeHint={v.closeHint}
+        timeHint={v.timeHint}
+        eventHint={v.eventHint}
+        allDayText={v.allDay}
+        noEventsText={v.noEvents}
         height="auto"
         fixedWeekCount={false}
         nowIndicator
         slotMinTime="07:00:00"
         slotMaxTime="21:00:00"
         scrollTime="08:00:00"
-        allDayText="Journée"
-        noEventsText="Aucun rendez-vous sur cette période."
         events={shown}
         selectable={onSelectSlot !== undefined}
         select={(info) => {

@@ -28,6 +28,8 @@ export function toUserMessage(error: unknown, context: ErrorContext = {}): strin
   if (overlap) return t.leaseOverlap(overlap[1]);
   const lease = (Object.keys(t.lease) as (keyof typeof t.lease)[]).find((needle) => message.includes(needle));
   if (lease) return t.lease[lease];
+  const appointment = (Object.keys(t.appointment) as (keyof typeof t.appointment)[]).find((needle) => message.includes(needle));
+  if (appointment) return t.appointment[appointment];
   if (NETWORK.test(message)) return t.network;
   if (PERMISSION.test(message)) return t.permission;
   return message || t.unknown;

@@ -1,11 +1,9 @@
+import { getMessages } from '@/i18n/store';
 import type { FeedRow, LeaseEventKind } from '@/lib/appointment-types';
 import { todayTunis } from '@/lib/dates';
 
-export const LEASE_EVENT_KIND_LABELS: Record<LeaseEventKind, string> = {
-  lease_start: 'Début du bail',
-  lease_end: 'Fin du bail',
-  registration_deadline: 'Échéance d’enregistrement',
-};
+/** Labels of the lease rows of the feed, in the current language (calendar dictionary). */
+export const leaseEventKindLabels = (): Record<LeaseEventKind, string> => getMessages().calendar.leaseKinds;
 
 export interface CalendarFilters {
   kinds: string[];
@@ -46,7 +44,7 @@ export interface CalendarEventInput {
 
 function eventTitle(row: FeedRow): string {
   if (row.source !== 'lease') return row.title;
-  const label = LEASE_EVENT_KIND_LABELS[row.kind as LeaseEventKind] ?? row.kind;
+  const label = leaseEventKindLabels()[row.kind as LeaseEventKind] ?? row.kind;
   return `${label} · ${row.title}`;
 }
 

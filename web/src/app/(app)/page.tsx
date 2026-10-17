@@ -218,9 +218,9 @@ export default function DashboardPage() {
             >
               <span className="flex items-center gap-2 font-medium">
                 <CalendarDays className="size-4 text-warning" aria-hidden />
-                Rendez-vous aujourd’hui : {appointments_today.aggregate.count}
+                {t.dashboard.appointmentsToday(appointments_today.aggregate.count)}
               </span>
-              <span className="text-muted-foreground">Voir →</span>
+              <span className="text-muted-foreground">{t.dashboard.view} {t.common.arrow}</span>
             </Link>
           )}
         </div>

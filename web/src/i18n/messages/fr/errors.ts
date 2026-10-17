@@ -30,4 +30,9 @@ export const errors = {
     leases_registration_check: 'La date d’enregistrement ne peut pas précéder la signature.',
     lease_rents_lease_id_unit_id_effective_from_key: 'Un loyer existe déjà à cette date pour cette unité.',
   },
+  appointment: {
+    appointment_staff_invalid: 'Ce collaborateur ne peut pas mener de rendez-vous : choisissez un gestionnaire ou un administrateur actif de l’organisation.',
+    appointment_participants_pkey: 'Un même contact ne peut participer qu’une fois au rendez-vous.',
+    appointments_dates_check: 'La date de fin doit suivre la date de début.',
+  },
 };

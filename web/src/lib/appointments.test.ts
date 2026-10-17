@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { AppointmentStatus } from '@/lib/appointment-types';
+import { activateLocale } from '@/i18n/store';
 import {
-  APPOINTMENT_KIND_LABELS,
-  APPOINTMENT_STATUS_LABELS,
-  PARTICIPANT_ROLE_LABELS,
+  appointmentKindLabel,
+  appointmentKindLabels,
+  appointmentStatusLabels,
+  participantRoleLabels,
   emailStatusLabel,
   findStaffConflicts,
   isoToTunisParts,
@@ -13,17 +15,34 @@ import {
 
 describe('labels', () => {
   it('gives French wording for kinds, roles and statuses', () => {
-    expect(APPOINTMENT_KIND_LABELS.viewing).toBe('Visite');
-    expect(APPOINTMENT_KIND_LABELS.move_in).toBe('État des lieux d’entrée');
-    expect(APPOINTMENT_KIND_LABELS.move_out).toBe('État des lieux de sortie');
-    expect(APPOINTMENT_KIND_LABELS.meeting).toBe('Rendez-vous');
-    expect(APPOINTMENT_KIND_LABELS.other).toBe('Autre');
-    expect(PARTICIPANT_ROLE_LABELS.renter).toBe('Locataire');
-    expect(PARTICIPANT_ROLE_LABELS.guarantor).toBe('Garant');
-    expect(PARTICIPANT_ROLE_LABELS.prospect).toBe('Prospect');
-    expect(PARTICIPANT_ROLE_LABELS.buyer).toBe('Acheteur');
-    expect(PARTICIPANT_ROLE_LABELS.other).toBe('Autre');
-    expect(APPOINTMENT_STATUS_LABELS).toEqual({ planned: 'Prévu', done: 'Fait', cancelled: 'Annulé' });
+    const kinds = appointmentKindLabels();
+    expect(kinds.viewing).toBe('Visite');
+    expect(kinds.move_in).toBe('État des lieux d’entrée');
+    expect(kinds.move_out).toBe('État des lieux de sortie');
+    expect(kinds.meeting).toBe('Rendez-vous');
+    expect(kinds.other).toBe('Autre');
+    const roles = participantRoleLabels();
+    expect(roles.renter).toBe('Locataire');
+    expect(roles.guarantor).toBe('Garant');
+    expect(roles.prospect).toBe('Prospect');
+    expect(roles.buyer).toBe('Acheteur');
+    expect(roles.other).toBe('Autre');
+    expect(appointmentStatusLabels()).toEqual({ planned: 'Prévu', done: 'Fait', cancelled: 'Annulé' });
+  });
+
+  it('falls back to the raw code for an unknown kind', () => {
+    expect(appointmentKindLabel('viewing')).toBe('Visite');
+    expect(appointmentKindLabel('mystery')).toBe('mystery');
+  });
+
+  it('reads the language the interface renders in', () => {
+    activateLocale('en');
+    try {
+      expect(appointmentKindLabels().move_in).toBe('Move-in inspection');
+      expect(participantEmailLabel('skipped', { notifyByEmail: false, hasEmail: true })).toBe('E-mail turned off');
+    } finally {
+      activateLocale('fr');
+    }
   });
 });
 

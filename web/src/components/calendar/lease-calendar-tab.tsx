@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
-import { Pulse } from '@/components/motion/primitives';
+import { SkeletonList } from '@/components/motion/primitives';
 import { useContactOptions } from '@/components/ownership/use-contact-options';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useT } from '@/i18n/provider';
 import { todayTunis } from '@/lib/dates';
 import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
@@ -33,6 +34,7 @@ type LeaseForCalendar = {
 
 /** The « Calendrier » tab of a lease: its appointments, and a shortcut to plan the move-in check. */
 export function LeaseCalendarTab({ leaseId }: { leaseId: string }) {
+  const { leaseTab: t, kinds } = useT().calendar;
   const canEdit = useCanEdit();
   const [reload, setReload] = useState(0);
   const [planning, setPlanning] = useState(false);
@@ -51,26 +53,36 @@ export function LeaseCalendarTab({ leaseId }: { leaseId: string }) {
     kind: 'move_in',
     leaseId,
     unitId: firstUnit?.id,
-    title: firstUnit ? `État des lieux d’entrée · ${firstUnit.code}` : 'État des lieux d’entrée',
+    title: firstUnit ? t.moveInTitle(firstUnit.code) : kinds.move_in,
     participants: (leased?.parties ?? []).map((party) => ({ contactId: party.contact_id, role: 'renter' as const })),
   };
 
   return (
-    <Card>
+    <Card className="rounded-xl">
       <CardHeader>
-        <CardTitle className="text-base">Rendez-vous du bail</CardTitle>
-        <CardDescription>États des lieux, visites et réunions liés à ce bail.</CardDescription>
+        <CardTitle className="text-base font-medium">{t.title}</CardTitle>
+        <CardDescription>{t.description}</CardDescription>
+        {canEdit && (
+          <CardAction>
+            <Button variant="outline" disabled={!ready} onClick={() => setPlanning(true)}>
+              <ClipboardCheck data-icon="inline-start" />
+              {t.plan}
+            </Button>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        {canEdit && (
-          <Button variant="outline" disabled={!ready} onClick={() => setPlanning(true)}>
-            <ClipboardCheck data-icon="inline-start" />
-            Planifier un état des lieux
-          </Button>
+        {appointments.status === 'loading' && (
+          <SkeletonList count={3} className="space-y-2" itemClassName="h-10 rounded-lg bg-muted" label={t.loading} />
         )}
-        {appointments.status === 'loading' && <Pulse className="text-muted-foreground">Chargement des rendez-vous…</Pulse>}
-        {appointments.status === 'error' && <p role="alert" className="text-destructive">Impossible de charger les rendez-vous : {appointments.message}</p>}
-        {appointments.status === 'success' && <AppointmentList rows={appointments.data} emptyText="Aucun rendez-vous pour ce bail." />}
+        {appointments.status === 'error' && (
+          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
+            {t.loadError(appointments.message)}
+          </p>
+        )}
+        {appointments.status === 'success' && (
+          <AppointmentList rows={appointments.data} empty={{ icon: ClipboardCheck, title: t.none, body: t.noneBody }} />
+        )}
       </CardContent>
 
       {planning && lookups.status === 'success' && contacts.status === 'success' && (

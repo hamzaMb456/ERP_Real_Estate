@@ -2,10 +2,11 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { CalendarDays, Plus } from 'lucide-react';
 import { AppointmentDialog } from '@/components/calendar/appointment-dialog';
 import { AppointmentEditor } from '@/components/calendar/appointment-editor';
 import { AppointmentSheet } from '@/components/calendar/appointment-sheet';
+import { CalendarEmptyState } from '@/components/calendar/calendar-empty-state';
 import { CalendarFilters } from '@/components/calendar/calendar-filters';
 import { EMPTY_FILTERS, type CalendarFilterState, type CalendarViewName } from '@/components/calendar/calendar-types';
 import { dateFromParam, paramFromView, viewFromParam, visibleRange } from '@/components/calendar/calendar-url';
@@ -20,6 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { tunisToIso } from '@/lib/appointments';
 import { filterFeed, toEventInput } from '@/lib/calendar';
 import { todayTunis } from '@/lib/dates';
+import { useT } from '@/i18n/provider';
 import { useCanEdit } from '@/lib/use-can-edit';
 
 /** Updates the query string in place (no navigation); useSearchParams follows. A null value removes the key. */
@@ -34,14 +36,16 @@ function setQuery(patch: Record<string, string | null>) {
 }
 
 export default function CalendarPage() {
+  const t = useT();
   return (
-    <Suspense fallback={<Pulse className="text-sm text-muted-foreground">Chargement du calendrier…</Pulse>}>
+    <Suspense fallback={<Pulse className="text-sm text-muted-foreground">{t.calendar.page.loading}</Pulse>}>
       <CalendarPageBody />
     </Suspense>
   );
 }
 
 function CalendarPageBody() {
+  const t = useT();
   const router = useRouter();
   const params = useSearchParams();
   const canEdit = useCanEdit();
@@ -60,6 +64,7 @@ function CalendarPageBody() {
 
   const events = useMemo(() => filterFeed(feed.rows, filters).map(toEventInput), [feed.rows, filters]);
   const ready = lookups.status === 'success' && contacts.status === 'success';
+  const filtered = JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
   const staff = lookups.status === 'success' ? lookups.data.staff : [];
   const branches = lookups.status === 'success' ? lookups.data.branches : [];
   const contactOptions = contacts.status === 'success' ? contacts.data : [];
@@ -74,13 +79,13 @@ function CalendarPageBody() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Calendrier"
-        description="Rendez-vous, visites et échéances des baux."
+        title={t.calendar.page.title}
+        description={t.calendar.page.description}
         actions={
           canEdit && (
             <Button disabled={!ready} onClick={() => setCreating({ startsAt: tunisToIso(date, '09:00') })}>
               <Plus data-icon="inline-start" />
-              Nouveau rendez-vous
+              {t.calendar.page.new}
             </Button>
           )
         }
@@ -94,12 +99,12 @@ function CalendarPageBody() {
 
       {feed.error && (
         <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Impossible de charger le calendrier : {feed.error}
+          {t.calendar.page.loadError(feed.error)}
         </p>
       )}
       {lookups.status === 'error' && (
         <p role="alert" className="text-sm text-destructive">
-          Les collaborateurs et les agences n’ont pas pu être chargés : {lookups.message}
+          {t.calendar.page.lookupsError(lookups.message)}
         </p>
       )}
 
@@ -113,7 +118,11 @@ function CalendarPageBody() {
         onSelectSlot={canEdit && ready ? (startsAt) => setCreating({ startsAt }) : undefined}
       />
       {!feed.loading && !feed.error && events.length === 0 && (
-        <p className="text-center text-sm text-muted-foreground">Aucun rendez-vous sur cette période.</p>
+        <CalendarEmptyState
+          icon={CalendarDays}
+          title={filtered ? t.calendar.page.noMatchTitle : t.calendar.page.emptyTitle}
+          body={filtered ? t.calendar.page.noMatchBody : t.calendar.page.emptyBody}
+        />
       )}
 
       <AppointmentSheet

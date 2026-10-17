@@ -38,9 +38,9 @@ begin
   -- Fixtures: an organization and a contact that belong to org2, and two users in auth.users.
   insert into public.organizations (id, name) values (org2, 'Fixture org 2');
   insert into public.contacts (id, organization_id, kind, full_name) values (c_org2, org2, 'person', 'Fixture contact');
-  insert into auth.users (id, email, metadata) values
-    (u_mgr,  'manager@fixture.test', jsonb_build_object('organization_id', org)),
-    (u_view, 'viewer@fixture.test',  jsonb_build_object('organization_id', org));
+  insert into auth.users (id, email, metadata, locale, display_name) values
+    (u_mgr,  'manager@fixture.test', jsonb_build_object('organization_id', org), 'en', 'Fixture manager'),
+    (u_view, 'viewer@fixture.test',  jsonb_build_object('organization_id', org), 'en', 'Fixture viewer');
   insert into auth.user_roles (user_id, role) values (u_mgr, 'manager'), (u_view, 'viewer');
 
   -- 1. ends_at must be after starts_at.
@@ -91,9 +91,9 @@ begin
   if n <> 0 then raise exception 'FAIL: viewer listed in staff_members'; end if;
 
   -- 5b. One staff user with a malformed organization id in auth metadata must not break the view for everybody.
-  insert into auth.users (id, email, metadata) values
-    (u_bad1, 'bad1@fixture.test', jsonb_build_object('organization_id', 'not-a-uuid')),
-    (u_bad2, 'bad2@fixture.test', jsonb_build_object('organization_id', '1111111111111-4111-8111-111111111111'));
+  insert into auth.users (id, email, metadata, locale, display_name) values
+    (u_bad1, 'bad1@fixture.test', jsonb_build_object('organization_id', 'not-a-uuid'), 'en', 'Fixture bad 1'),
+    (u_bad2, 'bad2@fixture.test', jsonb_build_object('organization_id', '1111111111111-4111-8111-111111111111'), 'en', 'Fixture bad 2');
   insert into auth.user_roles (user_id, role) values (u_bad1, 'manager'), (u_bad2, 'manager');
   select count(*) into n from public.staff_members;
   select count(*) into n1 from public.staff_members where user_id in (u_bad1, u_bad2);

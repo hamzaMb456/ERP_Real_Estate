@@ -30,4 +30,9 @@ export const errors: typeof fr = {
     leases_registration_check: 'The registration date cannot be before the signing date.',
     lease_rents_lease_id_unit_id_effective_from_key: 'A rent already exists on this date for this unit.',
   },
+  appointment: {
+    appointment_staff_invalid: 'This staff member cannot run appointments: choose an active manager or administrator of the organization.',
+    appointment_participants_pkey: 'A contact can take part in the appointment only once.',
+    appointments_dates_check: 'The end date must come after the start date.',
+  },
 };

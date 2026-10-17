@@ -11,5 +11,7 @@ import { labels } from './labels';
 import { nav } from './nav';
 import { shell } from './shell';
 import { appearance } from './appearance';
+import { calendar } from './calendar';
+import { notifications } from './notifications';
 
-export const ar: typeof fr = { common, nav, shell, labels, errors, properties, files, contacts, ownership, leases, dashboard, appearance };
+export const ar: typeof fr = { common, nav, shell, labels, errors, properties, files, contacts, ownership, leases, dashboard, appearance, calendar, notifications };

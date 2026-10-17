@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Bell } from 'lucide-react';
+import { Bell, BellOff, RotateCw } from 'lucide-react';
+import { SkeletonList } from '@/components/motion/primitives';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,10 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { NOTIFICATION_KIND_LABELS, notificationHref } from '@/lib/notifications';
-import type { NotificationKind } from '@/lib/appointment-types';
+import { useT } from '@/i18n/provider';
+import { formatNotificationTime, notificationHref, notificationKindLabel } from '@/lib/notifications';
 import { showError } from '@/lib/show-error';
 import { useGraphql } from '@/lib/use-graphql';
+import { cn } from '@/lib/utils';
 import {
   markAllNotificationsRead,
   markNotificationRead,
@@ -26,15 +28,7 @@ import {
 
 const POLL_INTERVAL_MS = 60_000;
 const MAX_BADGE = 99;
-
-const timeFormat = new Intl.DateTimeFormat('fr-TN', { timeZone: 'Africa/Tunis', dateStyle: 'short', timeStyle: 'short' });
-
-const kindLabel = (kind: string): string => NOTIFICATION_KIND_LABELS[kind as NotificationKind] ?? kind;
-
-function bellLabel(unread: number): string {
-  if (unread === 0) return 'Notifications';
-  return `Notifications, ${unread} ${unread === 1 ? 'non lue' : 'non lues'}`;
-}
+const SKELETON_ROWS = 3;
 
 /** Reloads the list every minute (no websocket), except while the tab is hidden. */
 function usePollingReloadKey(): [number, () => void] {
@@ -49,22 +43,28 @@ function usePollingReloadKey(): [number, () => void] {
   return [reloadKey, reload];
 }
 
-function NotificationItem({ row, onOpen }: { row: NotificationRow; onOpen: (row: NotificationRow) => void }) {
+type ItemProps = { row: NotificationRow; unreadLabel: string; onOpen: (row: NotificationRow) => void };
+
+function NotificationItem({ row, unreadLabel, onOpen }: ItemProps) {
   const unread = row.read_at === null;
   const href = notificationHref({ link: row.link, leaseId: row.lease_id, appointmentId: row.appointment_id });
   return (
-    <DropdownMenuItem asChild className="items-start gap-2 py-2">
+    <DropdownMenuItem asChild className="items-start gap-2 py-2 text-start">
       <Link href={href} onClick={() => onOpen(row)}>
-        <span
-          className={`mt-1.5 size-2 shrink-0 rounded-full ${unread ? 'bg-primary' : 'bg-transparent'}`}
-          aria-hidden
-        />
+        <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', unread ? 'bg-primary' : 'bg-transparent')} aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className={`block truncate text-sm ${unread ? 'font-semibold' : 'font-medium'}`}>{kindLabel(row.kind)}</span>
-          <span className="block truncate text-xs text-muted-foreground">{row.title}</span>
-          <time dateTime={row.created_at} className="block text-xs text-muted-foreground tabular-nums">
-            {timeFormat.format(new Date(row.created_at))}
-          </time>
+          <span className={cn('block truncate text-sm', unread ? 'font-semibold' : 'font-medium')}>
+            {notificationKindLabel(row.kind)}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            <bdi>{row.title}</bdi>
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            <time dateTime={row.created_at} dir="ltr" className="tabular-nums">
+              {formatNotificationTime(row.created_at)}
+            </time>
+          </span>
+          {unread && <span className="sr-only">{unreadLabel}</span>}
         </span>
       </Link>
     </DropdownMenuItem>
@@ -72,6 +72,7 @@ function NotificationItem({ row, onOpen }: { row: NotificationRow; onOpen: (row:
 }
 
 export function NotificationBell() {
+  const t = useT();
   const [reloadKey, reload] = usePollingReloadKey();
   const result = useGraphql<NotificationsData>(NOTIFICATIONS_QUERY, undefined, reloadKey);
 
@@ -81,67 +82,88 @@ export function NotificationBell() {
 
   const unread = shown?.notifications_aggregate.aggregate.count ?? 0;
   const rows = shown?.notifications ?? [];
+  const bellLabel = unread === 0 ? t.shell.notifications : t.notifications.bellUnread(unread);
 
   function handleMarkAll() {
     markAllNotificationsRead().then(reload, (error: unknown) =>
-      showError('Impossible de marquer les notifications comme lues', error, handleMarkAll),
+      showError(t.notifications.markAllReadError, error, handleMarkAll),
     );
   }
 
   function handleOpen(row: NotificationRow) {
     if (row.read_at !== null) return;
     markNotificationRead(row.id).then(reload, (error: unknown) =>
-      showError('Impossible de marquer la notification comme lue', error, () => handleOpen(row)),
+      showError(t.notifications.markReadError, error, () => handleOpen(row)),
     );
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label={bellLabel(unread)}>
-          <Bell />
-          {unread > 0 && (
-            <span
-              className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-semibold text-primary-foreground tabular-nums"
-              aria-hidden
-            >
-              {unread > MAX_BADGE ? `${MAX_BADGE}+` : unread}
-            </span>
+    <>
+      <span className="sr-only" aria-live="polite">
+        {unread > 0 ? bellLabel : ''}
+      </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative" aria-label={bellLabel}>
+            <Bell />
+            {unread > 0 && (
+              <span
+                dir="ltr"
+                aria-hidden
+                className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] leading-none font-semibold text-white tabular-nums ring-2 ring-background"
+              >
+                {unread > MAX_BADGE ? `${MAX_BADGE}+` : unread}
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-1rem)]">
+          <DropdownMenuLabel>{t.shell.notifications}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {shown === null && result.status === 'error' && (
+            <>
+              <p role="alert" className="m-1 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {t.notifications.loadError}
+              </p>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  reload();
+                }}
+              >
+                <RotateCw aria-hidden />
+                {t.common.retry}
+              </DropdownMenuItem>
+            </>
           )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-1rem)]">
-        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {shown === null && result.status === 'error' && (
-          <p role="alert" className="px-2 py-6 text-center text-sm text-destructive">
-            Impossible de charger les notifications.
-          </p>
-        )}
-        {shown === null && result.status === 'loading' && (
-          <p className="px-2 py-6 text-center text-sm text-muted-foreground">Chargement…</p>
-        )}
-        {shown !== null && rows.length === 0 && (
-          <p className="px-2 py-6 text-center text-sm text-muted-foreground">Aucune notification.</p>
-        )}
-        {rows.length > 0 && (
-          <div className="max-h-80 overflow-y-auto">
-            {rows.map((row) => (
-              <NotificationItem key={row.id} row={row} onOpen={handleOpen} />
-            ))}
-          </div>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          disabled={unread === 0}
-          onSelect={(event) => {
-            event.preventDefault();
-            handleMarkAll();
-          }}
-        >
-          Tout marquer comme lu
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {shown === null && result.status === 'loading' && (
+            <SkeletonList count={SKELETON_ROWS} className="space-y-2 p-2" itemClassName="h-12 rounded-lg bg-muted" />
+          )}
+          {shown !== null && rows.length === 0 && (
+            <div className="m-1 flex flex-col items-center gap-2 rounded-lg border border-dashed bg-muted/40 px-3 py-6 text-center text-sm text-muted-foreground">
+              <BellOff className="size-5" aria-hidden />
+              {t.shell.noNotifications}
+            </div>
+          )}
+          {rows.length > 0 && (
+            <div className="max-h-80 overflow-y-auto">
+              {rows.map((row) => (
+                <NotificationItem key={row.id} row={row} unreadLabel={t.notifications.unread} onOpen={handleOpen} />
+              ))}
+            </div>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            disabled={unread === 0}
+            onSelect={(event) => {
+              event.preventDefault();
+              handleMarkAll();
+            }}
+          >
+            {t.notifications.markAllRead}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }

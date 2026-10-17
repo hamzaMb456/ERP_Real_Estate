@@ -1,12 +1,15 @@
 'use client';
 
 import { Controller, useFormContext } from 'react-hook-form';
+import { FieldLabelWithHelp } from '@/components/field-help';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldDescription, FieldError, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { APPOINTMENT_KIND_LABELS, isoToTunisParts } from '@/lib/appointments';
+import { useT } from '@/i18n/provider';
+import { isoToTunisParts } from '@/lib/appointments';
+import { formatDate } from '@/lib/ownership';
 import { useGraphql } from '@/lib/use-graphql';
 import { APPOINTMENT_KINDS, slotOf, type AppointmentFormValues } from './appointment-schema';
 import type { StaffOption } from './calendar-types';
@@ -24,6 +27,7 @@ const UNITS_QUERY = `
 type UnitRow = { id: string; code: string; property: { name: string } };
 
 function UnitSelect() {
+  const t = useT().calendar.dialog;
   const { control } = useFormContext<AppointmentFormValues>();
   const units = useGraphql<{ units: UnitRow[] }>(UNITS_QUERY);
   const options = units.status === 'success' ? units.data.units : [];
@@ -33,22 +37,55 @@ function UnitSelect() {
       name="unitId"
       render={({ field }) => (
         <Field>
-          <FieldLabel htmlFor="appointment-unit">Unité concernée</FieldLabel>
+          <FieldLabelWithHelp htmlFor="appointment-unit" help={t.unitHelp}>
+            {t.unit}
+          </FieldLabelWithHelp>
           <Select value={field.value === '' ? NONE : field.value} onValueChange={(id) => field.onChange(id === NONE ? '' : id)}>
             <SelectTrigger id="appointment-unit" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NONE}>Aucune unité</SelectItem>
+              <SelectItem value={NONE}>{t.noUnit}</SelectItem>
               {options.map((unit) => (
                 <SelectItem key={unit.id} value={unit.id}>
-                  {unit.code} · {unit.property.name}
+                  <span dir="ltr">{unit.code}</span> · {unit.property.name}
                 </SelectItem>
               ))}
               {/* An archived or hidden unit already on the appointment stays selectable. */}
               {field.value !== '' && !options.some((unit) => unit.id === field.value) && (
-                <SelectItem value={field.value}>Unité actuelle</SelectItem>
+                <SelectItem value={field.value}>{t.currentUnit}</SelectItem>
               )}
+            </SelectContent>
+          </Select>
+        </Field>
+      )}
+    />
+  );
+}
+
+function StaffSelect({ staff }: { staff: StaffOption[] }) {
+  const t = useT().calendar.dialog;
+  const { control } = useFormContext<AppointmentFormValues>();
+  return (
+    <Controller
+      control={control}
+      name="assignedUserId"
+      render={({ field }) => (
+        <Field>
+          <FieldLabelWithHelp htmlFor="appointment-staff" help={t.staffHelp}>
+            {t.staff}
+          </FieldLabelWithHelp>
+          <Select value={field.value === '' ? NONE : field.value} onValueChange={(id) => field.onChange(id === NONE ? '' : id)}>
+            <SelectTrigger id="appointment-staff" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>{t.unassigned}</SelectItem>
+              {staff.map((member) => (
+                <SelectItem key={member.user_id} value={member.user_id}>
+                  {member.display_name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </Field>
@@ -59,15 +96,49 @@ function UnitSelect() {
 
 /** « Fin à 10:00 » under the duration, so the end is never a guess. */
 function EndHint() {
+  const t = useT().calendar.dialog;
   const { watch } = useFormContext<AppointmentFormValues>();
   const [date, time, duration] = watch(['date', 'time', 'duration']);
   const slot = slotOf({ date, time, duration });
   if (!slot) return null;
   const end = isoToTunisParts(slot.endsAt);
-  return <FieldDescription>{end.date === date ? `Fin à ${end.time}` : `Fin le ${end.date} à ${end.time}`}</FieldDescription>;
+  return <FieldDescription aria-live="polite">{end.date === date ? t.endsAt(end.time) : t.endsOn(formatDate(end.date), end.time)}</FieldDescription>;
+}
+
+function WhenFields() {
+  const t = useT().calendar.dialog;
+  const { register, formState } = useFormContext<AppointmentFormValues>();
+  const { errors } = formState;
+  return (
+    <div className="grid gap-4 sm:grid-cols-3">
+      <Field data-invalid={!!errors.date}>
+        <FieldLabelWithHelp htmlFor="appointment-date" help={t.dateHelp}>
+          {t.date}
+        </FieldLabelWithHelp>
+        <Input id="appointment-date" type="date" dir="ltr" aria-invalid={!!errors.date} {...register('date')} />
+        <FieldError errors={[errors.date]} />
+      </Field>
+      <Field data-invalid={!!errors.time}>
+        <FieldLabelWithHelp htmlFor="appointment-time" help={t.timeHelp}>
+          {t.time}
+        </FieldLabelWithHelp>
+        <Input id="appointment-time" type="time" dir="ltr" aria-invalid={!!errors.time} {...register('time')} />
+        <FieldError errors={[errors.time]} />
+      </Field>
+      <Field data-invalid={!!errors.duration}>
+        <FieldLabelWithHelp htmlFor="appointment-duration" help={t.durationHelp}>
+          {t.duration}
+        </FieldLabelWithHelp>
+        <Input id="appointment-duration" inputMode="numeric" dir="ltr" aria-invalid={!!errors.duration} {...register('duration')} />
+        <FieldError errors={[errors.duration]} />
+        <EndHint />
+      </Field>
+    </div>
+  );
 }
 
 export function AppointmentFormFields({ staff }: { staff: StaffOption[] }) {
+  const { kinds, dialog: t } = useT().calendar;
   const { control, register, formState } = useFormContext<AppointmentFormValues>();
   const { errors } = formState;
 
@@ -79,7 +150,9 @@ export function AppointmentFormFields({ staff }: { staff: StaffOption[] }) {
           name="kind"
           render={({ field }) => (
             <Field>
-              <FieldLabel htmlFor="appointment-kind">Type *</FieldLabel>
+              <FieldLabelWithHelp htmlFor="appointment-kind" help={t.kindHelp}>
+                {t.kind}
+              </FieldLabelWithHelp>
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger id="appointment-kind" className="w-full">
                   <SelectValue />
@@ -87,7 +160,7 @@ export function AppointmentFormFields({ staff }: { staff: StaffOption[] }) {
                 <SelectContent>
                   {APPOINTMENT_KINDS.map((kind) => (
                     <SelectItem key={kind} value={kind}>
-                      {APPOINTMENT_KIND_LABELS[kind]}
+                      {kinds[kind]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -96,64 +169,32 @@ export function AppointmentFormFields({ staff }: { staff: StaffOption[] }) {
           )}
         />
         <Field data-invalid={!!errors.title}>
-          <FieldLabel htmlFor="appointment-title">Titre *</FieldLabel>
-          <Input id="appointment-title" placeholder="Visite de l’appartement B-101" aria-invalid={!!errors.title} {...register('title')} />
+          <FieldLabelWithHelp htmlFor="appointment-title" help={t.titleHelp}>
+            {t.title}
+          </FieldLabelWithHelp>
+          <Input id="appointment-title" placeholder={t.titlePlaceholder} aria-invalid={!!errors.title} {...register('title')} />
           <FieldError errors={[errors.title]} />
         </Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Field data-invalid={!!errors.date}>
-          <FieldLabel htmlFor="appointment-date">Date *</FieldLabel>
-          <Input id="appointment-date" type="date" aria-invalid={!!errors.date} {...register('date')} />
-          <FieldError errors={[errors.date]} />
-        </Field>
-        <Field data-invalid={!!errors.time}>
-          <FieldLabel htmlFor="appointment-time">Heure *</FieldLabel>
-          <Input id="appointment-time" type="time" aria-invalid={!!errors.time} {...register('time')} />
-          <FieldError errors={[errors.time]} />
-        </Field>
-        <Field data-invalid={!!errors.duration}>
-          <FieldLabel htmlFor="appointment-duration">Durée (minutes) *</FieldLabel>
-          <Input id="appointment-duration" inputMode="numeric" aria-invalid={!!errors.duration} {...register('duration')} />
-          <FieldError errors={[errors.duration]} />
-          <EndHint />
-        </Field>
-      </div>
+      <WhenFields />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Controller
-          control={control}
-          name="assignedUserId"
-          render={({ field }) => (
-            <Field>
-              <FieldLabel htmlFor="appointment-staff">Collaborateur en charge</FieldLabel>
-              <Select value={field.value === '' ? NONE : field.value} onValueChange={(id) => field.onChange(id === NONE ? '' : id)}>
-                <SelectTrigger id="appointment-staff" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>Non assigné</SelectItem>
-                  {staff.map((member) => (
-                    <SelectItem key={member.user_id} value={member.user_id}>
-                      {member.display_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-        />
+        <StaffSelect staff={staff} />
         <UnitSelect />
       </div>
 
       <Field>
-        <FieldLabel htmlFor="appointment-location">Lieu</FieldLabel>
-        <Input id="appointment-location" placeholder="Adresse ou point de rendez-vous" {...register('location')} />
+        <FieldLabelWithHelp htmlFor="appointment-location" help={t.locationHelp}>
+          {t.location}
+        </FieldLabelWithHelp>
+        <Input id="appointment-location" placeholder={t.locationPlaceholder} {...register('location')} />
       </Field>
 
       <Field>
-        <FieldLabel htmlFor="appointment-notes">Notes</FieldLabel>
+        <FieldLabelWithHelp htmlFor="appointment-notes" help={t.notesHelp}>
+          {t.notes}
+        </FieldLabelWithHelp>
         <Textarea id="appointment-notes" rows={2} {...register('notes')} />
       </Field>
 
@@ -163,16 +204,14 @@ export function AppointmentFormFields({ staff }: { staff: StaffOption[] }) {
         render={({ field }) => (
           <label className="flex items-start gap-2 text-sm">
             <Checkbox
-              aria-label="Prévenir par e-mail"
+              aria-label={t.notify}
               checked={field.value}
               onCheckedChange={(checked) => field.onChange(checked === true)}
               className="mt-0.5"
             />
             <span>
-              Prévenir par e-mail
-              <span className="block text-xs text-muted-foreground">
-                Invitation, report et annulation sont envoyés aux participants qui ont une adresse e-mail.
-              </span>
+              {t.notify}
+              <span className="block text-xs text-muted-foreground">{t.notifyDescription}</span>
             </span>
           </label>
         )}

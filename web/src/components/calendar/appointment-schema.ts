@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getMessages } from '@/i18n/store';
 import { isoToTunisParts, tunisToIso } from '@/lib/appointments';
 import type { AppointmentKind } from '@/lib/appointment-types';
 import { todayTunis } from '@/lib/dates';
@@ -11,26 +12,28 @@ const DEFAULT_DURATION_MINUTES = 60;
 const DEFAULT_TIME = '09:00';
 const MINUTE_MS = 60_000;
 
-export const END_AFTER_START_MESSAGE = 'La date de fin doit suivre la date de début.';
+/** The form's schema, with its messages in the language the interface renders in (build it when the form mounts). */
+export function appointmentSchema() {
+  const t = getMessages().calendar.validation;
+  return z.object({
+    kind: z.enum(APPOINTMENT_KINDS),
+    title: z.string().trim().min(1, t.titleRequired),
+    date: z.string().min(1, t.dateRequired),
+    time: z.string().min(1, t.timeRequired),
+    // The end is the start plus this many minutes: zero or less puts the end on or before the start.
+    duration: z.string().trim().refine((value) => /^\d+$/.test(value) && Number(value) > 0, t.endAfterStart),
+    location: z.string(),
+    unitId: z.string(),
+    assignedUserId: z.string(),
+    participants: z
+      .array(z.object({ contactId: z.string().nullable(), role: z.enum(PARTICIPANT_ROLES) }))
+      .refine((rows) => rows.every((row) => row.contactId !== null), t.contactEach),
+    notifyByEmail: z.boolean(),
+    notes: z.string(),
+  });
+}
 
-export const appointmentSchema = z.object({
-  kind: z.enum(APPOINTMENT_KINDS),
-  title: z.string().trim().min(1, 'Le titre est obligatoire.'),
-  date: z.string().min(1, 'Choisissez une date.'),
-  time: z.string().min(1, 'Choisissez une heure.'),
-  // The end is the start plus this many minutes: zero or less puts the end on or before the start.
-  duration: z.string().trim().refine((value) => /^\d+$/.test(value) && Number(value) > 0, END_AFTER_START_MESSAGE),
-  location: z.string(),
-  unitId: z.string(),
-  assignedUserId: z.string(),
-  participants: z
-    .array(z.object({ contactId: z.string().nullable(), role: z.enum(PARTICIPANT_ROLES) }))
-    .refine((rows) => rows.every((row) => row.contactId !== null), 'Choisissez un contact pour chaque participant.'),
-  notifyByEmail: z.boolean(),
-  notes: z.string(),
-});
-
-export type AppointmentFormValues = z.infer<typeof appointmentSchema>;
+export type AppointmentFormValues = z.infer<ReturnType<typeof appointmentSchema>>;
 
 /** What the dialog starts from: a slot clicked in the calendar, a lease, or an appointment being edited. */
 export type AppointmentInitial = {

@@ -1,35 +1,18 @@
+import { getMessages } from '@/i18n/store';
 import type { AppointmentKind, AppointmentStatus, EmailStatus, ParticipantRole } from '@/lib/appointment-types';
 
-export const APPOINTMENT_KIND_LABELS: Record<AppointmentKind, string> = {
-  viewing: 'Visite',
-  move_in: 'État des lieux d’entrée',
-  move_out: 'État des lieux de sortie',
-  meeting: 'Rendez-vous',
-  other: 'Autre',
-};
+// Labels live in the calendar dictionary (src/i18n/messages/*/calendar.ts); these read the current language at call time.
 
-export const PARTICIPANT_ROLE_LABELS: Record<ParticipantRole, string> = {
-  renter: 'Locataire',
-  guarantor: 'Garant',
-  prospect: 'Prospect',
-  buyer: 'Acheteur',
-  other: 'Autre',
-};
+export const appointmentKindLabels = (): Record<AppointmentKind, string> => getMessages().calendar.kinds;
 
-export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
-  planned: 'Prévu',
-  done: 'Fait',
-  cancelled: 'Annulé',
-};
+export const participantRoleLabels = (): Record<ParticipantRole, string> => getMessages().calendar.roles;
 
-const EMAIL_STATUS_LABELS: Record<EmailStatus, string> = {
-  sent: 'E-mail envoyé',
-  failed: 'E-mail non envoyé · Renvoyer',
-  skipped: 'Pas d’adresse e-mail',
-  pending: 'En attente',
-};
+export const appointmentStatusLabels = (): Record<AppointmentStatus, string> => getMessages().calendar.statuses;
 
-export const emailStatusLabel = (status: EmailStatus): string => EMAIL_STATUS_LABELS[status];
+/** A kind label, or the raw code when the database holds a kind this version does not know. */
+export const appointmentKindLabel = (kind: string): string => appointmentKindLabels()[kind as AppointmentKind] ?? kind;
+
+export const emailStatusLabel = (status: EmailStatus): string => getMessages().calendar.emailStatuses[status];
 
 /**
  * The e-mail status shown next to a participant. « skipped » has two causes, so it is spelled out:
@@ -37,8 +20,9 @@ export const emailStatusLabel = (status: EmailStatus): string => EMAIL_STATUS_LA
  */
 export function participantEmailLabel(status: EmailStatus, context: { notifyByEmail: boolean; hasEmail: boolean }): string {
   if (status !== 'skipped') return emailStatusLabel(status);
-  if (!context.notifyByEmail) return 'E-mail désactivé';
-  return context.hasEmail ? 'Aucun e-mail envoyé' : emailStatusLabel(status);
+  const t = getMessages().calendar.participantEmail;
+  if (!context.notifyByEmail) return t.disabled;
+  return context.hasEmail ? t.noneSent : emailStatusLabel(status);
 }
 
 /** A Tunis wall-clock date (YYYY-MM-DD) and time (HH:mm) as an ISO instant. Tunisia is UTC+1 all year. */
