@@ -236,7 +236,8 @@ type CountResult = { total: number; cities: number };
  */
 async function safely<T>(name: string, empty: () => T, run: () => Promise<T>): Promise<T> {
   if (!siteConfig.orgId) {
-    console.error(`[public-listings] ${name} skipped: NEXT_PUBLIC_AGENCY_ORG_ID is not set`);
+    // A setup notice, not a failure: a warning keeps it out of the Next.js error overlay.
+    console.warn(`[public-listings] ${name} skipped: NEXT_PUBLIC_AGENCY_ORG_ID is not set`);
     return empty();
   }
   try {

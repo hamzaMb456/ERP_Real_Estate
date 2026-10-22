@@ -60,6 +60,7 @@ function conditions(call = publicQuery.mock.calls.at(-1), key = 'where'): unknow
 beforeEach(() => {
   publicQuery.mockReset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -178,7 +179,8 @@ describe('getLatestListings', () => {
     const { getLatestListings } = await load('');
     await expect(getLatestListings('rent', 3)).resolves.toEqual([]);
     expect(publicQuery).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalled();
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('NEXT_PUBLIC_AGENCY_ORG_ID is not set'));
+    expect(console.error).not.toHaveBeenCalled();
   });
 });
 
