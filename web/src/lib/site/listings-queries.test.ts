@@ -331,3 +331,29 @@ describe('countPublished', () => {
     expect(publicQuery).not.toHaveBeenCalled();
   });
 });
+
+describe('getPublishedCities', () => {
+  it('lists the distinct cities of published listings, with the shared where and without listings lacking a city', async () => {
+    publicQuery.mockResolvedValue({ cities: [{ city: 'Carthage' }, { city: 'La Marsa' }] });
+    const { getPublishedCities } = await load();
+    await expect(getPublishedCities()).resolves.toEqual(['Carthage', 'La Marsa']);
+    const where = conditions();
+    expect(where).toContainEqual({ city: { _is_null: false } });
+    expect(where).toEqual(
+      expect.arrayContaining([{ organization_id: { _eq: ORG } }, { unit_status: { _nin: ['sold', 'under_maintenance'] } }]),
+    );
+    expect(JSON.stringify(where)).not.toContain('"kind"');
+  });
+
+  it('is resilient: [] on failure and without an organization id', async () => {
+    publicQuery.mockRejectedValue(new Error('boom'));
+    const first = await load();
+    await expect(first.getPublishedCities()).resolves.toEqual([]);
+    expect(console.error).toHaveBeenCalledWith('[public-listings] getPublishedCities failed', expect.any(Error));
+
+    publicQuery.mockClear();
+    const second = await load('');
+    await expect(second.getPublishedCities()).resolves.toEqual([]);
+    expect(publicQuery).not.toHaveBeenCalled();
+  });
+});

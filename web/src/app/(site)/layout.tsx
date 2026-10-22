@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { ScrollStagger } from '@/components/motion/primitives';
 import { SiteFooter } from '@/components/site/site-footer';
 import { SiteHeader } from '@/components/site/site-header';
 import { SkipLink } from '@/components/site/skip-link';
@@ -16,13 +17,16 @@ export const metadata: Metadata = {
 /** Public front office frame: header, `#contenu`, footer, always light (see app/site.css). No ERP shell here. */
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="site-root flex min-h-dvh flex-col">
-      <SkipLink />
-      <SiteHeader />
-      <main id="contenu" tabIndex={-1} className="flex-1 focus:outline-none">
-        {children}
-      </main>
-      <SiteFooter id="contact" phone={siteConfig.phone} email={siteConfig.email} address={siteConfig.address} />
+    <div className="site-root">
+      {/* Reveals cards and [data-scroll-item] blocks on scroll, like the ERP shell. */}
+      <ScrollStagger className="flex min-h-dvh flex-col">
+        <SkipLink />
+        <SiteHeader />
+        <main id="contenu" tabIndex={-1} className="flex-1 focus:outline-none">
+          {children}
+        </main>
+        <SiteFooter id="contact" phone={siteConfig.phone} email={siteConfig.email} address={siteConfig.address} />
+      </ScrollStagger>
     </div>
   );
 }

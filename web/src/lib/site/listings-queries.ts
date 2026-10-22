@@ -313,3 +313,21 @@ export async function countPublished(): Promise<CountResult> {
     return { total: data.total.aggregate?.count ?? 0, cities: data.cities.length };
   });
 }
+
+const CITIES_QUERY = `
+  query PublicCities($where: public_listings_bool_exp!) {
+    cities: public_listings(where: $where, distinct_on: city, order_by: { city: asc }) { city }
+  }
+`;
+
+/** The cities (alphabetical) that have at least one published listing, for the home page search. */
+export async function getPublishedCities(): Promise<string[]> {
+  'use cache';
+  cacheLife('minutes');
+  return safely('getPublishedCities', () => [], async () => {
+    const data = await publicQuery<{ cities: { city: string }[] }>(CITIES_QUERY, {
+      where: withCity(listingsWhere()),
+    });
+    return data.cities.map((entry) => entry.city);
+  });
+}

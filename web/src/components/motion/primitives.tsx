@@ -120,7 +120,8 @@ export function ScrollStagger({ children, className }: { children: ReactNode; cl
 /** One block revealed by the nearest ScrollStagger. */
 export function ScrollItem({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div data-scroll-item="" className={className}>
+    // GSAP sets inline styles on it (hidden until revealed), possibly before a server-rendered page has hydrated.
+    <div data-scroll-item="" className={className} suppressHydrationWarning>
       {children}
     </div>
   );

@@ -109,3 +109,5 @@ export const Menu = makeIcon('Menu');
 export const ShieldCheck = makeIcon('ShieldCheck');
 export const Heart = makeIcon('Heart');
 export const BedDouble = makeIcon('BedDouble');
+export const Clock = makeIcon('Clock');
+export const ArrowRight = makeIcon('ArrowRight');
