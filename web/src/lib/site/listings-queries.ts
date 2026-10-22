@@ -46,7 +46,8 @@ export type PublicListing = {
   surfaceM2: number | null;
   floor: number | null;
   unitStatus: string;
-  city: string;
+  /** The bien's city; null when staff left it empty (such a listing still shows, it just has no city). */
+  city: string | null;
   governorate: string | null;
   /** Rounded to 3 decimals by the view: the exact address is not public. */
   latitude: number | null;
@@ -82,7 +83,7 @@ export type ListingRow = {
   surface_m2: NumberLike;
   floor: NumberLike;
   unit_status: string;
-  city: string;
+  city: string | null;
   governorate: string | null;
   latitude: NumberLike;
   longitude: NumberLike;
@@ -135,6 +136,11 @@ export function toPublicListing(row: ListingRow): PublicListing {
 }
 
 type Where = Record<string, unknown>;
+
+/** `where` restricted to listings that have a city: what the city list and the city count are built on. */
+export function withCity(where: Where): Where {
+  return { _and: [...(where as { _and: Where[] })._and, { city: { _is_null: false } }] };
+}
 
 /**
  * The one `where` every public query starts from: my organization, a real price, a unit that is on offer, the
@@ -202,9 +208,9 @@ const ONE_QUERY = `
 `;
 
 const COUNT_QUERY = `
-  query PublicCountListings($where: public_listings_bool_exp!) {
+  query PublicCountListings($where: public_listings_bool_exp!, $citiesWhere: public_listings_bool_exp!) {
     total: public_listings_aggregate(where: $where) { aggregate { count } }
-    cities: public_listings(where: $where, distinct_on: city, order_by: { city: asc }) { city }
+    cities: public_listings(where: $citiesWhere, distinct_on: city, order_by: { city: asc }) { city }
   }
 `;
 
@@ -267,7 +273,7 @@ export async function searchListings(mode: SearchMode, filters: SearchFilters): 
       cities: { city: string }[];
     }>(SEARCH_QUERY, {
       where: listingsWhere(mode, filters),
-      citiesWhere: listingsWhere(mode),
+      citiesWhere: withCity(listingsWhere(mode)),
       orderBy: orderBy(filters.sort),
       limit: PAGE_SIZE,
       offset: (filters.page - 1) * PAGE_SIZE,
@@ -303,7 +309,7 @@ export async function countPublished(): Promise<CountResult> {
     const data = await publicQuery<{
       total: { aggregate: { count: number } | null };
       cities: { city: string }[];
-    }>(COUNT_QUERY, { where: listingsWhere() });
+    }>(COUNT_QUERY, { where: listingsWhere(), citiesWhere: withCity(listingsWhere()) });
     return { total: data.total.aggregate?.count ?? 0, cities: data.cities.length };
   });
 }

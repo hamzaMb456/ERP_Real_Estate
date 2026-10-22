@@ -2,7 +2,9 @@ import type { PublicListing } from './listings-queries';
 
 const PRICE_BAND = 0.25;
 
-function sameCity(a: string, b: string): boolean {
+/** Two listings share a city only when both have one: no city is never "the same city". */
+function sameCity(a: string | null, b: string | null): boolean {
+  if (!a?.trim() || !b?.trim()) return false;
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 

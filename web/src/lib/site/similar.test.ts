@@ -75,4 +75,10 @@ describe('pickSimilar', () => {
   it('returns nothing when the base has no usable price', () => {
     expect(pickSimilar(listing('free', 0), [listing('a', 0)])).toEqual([]);
   });
+
+  it('never treats listings without a city as similar and does not throw', () => {
+    const noCity = listing('no-city', 1450, { city: null });
+    expect(pickSimilar(noCity, [listing('a', 1450), listing('b', 1450, { city: null })])).toEqual([]);
+    expect(pickSimilar(base, [listing('a', 1450, { city: null }), listing('b', 1450, { city: '  ' })])).toEqual([]);
+  });
 });

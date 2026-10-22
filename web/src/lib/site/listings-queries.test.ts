@@ -98,6 +98,11 @@ describe('toPublicListing', () => {
     ]);
   });
 
+  it('keeps a null city as null', async () => {
+    const { toPublicListing } = await load();
+    expect(toPublicListing(row({ city: null })).city).toBeNull();
+  });
+
   it('keeps nulls and leaves photos out when the row has none', async () => {
     const { toPublicListing } = await load();
     const listing = toPublicListing(row({ charges: null, rooms: null, surface_m2: null, cover_file_id: null, photo_count: 0 }));
@@ -217,6 +222,7 @@ describe('searchListings', () => {
     const citiesWhere = conditions(publicQuery.mock.calls[0], 'citiesWhere');
     expect(citiesWhere).toEqual(expect.arrayContaining([{ kind: { _eq: 'rent' } }, { unit_status: { _nin: ['sold', 'under_maintenance'] } }]));
     expect(JSON.stringify(citiesWhere)).not.toContain('Carthage');
+    expect(citiesWhere).toContainEqual({ city: { _is_null: false } });
   });
 
   it('passes hostile input as variables, never inside the query text', async () => {
@@ -303,7 +309,10 @@ describe('countPublished', () => {
     });
     const { countPublished } = await load();
     await expect(countPublished()).resolves.toEqual({ total: 17, cities: 3 });
-    const variables = publicQuery.mock.calls[0][1] as { where: { _and: unknown[] } };
+    const variables = publicQuery.mock.calls[0][1] as { where: { _and: unknown[] }; citiesWhere: { _and: unknown[] } };
+    // the cities count leaves out listings without a city; the total keeps them
+    expect(variables.citiesWhere._and).toContainEqual({ city: { _is_null: false } });
+    expect(JSON.stringify(variables.where)).not.toContain('city');
     expect(variables.where._and).toEqual(
       expect.arrayContaining([{ organization_id: { _eq: ORG } }, { unit_status: { _nin: ['sold', 'under_maintenance'] } }]),
     );
