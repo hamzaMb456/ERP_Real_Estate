@@ -39,7 +39,7 @@ function LeaseRows({ rows }: { rows: Row[] }) {
       {rows.map(({ lease }) => (
         <li key={lease.id} className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0">
           <div>
-            <Link href={'/baux/' + lease.id} className="font-medium text-primary hover:underline">
+            <Link href={'/erp/baux/' + lease.id} className="font-medium text-primary hover:underline">
               {formatLeaseNumber(lease.number)}
             </Link>
             <p className="text-xs text-muted-foreground">

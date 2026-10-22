@@ -22,13 +22,13 @@ export function gapLabel(code: string): string {
 export function gapLink(row: GapRow): string {
   switch (row.entity_type) {
     case 'unit': {
-      const base = `/biens/${row.property_id}/unites/${row.entity_id}`;
+      const base = `/erp/biens/${row.property_id}/unites/${row.entity_id}`;
       return row.gap_code === 'no_owner' ? base + '#proprietaires' : base + '#modifier';
     }
     case 'property':
-      return row.gap_code === 'shares_total' ? `/biens/${row.entity_id}#parties-communes` : `/biens/${row.entity_id}/modifier`;
+      return row.gap_code === 'shares_total' ? `/erp/biens/${row.entity_id}#parties-communes` : `/erp/biens/${row.entity_id}/modifier`;
     case 'contact':
-      return `/contacts/${row.entity_id}/modifier`;
+      return `/erp/contacts/${row.entity_id}/modifier`;
   }
 }
 

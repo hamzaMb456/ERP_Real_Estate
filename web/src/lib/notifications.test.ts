@@ -46,16 +46,16 @@ describe('formatNotificationTime', () => {
 
 describe('notificationHref', () => {
   it('prefers the stored link', () => {
-    expect(notificationHref({ link: '/baux/1', leaseId: '2', appointmentId: '3' })).toBe('/baux/1');
+    expect(notificationHref({ link: '/erp/baux/1', leaseId: '2', appointmentId: '3' })).toBe('/erp/baux/1');
   });
 
-  it('falls back to the lease, then the appointment, then the home page', () => {
-    expect(notificationHref({ link: null, leaseId: '2', appointmentId: '3' })).toBe('/baux/2');
-    expect(notificationHref({ link: null, leaseId: null, appointmentId: '3' })).toBe('/calendrier?rendezvous=3');
-    expect(notificationHref({ link: null, leaseId: null, appointmentId: null })).toBe('/');
+  it('falls back to the lease, then the appointment, then the dashboard', () => {
+    expect(notificationHref({ link: null, leaseId: '2', appointmentId: '3' })).toBe('/erp/baux/2');
+    expect(notificationHref({ link: null, leaseId: null, appointmentId: '3' })).toBe('/erp/calendrier?rendezvous=3');
+    expect(notificationHref({ link: null, leaseId: null, appointmentId: null })).toBe('/erp');
   });
 
   it('treats an empty link as unset', () => {
-    expect(notificationHref({ link: '', leaseId: '2', appointmentId: null })).toBe('/baux/2');
+    expect(notificationHref({ link: '', leaseId: '2', appointmentId: null })).toBe('/erp/baux/2');
   });
 });

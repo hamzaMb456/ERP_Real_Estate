@@ -63,7 +63,7 @@ export function PropertyOverview({ property, units }: { property: PropertyDetail
               <LocationPicker value={{ lat: Number(property.latitude), lon: Number(property.longitude) }} className="h-48" />
             ) : (
               <Button asChild variant="outline" size="sm">
-                <Link href={'/biens/' + property.id + '/modifier'}>{t.properties.overview.placeOnMap}</Link>
+                <Link href={'/erp/biens/' + property.id + '/modifier'}>{t.properties.overview.placeOnMap}</Link>
               </Button>
             )}
           </CardContent>
@@ -84,7 +84,7 @@ export function PropertyOverview({ property, units }: { property: PropertyDetail
                 {property.owners.map((owner) => (
                   <li key={owner.contact.id} className="flex items-center justify-between gap-3 py-2">
                     <span className="min-w-0">
-                      <Link href={'/contacts/' + owner.contact.id} className="font-medium hover:text-primary hover:underline">
+                      <Link href={'/erp/contacts/' + owner.contact.id} className="font-medium hover:text-primary hover:underline">
                         {owner.contact.full_name}
                       </Link>
                       {owner.contact.is_organization && (

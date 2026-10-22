@@ -20,6 +20,6 @@ describe('DuplicateNotice', () => {
       />,
     );
     expect(screen.getByText(/Même téléphone, e-mail que/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Salma Gharbi' })).toHaveAttribute('href', '/contacts/c1');
+    expect(screen.getByRole('link', { name: 'Salma Gharbi' })).toHaveAttribute('href', '/erp/contacts/c1');
   });
 });

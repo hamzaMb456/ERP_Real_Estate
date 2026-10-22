@@ -9,7 +9,7 @@ test('lease: draft → activate → unit rented → rent change → renew → en
   await signIn(page);
 
   // A bien with two units.
-  await page.goto('/biens/nouveau');
+  await page.goto('/erp/biens/nouveau');
   await page.getByLabel('Nom du bien *').fill(bienName);
   await page.getByRole('combobox', { name: 'Succursale *' }).click();
   await page.getByRole('option', { name: /Tunis Nord/ }).click();
@@ -28,7 +28,7 @@ test('lease: draft → activate → unit rented → rent change → renew → en
   }
 
   // A draft lease on both units, with a renter and a guarantor.
-  await page.goto('/baux/nouveau');
+  await page.goto('/erp/baux/nouveau');
   await expect(page.getByLabel('Début du bail')).toBeVisible();
   await page.getByLabel('Début du bail').fill(isoInDays(0));
   await page.getByLabel('Fin du bail').fill(isoInDays(364));

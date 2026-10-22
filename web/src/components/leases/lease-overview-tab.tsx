@@ -91,7 +91,7 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
             {[...renters.map((party) => ({ ...party, label: t.leases.overview.renter })), ...guarantors.map((party) => ({ ...party, label: t.leases.overview.guarantor }))].map((party) => (
               <div key={party.contact.id} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <Link href={'/contacts/' + party.contact.id} className="font-medium text-primary hover:underline">
+                  <Link href={'/erp/contacts/' + party.contact.id} className="font-medium text-primary hover:underline">
                     {party.contact.full_name}
                   </Link>
                   <p className="truncate text-xs text-muted-foreground">{[party.contact.phone, party.contact.email].filter(Boolean).join(' · ') || t.leases.overview.noContactInfo}</p>
@@ -113,7 +113,7 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
               return (
                 <div key={unit.id} className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
                   <div>
-                    <Link href={`/biens/${unit.property.id}/unites/${unit.id}`} className="font-medium text-primary hover:underline">
+                    <Link href={`/erp/biens/${unit.property.id}/unites/${unit.id}`} className="font-medium text-primary hover:underline">
                       {unit.code}
                     </Link>
                     <p className="text-xs text-muted-foreground">{unit.property.name}</p>
@@ -142,7 +142,7 @@ export function LeaseOverviewTab({ lease, canEdit, onChanged }: Props) {
             {owners.size === 0 && <p className="text-muted-foreground">{t.leases.overview.noOwner}</p>}
             {[...owners.entries()].map(([id, owner]) => (
               <div key={id} className="flex items-center justify-between gap-3">
-                <Link href={'/contacts/' + id} className="font-medium text-primary hover:underline">
+                <Link href={'/erp/contacts/' + id} className="font-medium text-primary hover:underline">
                   {owner.name}
                 </Link>
                 <span className="text-xs text-muted-foreground">{owner.units.join(', ')}</span>

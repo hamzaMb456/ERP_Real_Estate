@@ -52,7 +52,7 @@ export function AppointmentParticipantsList({ appointmentId, participants, notif
         return (
           <li key={participant.contact_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
             <div className="min-w-0">
-              <Link href={'/contacts/' + participant.contact.id} className="font-medium text-primary hover:underline">
+              <Link href={'/erp/contacts/' + participant.contact.id} className="font-medium text-primary hover:underline">
                 {participant.contact.full_name}
               </Link>
               <p className="text-xs text-muted-foreground">

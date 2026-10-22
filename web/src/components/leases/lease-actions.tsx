@@ -46,7 +46,7 @@ export function LeaseActions({ lease, onChanged }: Props) {
         {!archived && (
           <>
             <Button asChild variant="outline">
-              <Link href={'/baux/' + lease.id + '/modifier'}>
+              <Link href={'/erp/baux/' + lease.id + '/modifier'}>
                 <Pencil data-icon="inline-start" />
                 {t.common.edit}
               </Link>

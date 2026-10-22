@@ -19,14 +19,14 @@ export function formatNotificationTime(iso: string): string {
   );
 }
 
-/** Where a notification leads: its stored link, else its lease, else its appointment, else home. */
+/** Where a notification leads: its stored link, else its lease, else its appointment, else the dashboard. */
 export function notificationHref(row: {
   link: string | null;
   leaseId: string | null;
   appointmentId: string | null;
 }): string {
   if (row.link) return row.link;
-  if (row.leaseId) return `/baux/${row.leaseId}`;
-  if (row.appointmentId) return `/calendrier?rendezvous=${row.appointmentId}`;
-  return '/';
+  if (row.leaseId) return `/erp/baux/${row.leaseId}`;
+  if (row.appointmentId) return `/erp/calendrier?rendezvous=${row.appointmentId}`;
+  return '/erp';
 }

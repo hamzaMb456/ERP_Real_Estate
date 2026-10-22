@@ -90,7 +90,7 @@ describe('ContactAppointments', () => {
   it('links each appointment to its sheet on the calendar, on the right day', () => {
     useGraphql.mockReturnValue(success([participation('A7', { title: 'Visite B-102', starts_at: '2026-11-02T09:00:00+01:00' })]));
     render(<ContactAppointments contactId="C1" />);
-    expect(screen.getByRole('link', { name: 'Visite B-102' })).toHaveAttribute('href', '/calendrier?rendezvous=A7&date=2026-11-02');
+    expect(screen.getByRole('link', { name: 'Visite B-102' })).toHaveAttribute('href', '/erp/calendrier?rendezvous=A7&date=2026-11-02');
   });
 
   it('shows the empty messages when the contact has no appointment', () => {

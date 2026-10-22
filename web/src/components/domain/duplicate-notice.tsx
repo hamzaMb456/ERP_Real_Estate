@@ -21,7 +21,7 @@ export function DuplicateNotice({ matches }: { matches: DuplicateMatch[] }) {
         {matches.map((match) => (
           <li key={match.contact.id}>
             {t.contacts.duplicates.same(match.fields.map((field) => fieldLabels[field]).join(t.contacts.duplicates.separator))}{' '}
-            <Link href={'/contacts/' + match.contact.id} target="_blank" className="font-medium text-primary underline">
+            <Link href={'/erp/contacts/' + match.contact.id} target="_blank" className="font-medium text-primary underline">
               {match.contact.full_name}
             </Link>
           </li>

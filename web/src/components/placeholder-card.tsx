@@ -26,10 +26,10 @@ export function PlaceholderCard({ labelKey }: { labelKey: NavKey }) {
         </CardHeader>
         <CardContent className="flex justify-center gap-2">
           <Button asChild>
-            <Link href="/biens">{t.shell.placeholder.seeProperties}</Link>
+            <Link href="/erp/biens">{t.shell.placeholder.seeProperties}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/contacts">{t.shell.placeholder.seeContacts}</Link>
+            <Link href="/erp/contacts">{t.shell.placeholder.seeContacts}</Link>
           </Button>
         </CardContent>
       </Card>

@@ -3,7 +3,7 @@ import { EMAIL, PASSWORD, signIn } from './helpers';
 
 test.skip(!EMAIL || !PASSWORD, 'Set E2E_EMAIL and E2E_PASSWORD in web/.env.test.local');
 
-const PAGES = ['/', '/biens', '/contacts', '/baux', '/biens/nouveau'];
+const PAGES = ['/erp', '/erp/biens', '/erp/contacts', '/erp/baux', '/erp/biens/nouveau'];
 
 test('language switcher: persists, flips dir, and the pages render in every language', async ({ page }) => {
   test.setTimeout(240_000);

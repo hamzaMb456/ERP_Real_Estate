@@ -48,7 +48,7 @@ export function UnitLeaseCard({ unitId, canCreate }: { unitId: string; canCreate
             <p className="text-muted-foreground">{t.leases.unitCard.none}</p>
             {canCreate && (
               <Button asChild variant="outline" size="sm">
-                <Link href={'/baux/nouveau?unite=' + unitId}>
+                <Link href={'/erp/baux/nouveau?unite=' + unitId}>
                   <FilePlus2 data-icon="inline-start" />
                   {t.leases.unitCard.create}
                 </Link>
@@ -60,7 +60,7 @@ export function UnitLeaseCard({ unitId, canCreate }: { unitId: string; canCreate
           result.data.unit_current_lease.map((row) => (
             <div key={row.lease_id} className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
-                <Link href={'/baux/' + row.lease_id} className="font-medium text-primary hover:underline">
+                <Link href={'/erp/baux/' + row.lease_id} className="font-medium text-primary hover:underline">
                   {formatLeaseNumber(row.number)}
                 </Link>
                 <p className="text-muted-foreground">{row.renter_names ?? '—'}</p>

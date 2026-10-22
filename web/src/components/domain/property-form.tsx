@@ -77,7 +77,7 @@ export function PropertyForm(props: Props) {
   const schema = useMemo(() => makeSchema(t.properties.form), [t]);
   const router = useRouter();
   const editing = props.mode === 'edit';
-  const cancelHref = props.mode === 'edit' ? '/biens/' + props.propertyId : '/biens';
+  const cancelHref = props.mode === 'edit' ? '/erp/biens/' + props.propertyId : '/erp/biens';
   const branches = useGraphql<{ branches: { id: string; name: string; city: string | null }[] }>(BRANCHES_QUERY);
   const { control, register, handleSubmit, formState, setValue } = useForm<PropertyFormValues>({
     resolver: zodResolver(schema),
@@ -105,7 +105,7 @@ export function PropertyForm(props: Props) {
       if (props.mode === 'edit') {
         await graphql(UPDATE_PROPERTY, { id: props.propertyId, set: fields });
         toast.success(t.properties.form.updated, { description: values.name });
-        router.push('/biens/' + props.propertyId);
+        router.push('/erp/biens/' + props.propertyId);
         return;
       }
       const created = await graphql<{ insert_properties_one: { id: string } }>(ADD_PROPERTY, {
@@ -117,7 +117,7 @@ export function PropertyForm(props: Props) {
             ? t.properties.form.createdBuilding(values.name)
             : t.properties.form.createdSingle(values.name),
       });
-      router.push('/biens/' + created.insert_properties_one.id);
+      router.push('/erp/biens/' + created.insert_properties_one.id);
     } catch (error) {
       toast.error(t.properties.form.saveFailed, { description: toUserMessage(error) });
     }

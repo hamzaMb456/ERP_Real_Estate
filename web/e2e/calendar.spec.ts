@@ -10,7 +10,7 @@ test('calendar: schedule with a renter → calendar → contact page → cancel 
   await signIn(page);
 
   // Schedule an appointment tomorrow, 09:00, with a renter as participant.
-  await page.goto('/calendrier');
+  await page.goto('/erp/calendrier');
   await page.getByRole('button', { name: 'Nouveau rendez-vous' }).click();
   await expect(page.getByRole('heading', { name: 'Nouveau rendez-vous' })).toBeVisible();
   await page.getByLabel('Titre *').fill(title);
@@ -21,7 +21,7 @@ test('calendar: schedule with a renter → calendar → contact page → cancel 
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
 
   // It shows in the week view of tomorrow.
-  await page.goto(`/calendrier?vue=semaine&date=${isoInDays(1)}`);
+  await page.goto(`/erp/calendrier?vue=semaine&date=${isoInDays(1)}`);
   await expect(page.getByText(title)).toBeVisible({ timeout: 15_000 });
 
   // It opens in the detail sheet with its participant.
@@ -30,20 +30,20 @@ test('calendar: schedule with a renter → calendar → contact page → cancel 
   await expect(page.getByText('SARL Carthage Digital')).toBeVisible();
 
   // It shows on the contact page too.
-  await page.goto('/contacts');
+  await page.goto('/erp/contacts');
   await page.getByPlaceholder(/Rechercher/).first().fill('SARL Carthage Digital');
   await page.getByRole('link', { name: /SARL Carthage Digital/ }).first().click();
   await expect(page.getByText(title)).toBeVisible({ timeout: 15_000 });
 
   // Cancel it from the calendar.
-  await page.goto(`/calendrier?vue=semaine&date=${isoInDays(1)}`);
+  await page.goto(`/erp/calendrier?vue=semaine&date=${isoInDays(1)}`);
   await page.getByText(title).first().click();
   await page.getByRole('button', { name: 'Annuler', exact: true }).click();
   await page.getByRole('button', { name: 'Annuler le rendez-vous' }).click();
   await expect(page.getByText('Rendez-vous annulé')).toBeVisible();
 
   // Hidden by default, back when cancelled appointments are shown.
-  await page.goto(`/calendrier?vue=semaine&date=${isoInDays(1)}`);
+  await page.goto(`/erp/calendrier?vue=semaine&date=${isoInDays(1)}`);
   await expect(page.getByText(title)).toHaveCount(0);
   await page.getByLabel('Afficher les rendez-vous annulés').click();
   await expect(page.getByText(title)).toBeVisible();

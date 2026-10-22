@@ -72,7 +72,7 @@ export function ContactPicker({ id, options, value, onChange, excludeIds = [], i
           </CommandList>
           <div className="border-t p-1">
             <Button asChild variant="ghost" size="sm" className="w-full justify-start">
-              <Link href="/contacts/nouveau" target="_blank">
+              <Link href="/erp/contacts/nouveau" target="_blank">
                 <Plus data-icon="inline-start" />
                 {t.ownership.picker.newContact}
               </Link>

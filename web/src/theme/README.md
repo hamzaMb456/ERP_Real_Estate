@@ -68,6 +68,6 @@ nothing needs injecting.
 
 ## Where users change it
 
-`/administration/apparence` (Administration > Appearance, and "Customise appearance" in the header theme
+`/erp/administration/apparence` (Administration > Appearance, and "Customise appearance" in the header theme
 menu): palette picker, three colour inputs, live preview with Apply / Cancel, restore defaults, and named
 saved palettes.

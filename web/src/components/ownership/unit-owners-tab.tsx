@@ -41,7 +41,7 @@ function OwnerLine({ row, detail, onDelete }: { row: Row; detail: string; onDele
   return (
     <li className="flex items-center justify-between gap-3 py-3">
       <div className="min-w-0">
-        <Link href={'/contacts/' + row.contact.id} className="font-medium hover:text-primary hover:underline">
+        <Link href={'/erp/contacts/' + row.contact.id} className="font-medium hover:text-primary hover:underline">
           {row.contact.full_name}
         </Link>
         {row.contact.is_organization && (

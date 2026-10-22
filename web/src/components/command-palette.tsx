@@ -92,7 +92,7 @@ export function CommandPalette() {
         <CommandList>
           <CommandEmpty>{t.common.noResults}</CommandEmpty>
           <CommandGroup heading={t.shell.command.actions}>
-            <CommandItem onSelect={() => go('/contacts/nouveau')}>
+            <CommandItem onSelect={() => go('/erp/contacts/nouveau')}>
               <Plus />
               {t.shell.command.addContact}
             </CommandItem>
@@ -114,7 +114,7 @@ export function CommandPalette() {
               <CommandSeparator />
               <CommandGroup heading={t.shell.command.contacts}>
                 {contacts.map((contact) => (
-                  <CommandItem key={contact.id} value={'contact ' + contact.full_name} onSelect={() => go('/contacts/' + contact.id)}>
+                  <CommandItem key={contact.id} value={'contact ' + contact.full_name} onSelect={() => go('/erp/contacts/' + contact.id)}>
                     <User />
                     {contact.full_name}
                   </CommandItem>

@@ -40,7 +40,7 @@ export function ThemeToggle() {
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/administration/apparence">
+          <Link href="/erp/administration/apparence">
             <Palette /> {t.appearance.menuLink}
           </Link>
         </DropdownMenuItem>

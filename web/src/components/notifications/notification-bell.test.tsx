@@ -90,9 +90,9 @@ describe('NotificationBell', () => {
     render(<NotificationBell />);
     await userEvent.click(screen.getByRole('button', { name: /^Notifications/ }));
     const lease = await screen.findByRole('menuitem', { name: /Bail expiré/ });
-    expect(lease).toHaveAttribute('href', '/baux/L12');
+    expect(lease).toHaveAttribute('href', '/erp/baux/L12');
     expect(lease).toHaveTextContent('Bail 12');
-    expect(screen.getByRole('menuitem', { name: /Rappel de rendez-vous/ })).toHaveAttribute('href', '/calendrier?rendezvous=A5');
+    expect(screen.getByRole('menuitem', { name: /Rappel de rendez-vous/ })).toHaveAttribute('href', '/erp/calendrier?rendezvous=A5');
   });
 
   it('marks all as read with one mutation, then reloads', async () => {

@@ -81,14 +81,14 @@ export function AppointmentSheetContent({ appointment, canEdit, onEdit, onChange
           </Row>
           {appointment.unit && (
             <Row icon={Building2} label={t.unit}>
-              <Link href={`/biens/${appointment.unit.property.id}/unites/${appointment.unit.id}`} className="text-primary hover:underline">
+              <Link href={`/erp/biens/${appointment.unit.property.id}/unites/${appointment.unit.id}`} className="text-primary hover:underline">
                 <span dir="ltr">{appointment.unit.code}</span> · {appointment.unit.property.name}
               </Link>
             </Row>
           )}
           {appointment.lease && (
             <Row icon={FileText} label={t.lease}>
-              <Link href={'/baux/' + appointment.lease.id} className="text-primary hover:underline">
+              <Link href={'/erp/baux/' + appointment.lease.id} className="text-primary hover:underline">
                 {formatLeaseNumber(appointment.lease.number)}
               </Link>
             </Row>

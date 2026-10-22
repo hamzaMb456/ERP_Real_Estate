@@ -26,7 +26,7 @@ type Row = {
 function UnitLine({ row, detail }: { row: Row; detail: string }) {
   return (
     <li className="flex items-center justify-between gap-3 py-2">
-      <Link href={'/biens/' + row.unit.property.id + '/unites/' + row.unit.id} className="min-w-0 hover:text-primary hover:underline">
+      <Link href={'/erp/biens/' + row.unit.property.id + '/unites/' + row.unit.id} className="min-w-0 hover:text-primary hover:underline">
         <span className="font-medium">{row.unit.code}</span>
         <span className="text-muted-foreground"> · {row.unit.property.name}</span>
       </Link>

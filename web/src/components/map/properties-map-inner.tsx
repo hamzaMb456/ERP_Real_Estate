@@ -47,7 +47,7 @@ export function PropertiesMapInner({ points, className }: { points: MapPoint[]; 
                 <p>
                   {t.properties.map.rentedOf(point.rented, point.units)}
                 </p>
-                <Link href={'/biens/' + point.id} className="font-medium text-primary underline">
+                <Link href={'/erp/biens/' + point.id} className="font-medium text-primary underline">
                   {t.properties.map.openRecord}
                 </Link>
               </div>

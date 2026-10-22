@@ -17,7 +17,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (ready && !session) router.replace('/connexion');
+    // Remember where the visitor was going: the sign-in page sends them back there (query string included).
+    // Read from window, not usePathname/useSearchParams: those would force a Suspense boundary around the whole shell.
+    if (ready && !session) {
+      const { pathname, search } = window.location;
+      router.replace('/erp/connexion?next=' + encodeURIComponent(pathname + search));
+    }
   }, [ready, session, router]);
 
   if (!ready || !session) {

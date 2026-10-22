@@ -135,7 +135,7 @@ function LeaseFormBody({ units, contacts, initial, presetUnitId }: { units: Unit
         await graphql(CREATE_LEASE, { lease: { id, ...built.set }, units: built.units, parties: built.parties, rents: built.rents });
       }
       toast.success(t.leases.form.draftSaved, { description: t.leases.form.draftSavedBody });
-      router.push('/baux/' + id);
+      router.push('/erp/baux/' + id);
     } catch (caught) {
       setError(toUserMessage(caught));
     } finally {

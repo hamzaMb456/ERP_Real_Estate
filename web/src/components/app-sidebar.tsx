@@ -103,7 +103,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip={t.common.appName}>
-              <Link href="/">
+              <Link href="/erp">
                 <div className="btn-gloss flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-white [--gloss-base:var(--sidebar-logo)]">
                   <Building2 className="size-4" />
                 </div>

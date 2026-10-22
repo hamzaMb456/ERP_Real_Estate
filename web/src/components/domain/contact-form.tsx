@@ -150,7 +150,7 @@ export function ContactForm(props: Props) {
           added: values.roles.filter((role) => !before.includes(role)).map((role) => ({ contact_id: props.contactId, role })),
         });
         toast.success(t.contacts.form.updated, { description: values.full_name });
-        router.push('/contacts/' + props.contactId);
+        router.push('/erp/contacts/' + props.contactId);
         return;
       }
       // Keep the id across retries so a failed role insert never creates a second contact.
@@ -162,13 +162,13 @@ export function ContactForm(props: Props) {
       }
       await graphql(ADD_ROLES, { objects: values.roles.map((role) => ({ contact_id: contactId, role })) });
       toast.success(t.contacts.form.created, { description: t.contacts.form.createdBody(values.full_name) });
-      router.push('/contacts/' + contactId);
+      router.push('/erp/contacts/' + contactId);
     } catch (error) {
       toast.error(t.contacts.form.saveFailed, { description: toUserMessage(error) });
     }
   }
 
-  const cancelHref = props.mode === 'edit' ? '/contacts/' + props.contactId : '/contacts';
+  const cancelHref = props.mode === 'edit' ? '/erp/contacts/' + props.contactId : '/erp/contacts';
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>

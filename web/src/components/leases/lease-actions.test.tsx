@@ -36,7 +36,7 @@ describe('LeaseActions', () => {
 
   it('offers modify, activate and archive on a draft', () => {
     render(<LeaseActions lease={lease()} onChanged={() => {}} />);
-    expect(screen.getByRole('link', { name: 'Modifier' })).toHaveAttribute('href', '/baux/L1/modifier');
+    expect(screen.getByRole('link', { name: 'Modifier' })).toHaveAttribute('href', '/erp/baux/L1/modifier');
     expect(names()).toEqual(['Activer', 'Archiver']);
   });
 

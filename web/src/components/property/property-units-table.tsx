@@ -21,7 +21,7 @@ function OwnerCell({ owners }: { owners: PropertyUnit['current_owners'] }) {
   const [first, ...others] = owners;
   return (
     <span className="text-sm">
-      <Link href={'/contacts/' + first.contact.id} className="hover:text-primary hover:underline">
+      <Link href={'/erp/contacts/' + first.contact.id} className="hover:text-primary hover:underline">
         {first.contact.full_name}
       </Link>
       {others.length > 0 && <span className="text-muted-foreground"> +{others.length}</span>}
@@ -104,7 +104,7 @@ export function PropertyUnitsTable({ propertyId, units, canEdit, onChanged }: Pr
                   </TableCell>
                 )}
                 <TableCell className={canEdit ? '' : 'ps-4'}>
-                  <Link href={'/biens/' + propertyId + '/unites/' + unit.id} className="font-medium hover:text-primary hover:underline">
+                  <Link href={'/erp/biens/' + propertyId + '/unites/' + unit.id} className="font-medium hover:text-primary hover:underline">
                     {unit.code}
                   </Link>
                   <span className="ms-2 text-xs text-muted-foreground">{t.labels.unitTypes[unit.type] ?? unit.type}</span>

@@ -11,7 +11,7 @@ test('bien → units → owner for all → transfer → contact → photo → pi
   await signIn(page);
 
   // 1. Create a bien.
-  await page.goto('/biens/nouveau');
+  await page.goto('/erp/biens/nouveau');
   await page.getByLabel('Nom du bien *').fill(bienName);
   await page.getByRole('combobox', { name: 'Succursale *' }).click();
   await page.getByRole('option', { name: /Tunis Nord/ }).click();
@@ -22,7 +22,7 @@ test('bien → units → owner for all → transfer → contact → photo → pi
   const bienUrl = page.url().split('#')[0];
 
   // The new bien has no position yet: it is listed as incomplete.
-  await page.goto('/biens/fiches-incompletes');
+  await page.goto('/erp/biens/fiches-incompletes');
   await expect(page.getByText(bienName)).toBeVisible();
   await page.goto(bienUrl);
 
@@ -74,7 +74,7 @@ test('bien → units → owner for all → transfer → contact → photo → pi
   await expect(page).toHaveURL(bienUrl);
 
   // 8. The "position" gap is gone for this bien.
-  await page.goto('/biens/fiches-incompletes');
+  await page.goto('/erp/biens/fiches-incompletes');
   const row = page.getByRole('listitem').filter({ hasText: bienName });
   // The bien is still listed (shares not set), so the page is loaded before checking the position gap is gone.
   await expect(row).toBeVisible();

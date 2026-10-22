@@ -11,7 +11,7 @@ export type AppointmentListItem = Pick<FeedRow, 'event_id' | 'appointment_id' | 
 
 /** Opens the appointment's sheet on the calendar, on the right day. */
 export const appointmentHref = (row: AppointmentListItem): string =>
-  `/calendrier?rendezvous=${row.appointment_id}&date=${isoToTunisParts(row.starts_at).date}`;
+  `/erp/calendrier?rendezvous=${row.appointment_id}&date=${isoToTunisParts(row.starts_at).date}`;
 
 type Props = {
   rows: AppointmentListItem[];

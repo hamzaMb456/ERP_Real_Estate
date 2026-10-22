@@ -93,7 +93,7 @@ describe('NotificationBell in Arabic', () => {
     const menu = await screen.findByRole('menu');
     expect(menu).toHaveAttribute('dir', 'rtl');
     expect(within(menu).getByText('الإشعارات')).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: /عقد إيجار منتهي الصلاحية/ })).toHaveAttribute('href', '/baux/L12');
+    expect(within(menu).getByRole('menuitem', { name: /عقد إيجار منتهي الصلاحية/ })).toHaveAttribute('href', '/erp/baux/L12');
     expect(within(menu).getByRole('menuitem', { name: 'تعليم الكل كمقروء' })).toBeInTheDocument();
   });
 });
