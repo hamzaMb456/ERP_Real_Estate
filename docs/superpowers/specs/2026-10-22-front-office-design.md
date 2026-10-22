@@ -90,8 +90,8 @@ an anonymous user hitting `/erp/*` goes to `/erp/connexion`; staff may browse th
 
 ## 6. Data model (new migrations)
 
-Numbering: `0005_listings_rent_requests.sql`, `0006_sales_offers.sql`, `0007_client_space.sql`.
-The leases spec's later slice "inspections and deposit" moves to `0008`.
+Numbering: `0005_listings.sql`, `0006_rent_requests_visits.sql`, `0007_sales_offers.sql`,
+`0008_client_space.sql`, `0009_inspections_deposit.sql` (the leases spec's later slice "inspections and deposit").
 
 ### 6.1 Listings (0005)
 `listings`: `unit_id`, `kind` (`rent | sale`), `status` (`draft | published | paused | closed`),
@@ -99,8 +99,9 @@ The leases spec's later slice "inspections and deposit" moves to `0008`.
 `deposit_months` (rent, default 2), `reservation_deposit` (sale, default 10 000),
 `reservation_days` (sale, default 15), `available_from`, `furnished`, `amenities text[]`,
 `virtual_tour_url`, `published_at`. One non-closed listing per `(unit_id, kind)`. Publishing needs a
-price and at least one photo. Photos are the unit's `property_files` photos;
-`listing_photos (listing_id, property_file_id, position, hidden)` orders or hides them.
+price and at least one photo. Photos are the unit's `property_files` photos, in the order of the ERP
+(`is_cover` first, then `sort_order`); `listing_photos (listing_id, property_file_id, position, hidden)`
+to order or hide them per listing is deferred.
 View `public_listings`: listing + unit (type, rooms, surface, floor) + property (city, governorate,
 coordinates rounded to about 100 m) + photos + availability (`available`, or `reserved` when an active
 reservation or accepted offer exists). Rented or sold units leave search.
@@ -163,6 +164,9 @@ Staff (`org_admin | manager`): `publish_listing`, `pause_listing`, `review_rent_
 note)`, `confirm_visit(appointment_id)`, `counter_offer(id, amount)`, `decide_offer(id, accept |
 reject)`, `confirm_payment(id)`, `reject_payment(id, reason)`, `advance_sale(id, stage)`.
 Errors carry stable codes mapped to messages in the catalogs.
+`publish_listing` and `pause_listing` are not functions: staff update `listings.status`, and the
+`check_listing_publishable` trigger (0005) enforces the rules (errors `LISTING_NEEDS_PRICE`,
+`LISTING_NEEDS_PHOTO`, `LISTING_UNIT_ARCHIVED`, `LISTING_UNIT_NOT_RENTABLE`, `LISTING_UNIT_NOT_SELLABLE`).
 
 ## 8. ERP-side screens (so nothing dead-ends)
 
