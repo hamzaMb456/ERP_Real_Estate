@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { EMAIL, PASSWORD, signIn } from './helpers';
 
 test.skip(!EMAIL || !PASSWORD, 'Set E2E_EMAIL and E2E_PASSWORD in web/.env.test.local');
+// The overall timeout below is long only for the cache-lag windows: a wrong selector or a hung page must fail fast.
+test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 });
 
 // Self-contained: the test creates its own bien with one vacant unit and uploads its own photo, so it needs no seeded
 // photo (the demo seeds have none). It needs the slice 1 setup of docs/superpowers/handoffs/2026-10-22-front-office-slice-1.md
@@ -16,6 +18,7 @@ const STALE_BIEN_PREFIX = 'E2E Annonce';
 // Intl groups thousands with a space that differs between Chrome and Node (NBSP, narrow NBSP or none): \s? covers all.
 const RENT = /1\s?234/;
 const DEPOSIT = /2\s?468/;
+const STALE_BIEN_NAME = new RegExp(`^${STALE_BIEN_PREFIX} \\d{6}$`);
 const CACHE_WINDOW = { timeout: 300_000, intervals: [5_000, 10_000, 15_000] };
 
 /** Archive the biens left behind by an earlier failed run, so no stale « Appartement test E2E » stays published. */
@@ -25,13 +28,29 @@ async function archiveStaleBiens(page: Page) {
   // The summary line only shows once the list is loaded.
   await expect(page.getByText(/unités dans/)).toBeVisible();
   const hrefs = await page
-    .getByRole('link', { name: new RegExp(STALE_BIEN_PREFIX + ' \\d+') })
+    .getByRole('link', { name: STALE_BIEN_NAME })
     .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
   for (const href of [...new Set(hrefs)].filter((value) => /^\/erp\/biens\/[^/]+$/.test(value))) {
     await page.goto(href);
     await page.getByRole('button', { name: 'Archiver' }).click();
     await expect(page.getByText('Bien archivé')).toBeVisible();
   }
+}
+
+/** The « Publication » card of the unit page. */
+const publicationCard = (page: Page) => page.locator('[data-slot="card"]').filter({ has: page.getByText('Publication', { exact: true }) });
+
+/** Closes the open listing of the unit, if there is one. Returns false when the unit has no open listing. */
+async function closeOpenListing(page: Page, unitUrl: string): Promise<boolean> {
+  await page.goto(unitUrl);
+  const publication = publicationCard(page);
+  const edit = publication.getByRole('button', { name: 'Modifier', exact: true });
+  if (!(await edit.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true, () => false))) return false;
+  await edit.click();
+  await publication.getByRole('button', { name: 'Clôturer', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Clôturer', exact: true }).click();
+  await expect(page.getByText('Annonce clôturée')).toBeVisible();
+  return true;
 }
 
 async function signOut(page: Page) {
@@ -44,6 +63,7 @@ test('publish a unit from the ERP, see it on the public site, close it, see it d
   test.setTimeout(900_000);
   const bienName = `${STALE_BIEN_PREFIX} ${Date.now().toString().slice(-6)}`;
   let bienUrl: string | null = null;
+  let unitUrl: string | null = null;
   let staffSignedIn = false;
   const visitor = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
   const guest = await visitor.newPage();
@@ -70,8 +90,11 @@ test('publish a unit from the ERP, see it on the public site, close it, see it d
     await page.getByLabel('Loyer mensuel').fill('500');
     await page.getByRole('button', { name: 'Ajouter l’unité' }).click();
     await expect(page.getByText('Unité créée')).toBeVisible();
+    // The unit links live on the « Unités » tab of the bien page (it opens on « Aperçu »).
+    await page.getByRole('tab', { name: /Unités/ }).click();
     await page.getByRole('link', { name: 'E-1' }).click();
     await expect(page).toHaveURL(/\/unites\//);
+    unitUrl = page.url().split('#')[0];
 
     // The new unit is vacant. Without a photo the listing cannot be published (LISTING_NEEDS_PHOTO), so upload one first.
     await page.getByRole('tab', { name: 'Photos' }).click();
@@ -82,7 +105,7 @@ test('publish a unit from the ERP, see it on the public site, close it, see it d
 
     // 2. Staff: create the rent listing at 1 234 TND and publish it.
     await page.getByRole('tab', { name: 'Aperçu' }).click();
-    const publication = page.locator('[data-slot="card"]').filter({ has: page.getByText('Publication', { exact: true }) });
+    const publication = publicationCard(page);
     await publication.getByRole('button', { name: 'Créer une annonce' }).click();
     await publication.getByLabel('Titre', { exact: true }).fill(LISTING_TITLE);
     await publication.getByLabel('Loyer mensuel', { exact: true }).fill('1234');
@@ -110,6 +133,7 @@ test('publish a unit from the ERP, see it on the public site, close it, see it d
       await guest.goto('/louer');
       await expect(card).toBeVisible({ timeout: 10_000 });
     }).toPass(CACHE_WINDOW);
+    await card.scrollIntoViewIfNeeded();
     await expect(card.getByText(LISTING_TITLE)).toBeVisible();
     await expect(card.getByTestId('listing-price')).toHaveText(RENT);
     // The photo is served to a visitor with no session (storage permissions of the `public` role).
@@ -131,13 +155,7 @@ test('publish a unit from the ERP, see it on the public site, close it, see it d
     // 6. Staff signs in again and closes the listing.
     await signIn(page);
     staffSignedIn = true;
-    await page.goto(bienUrl);
-    await page.getByRole('link', { name: 'E-1' }).click();
-    const publicationAgain = page.locator('[data-slot="card"]').filter({ has: page.getByText('Publication', { exact: true }) });
-    await publicationAgain.getByRole('button', { name: 'Modifier', exact: true }).click();
-    await publicationAgain.getByRole('button', { name: 'Clôturer', exact: true }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Clôturer', exact: true }).click();
-    await expect(page.getByText('Annonce clôturée')).toBeVisible();
+    expect(await closeOpenListing(page, unitUrl), 'the unit has an open listing to close').toBe(true);
 
     // 7. Visitor: the unit page now shows the public not-found page (HTTP 200 with noindex, ruling R9: assert on the text).
     await expect(async () => {
@@ -145,19 +163,20 @@ test('publish a unit from the ERP, see it on the public site, close it, see it d
       await expect(guest.getByRole('heading', { name: 'Page introuvable' })).toBeVisible({ timeout: 10_000 });
     }).toPass(CACHE_WINDOW);
   } finally {
-    // Clean up like the other specs: archive the bien (nothing is hard-deleted). An archived bien leaves the public views.
+    // Clean up like the other specs, best effort: close the listing (an archived bien only leaves the public views, the
+    // listing itself would stay « published »), then archive the bien (nothing is hard-deleted).
     await visitor.close().catch(() => undefined);
     if (bienUrl) {
       try {
         if (!staffSignedIn) await signIn(page);
+        if (unitUrl) await closeOpenListing(page, unitUrl); // false when the test already closed it
         await page.goto(bienUrl);
         const archive = page.getByRole('button', { name: 'Archiver' });
-        if (await archive.isVisible({ timeout: 10_000 }).catch(() => false)) {
-          await archive.click();
-          await expect(page.getByText('Bien archivé')).toBeVisible();
-        }
-      } catch {
-        // Best effort: the next run archives any stale « ${STALE_BIEN_PREFIX} » bien first.
+        await expect(archive).toBeVisible({ timeout: 15_000 });
+        await archive.click();
+        await expect(page.getByText('Bien archivé')).toBeVisible();
+      } catch (error) {
+        console.warn(`[front-office e2e] cleanup of "${bienName}" failed; the next run archives stale "${STALE_BIEN_PREFIX}" biens first.`, error);
       }
     }
   }
