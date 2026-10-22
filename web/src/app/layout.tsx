@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Noto_Sans_Arabic } from 'next/font/google';
+import { Geist, Geist_Mono, Noto_Sans_Arabic, Plus_Jakarta_Sans } from 'next/font/google';
 import Script from 'next/script';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/components/auth-provider';
@@ -16,6 +16,8 @@ import './globals.css';
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' });
 const notoArabic = Noto_Sans_Arabic({ subsets: ['arabic'], variable: '--font-arabic' });
+// Headings of the public site only (see .font-heading-site in app/site.css).
+const jakartaSans = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-heading-site' });
 
 export const metadata: Metadata = {
   title: 'ERP Immobilier',
@@ -29,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang={DEFAULT_LOCALE}
       dir={dirOf(DEFAULT_LOCALE)}
       suppressHydrationWarning
-      className={cn(geistSans.variable, geistMono.variable, notoArabic.variable)}
+      className={cn(geistSans.variable, geistMono.variable, notoArabic.variable, jakartaSans.variable)}
     >
       <body>
         <Script id="locale" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: LOCALE_SCRIPT }} />

@@ -4,7 +4,8 @@
 @import "./polish.css";
 @import "./gloss.css";
 
-@custom-variant dark (&:is(.dark *));
+/* The public site (.site-root) is always light: dark: utilities never apply inside it. */
+@custom-variant dark (&:is(.dark *):not(:is(.site-root, .site-root *)));
 
 @theme inline {
   --font-heading: var(--font-sans);

@@ -1,0 +1,37 @@
+/* ---- Public site (route group (site)) ----------------------------------------
+   The front office is always light and emerald, whatever light/dark mode or palette the visitor
+   saved for the ERP. Custom properties set on this wrapper win over the ones inherited from
+   <html> (the .dark class and the generated palette stylesheet), so nothing in the ERP changes.
+   Portaled overlays (the mobile menu) carry the class themselves. */
+.site-root {
+  color-scheme: light;
+  --background: #f4fbf7;
+  --foreground: oklch(0.2 0.02 165);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 165);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 165);
+  --primary: oklch(0.508 0.118 165.6);
+  --primary-foreground: oklch(0.985 0.01 165);
+  --secondary: oklch(0.955 0.015 165);
+  --secondary-foreground: oklch(0.3 0.04 165);
+  --muted: oklch(0.962 0.01 165);
+  --muted-foreground: oklch(0.47 0.025 165);
+  --accent: oklch(0.948 0.035 165);
+  --accent-foreground: oklch(0.34 0.085 165);
+  --destructive: oklch(0.52 0.22 27);
+  --success: oklch(0.45 0.11 160);
+  --warning: oklch(0.48 0.12 70);
+  --info: oklch(0.52 0.12 240);
+  --border: oklch(0.915 0.015 165);
+  --input: oklch(0.8 0.02 165);
+  --ring: oklch(0.6 0.13 165);
+  --theme-hue: 165;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Headings of the public pages only (Plus Jakarta Sans, loaded in the root layout). */
+.font-heading-site {
+  font-family: var(--font-heading-site), var(--font-arabic), var(--font-geist-sans), sans-serif;
+}

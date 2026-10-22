@@ -105,3 +105,5 @@ export const Settings = makeIcon('Settings');
 export const Shield = makeIcon('Shield');
 export const Tag = makeIcon('Tag');
 export const Wrench = makeIcon('Wrench');
+export const Menu = makeIcon('Menu');
+export const ShieldCheck = makeIcon('ShieldCheck');
