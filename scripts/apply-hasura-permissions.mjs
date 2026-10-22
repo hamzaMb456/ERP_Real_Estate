@@ -28,6 +28,9 @@ const BUCKETS = ['property-files', 'lease-files'];
 // Roles: org_admin (everything inside the organization), manager (day-to-day work), viewer (read only).
 const ROLES = ['org_admin', 'manager', 'viewer'];
 const WRITERS = ['org_admin', 'manager'];
+// Role of the public site: Hasura's unauthenticated role (HASURA_GRAPHQL_UNAUTHORIZED_ROLE=public). It gets select on
+// the public listing views and on the photo files of published listings, and nothing else.
+const PUBLIC_ROLE = 'public';
 
 // Tables and views created after 0001 that Hasura must track (0001 tables were tracked in the dashboard).
 const TRACK = [
@@ -35,6 +38,7 @@ const TRACK = [
   'leases', 'lease_units', 'lease_parties', 'lease_rents', 'lease_terms', 'lease_files',
   'lease_overview', 'current_lease_rents', 'unit_current_lease',
   'appointments', 'appointment_participants', 'notifications', 'staff_members', 'calendar_feed',
+  'listings', 'public_listings', 'public_listing_photos',
 ];
 
 const OWNERSHIP_COLUMNS = [
@@ -102,10 +106,27 @@ const SELECT_COLUMNS = {
     'read_at', 'emailed_at', 'email_error', 'created_at',
   ],
   staff_members: ['user_id', 'organization_id', 'display_name', 'email', 'role'],
+  listings: [
+    'id', 'organization_id', 'unit_id', 'kind', 'status', 'title', 'description', 'price', 'charges',
+    'deposit_months', 'reservation_deposit', 'reservation_days', 'available_from', 'furnished', 'amenities',
+    'virtual_tour_url', 'published_at', 'closed_reason', 'created_at', 'updated_at',
+  ],
   calendar_feed: [
     'event_id', 'organization_id', 'source', 'kind', 'title', 'starts_at', 'ends_at', 'all_day', 'status',
     'appointment_id', 'lease_id', 'unit_id', 'branch_id', 'assigned_user_id', 'contact_ids', 'location', 'notify_by_email',
   ],
+};
+
+// What the public role reads. The views hold only published listings of non-archived units, and the site filters
+// by organization itself, so there is deliberately no row filter here (no aggregations either).
+const PUBLIC_SELECT_COLUMNS = {
+  public_listings: [
+    'id', 'organization_id', 'unit_id', 'kind', 'title', 'description', 'price', 'charges', 'deposit_months',
+    'reservation_deposit', 'reservation_days', 'available_from', 'furnished', 'amenities', 'virtual_tour_url',
+    'published_at', 'unit_type', 'rooms', 'surface_m2', 'floor', 'unit_status', 'city', 'governorate',
+    'latitude', 'longitude', 'cover_file_id', 'photo_count',
+  ],
+  public_listing_photos: ['listing_id', 'storage_file_id', 'position', 'organization_id'],
 };
 
 // Select filters other than "my organization": a user sees only their own notifications.
@@ -176,6 +197,20 @@ const WRITE_COLUMNS = {
     insert: ['id', 'kind', 'title', 'location', 'starts_at', 'ends_at', 'assigned_user_id', 'unit_id', 'lease_id', 'notify_by_email', 'notes'],
     update: ['kind', 'title', 'location', 'starts_at', 'ends_at', 'status', 'assigned_user_id', 'unit_id', 'lease_id', 'notify_by_email', 'notes'],
   },
+  // Listings are closed, never deleted. organization_id (preset), id, published_at (set by the publishing trigger)
+  // and the timestamps are not insertable; update also leaves out unit_id and kind. Publish, pause and close are a
+  // status update; the ERP's manual close also sets closed_reason = 'manual'.
+  listings: {
+    roles: WRITERS,
+    insert: [
+      'unit_id', 'kind', 'status', 'title', 'description', 'price', 'charges', 'deposit_months', 'reservation_deposit',
+      'reservation_days', 'available_from', 'furnished', 'amenities', 'virtual_tour_url', 'closed_reason',
+    ],
+    update: [
+      'status', 'title', 'description', 'price', 'charges', 'deposit_months', 'reservation_deposit',
+      'reservation_days', 'available_from', 'furnished', 'amenities', 'virtual_tour_url', 'closed_reason',
+    ],
+  },
   // email_status / email_error belong to the e-mail function; the only client update is « Renvoyer » (below).
   appointment_participants: { roles: WRITERS, insert: ['appointment_id', 'contact_id', 'role'], update: null, canDelete: true },
 };
@@ -205,6 +240,7 @@ const RELATIONSHIPS = [
   { type: 'object', table: 'property_owners', name: 'contact', to: 'contacts', map: { contact_id: 'id' } },
   { type: 'array', table: 'properties', name: 'files', to: 'property_files', map: { id: 'property_id' } },
   { type: 'array', table: 'units', name: 'files', to: 'property_files', map: { id: 'unit_id' } },
+  { type: 'object', table: 'property_files', name: 'unit', to: 'units', map: { unit_id: 'id' } },
   { type: 'array', table: 'properties', name: 'common_areas', to: 'common_areas', map: { id: 'property_id' } },
   { type: 'array', table: 'leases', name: 'units', to: 'lease_units', map: { id: 'lease_id' } },
   { type: 'object', table: 'lease_units', name: 'unit', to: 'units', map: { unit_id: 'id' } },
@@ -230,6 +266,10 @@ const RELATIONSHIPS = [
   { type: 'object', table: 'appointment_participants', name: 'contact', to: 'contacts', map: { contact_id: 'id' } },
   { type: 'array', table: 'contacts', name: 'appointment_participants', to: 'appointment_participants', map: { id: 'contact_id' } },
   { type: 'array', table: 'leases', name: 'appointments', to: 'appointments', map: { id: 'lease_id' } },
+  { type: 'array', table: 'units', name: 'listings', to: 'listings', map: { id: 'unit_id' } },
+  { type: 'object', table: 'listings', name: 'unit', to: 'units', map: { unit_id: 'id' } },
+  // public_listings is a view (no foreign key), so its photos relationship is manual too.
+  { type: 'array', table: 'public_listings', name: 'photos', to: 'public_listing_photos', map: { id: 'listing_id' } },
   { type: 'object', table: 'notifications', name: 'lease', to: 'leases', map: { lease_id: 'id' } },
   { type: 'object', table: 'notifications', name: 'appointment', to: 'appointments', map: { appointment_id: 'id' } },
 ];
@@ -237,6 +277,17 @@ const RELATIONSHIPS = [
 const tracks = TRACK.map((name) => ({ type: 'pg_track_table', args: { source, table: table(name) } }));
 const drops = [];
 const creates = [];
+
+const permissionTypes = ['select', 'insert', 'update', 'delete'];
+
+// Storage permissions use relationships (storage.files.property_links, property_files.unit, units.listings,
+// units.property), and Hasura refuses to drop a relationship a permission depends on: drop them first, or a re-run
+// fails on "already exists". Includes the public role's select.
+for (const role of [...ROLES, PUBLIC_ROLE]) {
+  for (const t of permissionTypes) {
+    drops.push({ type: `pg_drop_${t}_permission`, args: { source, table: storageFiles, role } });
+  }
+}
 
 for (const r of RELATIONSHIPS) {
   drops.push({ type: 'pg_drop_relationship', args: { source, table: table(r.table), relationship: r.name } });
@@ -251,13 +302,16 @@ for (const r of RELATIONSHIPS) {
   });
 }
 
-const permissionTypes = ['select', 'insert', 'update', 'delete'];
 for (const name of Object.keys(SELECT_COLUMNS)) {
   for (const role of ROLES) {
     for (const t of permissionTypes) {
       drops.push({ type: `pg_drop_${t}_permission`, args: { source, table: table(name), role } });
     }
   }
+}
+
+for (const name of Object.keys(PUBLIC_SELECT_COLUMNS)) {
+  drops.push({ type: 'pg_drop_select_permission', args: { source, table: table(name), role: PUBLIC_ROLE } });
 }
 
 for (const [name, columns] of Object.entries(SELECT_COLUMNS)) {
@@ -271,6 +325,13 @@ for (const [name, columns] of Object.entries(SELECT_COLUMNS)) {
       },
     });
   }
+}
+
+for (const [name, columns] of Object.entries(PUBLIC_SELECT_COLUMNS)) {
+  creates.push({
+    type: 'pg_create_select_permission',
+    args: { source, table: table(name), role: PUBLIC_ROLE, permission: { columns, filter: {} } },
+  });
 }
 
 for (const [name, w] of Object.entries(WRITE_COLUMNS)) {
@@ -354,12 +415,8 @@ const linkedToOrg = {
 };
 const ownUpload = { _and: [{ bucket_id: { _in: BUCKETS } }, { uploaded_by_user_id: { _eq: USER_VAR } }] };
 
-// Permissions that use property_links must be dropped before the relationship itself, or re-runs fail.
-for (const role of ROLES) {
-  for (const t of permissionTypes) {
-    drops.push({ type: `pg_drop_${t}_permission`, args: { source, table: storageFiles, role } });
-  }
-}
+// The storage permission drops are above, before the relationship drops. Only the relationships on storage.files
+// itself are dropped here.
 drops.push({ type: 'pg_drop_relationship', args: { source, table: storageFiles, relationship: 'property_links' } });
 drops.push({ type: 'pg_drop_relationship', args: { source, table: storageFiles, relationship: 'lease_links' } });
 creates.push({
@@ -378,6 +435,31 @@ creates.push({
     table: storageFiles,
     name: 'lease_links',
     using: { manual_configuration: { remote_table: table('lease_files'), column_mapping: { id: 'storage_file_id' } } },
+  },
+});
+// The public site shows the photos of published listings: only files of the property-files bucket that are a photo
+// of a unit with a published listing, the unit and its bien not being archived (same rules as the public views).
+// Only four harmless columns; the public role cannot list other buckets or lease documents.
+const publishedListingPhoto = {
+  _and: [
+    { bucket_id: { _eq: 'property-files' } },
+    {
+      property_links: {
+        kind: { _eq: 'photo' },
+        unit: {
+          archived_at: { _is_null: true },
+          property: { archived_at: { _is_null: true } },
+          listings: { status: { _eq: 'published' } },
+        },
+      },
+    },
+  ],
+};
+creates.push({
+  type: 'pg_create_select_permission',
+  args: {
+    source, table: storageFiles, role: PUBLIC_ROLE,
+    permission: { columns: ['id', 'mime_type', 'size', 'updated_at'], filter: publishedListingPhoto },
   },
 });
 creates.push({
@@ -440,7 +522,9 @@ for (const name of WRITER_FUNCTIONS) {
 
 // Every tracked table needs select columns, or nobody could read it.
 for (const name of TRACK) {
-  if (!SELECT_COLUMNS[name]) throw new Error(`TRACK has ${name} but SELECT_COLUMNS does not.`);
+  if (!SELECT_COLUMNS[name] && !PUBLIC_SELECT_COLUMNS[name]) {
+    throw new Error(`TRACK has ${name} but neither SELECT_COLUMNS nor PUBLIC_SELECT_COLUMNS does.`);
+  }
 }
 
 if (DRY_RUN) {
