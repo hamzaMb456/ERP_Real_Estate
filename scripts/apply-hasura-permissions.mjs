@@ -28,7 +28,7 @@ const BUCKETS = ['property-files', 'lease-files'];
 // Roles: org_admin (everything inside the organization), manager (day-to-day work), viewer (read only).
 const ROLES = ['org_admin', 'manager', 'viewer'];
 const WRITERS = ['org_admin', 'manager'];
-// Role of the public site: Hasura's unauthenticated role (HASURA_GRAPHQL_UNAUTHORIZED_ROLE=public). It gets select on
+// Role of the public site: Hasura's unauthenticated role (Nhost's default for unauthenticated requests). It gets select on
 // the public listing views and on the photo files of published listings, and nothing else.
 const PUBLIC_ROLE = 'public';
 
