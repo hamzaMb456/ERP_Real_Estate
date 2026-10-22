@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload } from '@/components/icons';
 import { ACCEPT_ATTR, formatsLabel, type FileKind } from '@/lib/files';
 import { cn } from '@/lib/utils';
 

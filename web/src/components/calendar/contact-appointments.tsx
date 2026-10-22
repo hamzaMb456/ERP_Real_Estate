@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarClock, CalendarDays, History } from 'lucide-react';
+import { CalendarClock, CalendarDays, History } from '@/components/icons';
 import { SkeletonList } from '@/components/motion/primitives';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useT } from '@/i18n/provider';

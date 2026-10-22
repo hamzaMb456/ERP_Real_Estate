@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, ImageIcon, Star, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageIcon, Star, Trash2 } from '@/components/icons';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { FileUploader } from '@/components/files/file-uploader';

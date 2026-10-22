@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/icons';
 import { PropertyForm } from '@/components/domain/property-form';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';

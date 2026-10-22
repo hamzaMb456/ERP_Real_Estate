@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRightLeft, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Trash2 } from '@/components/icons';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Pulse } from '@/components/motion/primitives';

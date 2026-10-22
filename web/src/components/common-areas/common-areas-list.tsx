@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Pencil, Plus, Trash2 } from '@/components/icons';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { FieldLabelWithHelp } from '@/components/field-help';
@@ -200,7 +200,7 @@ function AreaForm({
           {t.common.cancel}
         </Button>
         <Button type="submit" disabled={saving}>
-          {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {saving && <Loader2 data-icon="inline-start" />}
           {t.common.save}
         </Button>
       </DialogFooter>

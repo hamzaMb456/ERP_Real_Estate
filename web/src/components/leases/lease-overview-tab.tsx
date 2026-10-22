@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '@/components/icons';
 import type { LeaseDetails } from '@/components/leases/lease-details';
 import { RegistrationCard } from '@/components/leases/registration-card';
 import { TermsTimeline } from '@/components/leases/terms-timeline';

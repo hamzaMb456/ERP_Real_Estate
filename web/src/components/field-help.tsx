@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { FieldLabel } from '@/components/ui/field';
 import { useT } from '@/i18n/provider';

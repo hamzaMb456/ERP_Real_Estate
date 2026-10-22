@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { FileText, Plus, Search } from 'lucide-react';
+import { FileText, Plus, Search } from '@/components/icons';
 import { LeaseFlagBadges, LeaseStatusBadge } from '@/components/leases/lease-status-badge';
 import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';

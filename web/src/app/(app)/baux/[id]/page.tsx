@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, SearchX } from 'lucide-react';
+import { ArrowLeft, SearchX } from '@/components/icons';
 import { LeaseCalendarTab } from '@/components/calendar/lease-calendar-tab';
 import { LEASE_QUERY, type LeaseDetails } from '@/components/leases/lease-details';
 import { LeaseActions } from '@/components/leases/lease-actions';
@@ -72,7 +72,7 @@ export default function LeaseDetailPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <SearchX className="size-5" />
+              <SearchX className="size-5" animation="draw" />
             </span>
             <p className="font-medium">{t.leases.detail.notFoundTitle}</p>
             <p className="text-sm text-muted-foreground">{t.leases.detail.notFoundBody}</p>

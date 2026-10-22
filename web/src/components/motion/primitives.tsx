@@ -10,11 +10,11 @@ import {
   useInView,
   useMotionValue,
   useReducedMotion,
-  useScroll,
   useSpring,
   useTransform,
   type Variants,
 } from 'motion/react';
+import { canMatchMedia, getScrollParent, gsap, gsapTokens, MOTION_QUERIES, ScrollTrigger, useGSAP } from '@/lib/gsap';
 import { motionTokens, springs } from '@/lib/motion-tokens';
 import { useT } from '@/i18n/provider';
 
@@ -40,62 +40,99 @@ export const pressable = {
 
 export const MotionLink = motion.create(Link);
 
-export function Reveal({
-  children,
-  className,
-  delay = 0,
-  y = motionTokens.distance.lg,
-}: {
-  children: ReactNode;
-  className?: string;
-  delay?: number;
-  y?: number;
-}) {
+/** A block revealed on scroll by the app-wide ScrollStagger (same as ScrollItem). */
+export function Reveal({ children, className }: { children: ReactNode; className?: string }) {
+  return <ScrollItem className={className}>{children}</ScrollItem>;
+}
+
+// What reveals on scroll: explicit items, top-level cards (not cards nested in an item or in another
+// card) and table body rows. Anything inside a portal (dialogs, menus) is outside the page and untouched.
+const SCROLL_TARGETS = [
+  '[data-scroll-item]',
+  '[data-slot="card"]:not([data-scroll-item] *):not([data-slot="card"] *)',
+  'tbody > tr',
+].join(',');
+
+/**
+ * Mounted once in the app shell. Reveals cards, table rows and ScrollItems on every page as they
+ * scroll into view, in small staggered batches (GSAP ScrollTrigger.batch). Elements that mount later
+ * (route change, data loading, filters, expanding a section) are picked up by a MutationObserver;
+ * triggers for elements that left the page are killed. Items already on screen animate straight away.
+ */
+export function ScrollStagger({ children, className }: { children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const root = ref.current;
+      if (!root || !canMatchMedia()) return;
+      const scroller = getScrollParent(root);
+      const mm = gsap.matchMedia();
+      mm.add(MOTION_QUERIES.full, (context) => {
+        const registered = new WeakSet<Element>();
+        let triggers: ScrollTrigger[] = [];
+        const register = () => {
+          triggers = triggers.filter((trigger) => {
+            if ((trigger.trigger as Element | undefined)?.isConnected) return true;
+            trigger.kill();
+            return false;
+          });
+          const fresh = Array.from(root.querySelectorAll<HTMLElement>(SCROLL_TARGETS)).filter((el) => !registered.has(el));
+          if (fresh.length === 0) return;
+          fresh.forEach((el) => registered.add(el));
+          gsap.set(fresh, { autoAlpha: 0, y: gsapTokens.reveal.distance });
+          const created = ScrollTrigger.batch(fresh, {
+            scroller,
+            start: 'top 96%',
+            once: true,
+            onEnter: (batch) =>
+              gsap.to(batch, {
+                autoAlpha: 1,
+                y: 0,
+                duration: gsapTokens.reveal.duration,
+                stagger: gsapTokens.reveal.stagger,
+                ease: gsapTokens.reveal.ease,
+                overwrite: true,
+                clearProps: 'opacity,visibility,transform',
+              }),
+          });
+          triggers = triggers.concat(created);
+        };
+        register();
+        // Later batches run through context.add so matchMedia still reverts them. Not useGSAP's contextSafe:
+        // calling that from inside this matchMedia context nests the two contexts in a loop (stack overflow).
+        const observer = new MutationObserver(() => context.add(register));
+        observer.observe(root, { childList: true, subtree: true });
+        return () => observer.disconnect();
+      });
+      return () => mm.revert();
+    },
+    { scope: ref },
+  );
+
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: motionTokens.duration.slow, ease: motionTokens.easing.smooth, delay }}
-    >
+    <div ref={ref} className={className}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
-export function Stagger({
-  children,
-  className,
-  whenInView = false,
-}: {
-  children: ReactNode;
-  className?: string;
-  whenInView?: boolean;
-}) {
-  return whenInView ? (
-    <motion.div
-      className={className}
-      variants={staggerContainer}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: '-40px' }}
-    >
+/** One block revealed by the nearest ScrollStagger. */
+export function ScrollItem({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div data-scroll-item="" className={className}>
       {children}
-    </motion.div>
-  ) : (
-    <motion.div className={className} variants={staggerContainer} initial="hidden" animate="visible">
-      {children}
-    </motion.div>
+    </div>
   );
+}
+
+/** Layout wrapper kept for existing pages; the reveal itself comes from the app-wide ScrollStagger. */
+export function Stagger({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={className}>{children}</div>;
 }
 
 export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <motion.div className={className} variants={staggerItem}>
-      {children}
-    </motion.div>
-  );
+  return <ScrollItem className={className}>{children}</ScrollItem>;
 }
 
 const TILT_DEGREES = 8;
@@ -231,13 +268,31 @@ export function GrowBar({ percent, className }: { percent: number; className?: s
   );
 }
 
+/** Reading-progress bar for the app's scroll container, scrubbed by GSAP ScrollTrigger. */
 export function ScrollProgress({ container }: { container: RefObject<HTMLElement | null> }) {
-  const { scrollYProgress } = useScroll({ container });
+  const bar = useRef<HTMLDivElement>(null);
+
+  // useEffect rather than useGSAP: the container is a later sibling, so its ref is only attached once layout effects have run.
+  useEffect(() => {
+    const scroller = container.current;
+    const el = bar.current;
+    if (!scroller || !el || !canMatchMedia()) return;
+    const mm = gsap.matchMedia();
+    mm.add({ full: MOTION_QUERIES.full, reduced: MOTION_QUERIES.reduced }, (context) => {
+      gsap.fromTo(
+        el,
+        { scaleX: 0 },
+        { scaleX: 1, ease: 'none', scrollTrigger: { scroller, start: 0, end: 'max', scrub: context.conditions?.reduced ? true : gsapTokens.scroll.scrub } },
+      );
+    });
+    return () => mm.revert();
+  }, [container]);
+
   return (
-    <motion.div
+    <div
+      ref={bar}
       aria-hidden
-      style={{ scaleX: scrollYProgress }}
-      className="pointer-events-none absolute left-0 right-0 top-14 z-30 h-0.5 origin-left bg-primary"
+      className="pointer-events-none absolute left-0 right-0 top-14 z-30 h-0.5 origin-left scale-x-0 bg-primary"
     />
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Loader2, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus } from '@/components/icons';
 import { toast } from 'sonner';
 import { FieldLabelWithHelp } from '@/components/field-help';
 import { Pulse } from '@/components/motion/primitives';
@@ -140,7 +140,7 @@ function CoOwnerForm({ unitId, remaining, onCancel, onDone }: { unitId: string; 
           {t.common.cancel}
         </Button>
         <Button type="submit" disabled={saving || contacts.status !== 'success'}>
-          {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {saving && <Loader2 data-icon="inline-start" />}
           {t.ownership.coOwner.add}
         </Button>
       </DialogFooter>

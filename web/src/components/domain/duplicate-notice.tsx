@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '@/components/icons';
 import type { DuplicateField, DuplicateMatch } from '@/lib/contact-duplicates';
 
 import { useT } from '@/i18n/provider';

@@ -1,6 +1,6 @@
 'use client';
 
-import { Languages } from 'lucide-react';
+import { Languages } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,

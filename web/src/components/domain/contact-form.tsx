@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { Building2, Loader2, Save, User } from 'lucide-react';
+import { Building2, Loader2, Save, User } from '@/components/icons';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { CONTACT_ROLES, type ContactRole } from '@/components/domain/badges';
@@ -352,7 +352,7 @@ export function ContactForm(props: Props) {
             <Link href={cancelHref}>{t.common.cancel}</Link>
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />}
+            {isSubmitting ? <Loader2 data-icon="inline-start" /> : <Save data-icon="inline-start" />}
             {isSubmitting ? t.common.saving : editing ? t.common.saveChanges : t.contacts.form.saveContact}
           </Button>
         </CardFooter>

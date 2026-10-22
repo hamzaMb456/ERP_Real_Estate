@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArchiveRestore, ArchiveX, ArrowLeft, Building2, Loader2 } from 'lucide-react';
+import { ArchiveRestore, ArchiveX, ArrowLeft, Building2, Loader2 } from '@/components/icons';
 import { toast } from 'sonner';
 import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
@@ -128,7 +128,7 @@ export default function ArchivedPropertiesPage() {
                 </div>
                 <Button variant="outline" size="sm" disabled={restoring === property.id} onClick={() => void restore(property)}>
                   {restoring === property.id ? (
-                    <Loader2 data-icon="inline-start" className="animate-spin" />
+                    <Loader2 data-icon="inline-start" />
                   ) : (
                     <ArchiveRestore data-icon="inline-start" />
                   )}

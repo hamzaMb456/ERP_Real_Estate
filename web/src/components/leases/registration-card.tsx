@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FileBadge } from 'lucide-react';
+import { FileBadge } from '@/components/icons';
 import { toast } from 'sonner';
 import type { LeaseDetails } from '@/components/leases/lease-details';
 import { FieldLabelWithHelp } from '@/components/field-help';

@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/icons';
 import { toast } from 'sonner';
 import { FieldLabelWithHelp } from '@/components/field-help';
 import { LeasePartiesField } from '@/components/leases/lease-parties-field';
@@ -227,7 +227,7 @@ function LeaseFormBody({ units, contacts, initial, presetUnitId }: { units: Unit
           {t.common.cancel}
         </Button>
         <Button type="submit" disabled={saving}>
-          {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {saving && <Loader2 data-icon="inline-start" />}
           {t.leases.form.saveDraft}
         </Button>
       </div>

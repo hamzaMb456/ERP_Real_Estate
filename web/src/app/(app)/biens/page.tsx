@@ -2,11 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'motion/react';
-import { Building2, ChevronDown, Map as MapIcon, MapPin, Plus, Search, SearchX } from 'lucide-react';
+import { Building2, ChevronDown, Map as MapIcon, MapPin, Plus, Search, SearchX } from '@/components/icons';
 import { StatusBadge } from '@/components/domain/badges';
 import { StorageImage } from '@/components/files/storage-image';
-import { SkeletonList, Stagger, StaggerItem, staggerItem } from '@/components/motion/primitives';
+import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -78,8 +77,6 @@ type Property = {
 
 type StatusFilter = 'all' | 'rented' | 'vacant' | 'for_sale' | 'under_maintenance';
 
-const rowsContainer = { hidden: {}, visible: { transition: { staggerChildren: 0.04 } } };
-const MotionRow = motion.create(TableRow);
 
 export default function BiensPage() {
   const t = useT();
@@ -302,7 +299,7 @@ export default function BiensPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <SearchX className="size-5" />
+              <SearchX className="size-5" animation="draw" />
             </span>
             <p className="font-medium">{t.properties.list.noMatchTitle}</p>
             <p className="text-sm text-muted-foreground">{t.properties.list.noMatchHint}</p>
@@ -390,9 +387,9 @@ export default function BiensPage() {
                           <TableHead className="pe-4">{t.properties.list.colStatus}</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <motion.tbody variants={rowsContainer} initial="hidden" animate="visible" className="[&_tr:last-child]:border-0">
+                      <tbody className="[&_tr:last-child]:border-0">
                         {units.map((unit) => (
-                          <MotionRow key={unit.id} variants={staggerItem}>
+                          <TableRow key={unit.id}>
                             <TableCell className="ps-4">
                               <Link href={'/biens/' + property.id + '/unites/' + unit.id} className="font-medium hover:text-primary hover:underline">
                                 {unit.code}
@@ -413,7 +410,7 @@ export default function BiensPage() {
                             <TableCell className="pe-4">
                               <StatusBadge status={unit.status} />
                             </TableCell>
-                          </MotionRow>
+                          </TableRow>
                         ))}
                         {units.length === 0 && (
                           <TableRow>
@@ -422,7 +419,7 @@ export default function BiensPage() {
                             </TableCell>
                           </TableRow>
                         )}
-                      </motion.tbody>
+                      </tbody>
                     </Table>
                   </CollapsibleContent>
                 </Card>

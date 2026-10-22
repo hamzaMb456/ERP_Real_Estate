@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, CheckCircle2, DoorOpen, Users } from 'lucide-react';
+import { Building2, CheckCircle2, DoorOpen, Users } from '@/components/icons';
 import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -49,7 +49,7 @@ export default function IncompleteRecordsPage() {
         <StaggerItem>
           <Card>
             <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
-              <CheckCircle2 className="size-8 text-success" aria-hidden />
+              <CheckCircle2 className="size-8 text-success" animation="draw" aria-hidden />
               <p className="font-medium">{t.properties.gaps.allCompleteTitle}</p>
               <p className="text-sm text-muted-foreground">{t.properties.gaps.allCompleteBody}</p>
             </CardContent>

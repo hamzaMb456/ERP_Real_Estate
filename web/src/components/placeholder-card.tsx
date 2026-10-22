@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Construction } from 'lucide-react';
+import { Construction } from '@/components/icons';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/i18n/provider';
@@ -17,7 +17,7 @@ export function PlaceholderCard({ labelKey }: { labelKey: NavKey }) {
       <Card className="border-dashed bg-muted/40">
         <CardHeader className="items-center text-center">
           <span className="mb-2 flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
-            <Construction className="size-5" />
+            <Construction className="size-5" animation="draw" />
           </span>
           <CardTitle>{t.shell.placeholder.title}</CardTitle>
           <CardDescription className="max-w-md">

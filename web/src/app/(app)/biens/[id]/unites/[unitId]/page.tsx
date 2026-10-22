@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Archive, ArchiveRestore, ArrowLeft, Banknote, DoorOpen, Layers, Loader2, Maximize2, Pencil, SearchX } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowLeft, Banknote, DoorOpen, Layers, Loader2, Maximize2, Pencil, SearchX } from '@/components/icons';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/domain/badges';
 import { UnitDialog, type UnitFormUnit } from '@/components/domain/unit-dialog';
@@ -110,7 +110,7 @@ export default function UnitDetailPage() {
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-14 text-center">
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <SearchX className="size-5" />
+              <SearchX className="size-5" animation="draw" />
             </span>
             <p className="font-medium">{t.properties.unit.notFoundTitle}</p>
             <p className="text-sm text-muted-foreground">{t.properties.unit.notFoundBody}</p>
@@ -177,7 +177,7 @@ export default function UnitDetailPage() {
                     }
                   >
                     {saving ? (
-                      <Loader2 data-icon="inline-start" className="animate-spin" />
+                      <Loader2 data-icon="inline-start" />
                     ) : archived ? (
                       <ArchiveRestore data-icon="inline-start" />
                     ) : (

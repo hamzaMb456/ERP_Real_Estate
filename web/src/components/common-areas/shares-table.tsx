@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles } from '@/components/icons';
 import { toast } from 'sonner';
 import { FieldHelp } from '@/components/field-help';
 import { Button } from '@/components/ui/button';
@@ -133,7 +133,7 @@ export function SharesTable({ units, canEdit, onSaved }: { units: ShareUnit[]; c
             </div>
             {canEdit && (
               <Button onClick={() => void save()} disabled={saving || invalid || !dirty}>
-                {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
+                {saving && <Loader2 data-icon="inline-start" />}
                 {t.files.shares.save}
               </Button>
             )}

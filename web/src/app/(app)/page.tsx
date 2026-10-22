@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Cell, Pie, PieChart } from 'recharts';
-import { ArrowUpRight, Building2, CalendarDays, ClipboardList, DoorOpen, FileBadge, FileClock, KeyRound, Landmark, Plus, Users } from 'lucide-react';
+import { ArrowUpRight, Building2, CalendarDays, ClipboardList, DoorOpen, FileBadge, FileClock, KeyRound, Landmark, Plus, Users } from '@/components/icons';
 import { StatusBadge } from '@/components/domain/badges';
 import { AnimatedNumber, GrowBar, HoverLift, Reveal, SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
@@ -292,7 +292,7 @@ export default function DashboardPage() {
           </Card>
         </Reveal>
 
-        <Reveal className="lg:col-span-3" delay={0.08}>
+        <Reveal className="lg:col-span-3">
           <Card className="h-full">
             <CardHeader>
               <CardTitle>{t.dashboard.branchesTitle}</CardTitle>
@@ -362,7 +362,7 @@ export default function DashboardPage() {
           </Card>
         </Reveal>
 
-        <Reveal className="lg:col-span-2" delay={0.08}>
+        <Reveal className="lg:col-span-2">
           <Card className="h-full border-dashed bg-muted/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

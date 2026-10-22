@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { MapPinOff } from 'lucide-react';
+import { MapPinOff } from '@/components/icons';
 import { PropertiesMap, type MapPoint } from '@/components/map';
 import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';

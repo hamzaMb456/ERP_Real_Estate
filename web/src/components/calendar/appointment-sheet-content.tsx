@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Building2, CalendarClock, Check, FileText, MapPin, Pencil, UserRound, X, type LucideIcon } from 'lucide-react';
+import { Building2, CalendarClock, Check, FileText, MapPin, Pencil, UserRound, X, type LucideIcon } from '@/components/icons';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/ui/button';

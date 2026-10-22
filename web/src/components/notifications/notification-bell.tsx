@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Bell, BellOff, RotateCw } from 'lucide-react';
+import { Bell, BellOff, RotateCw } from '@/components/icons';
 import { SkeletonList } from '@/components/motion/primitives';
 import { Button } from '@/components/ui/button';
 import {

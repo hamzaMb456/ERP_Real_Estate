@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/icons';
 import { LeaseForm } from '@/components/leases/lease-form';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/icons';
 import { PropertyForm, type PropertyFormValues } from '@/components/domain/property-form';
 import { Pulse } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';

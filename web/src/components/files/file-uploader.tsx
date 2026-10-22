@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, CircleAlert } from 'lucide-react';
+import { CheckCircle2, CircleAlert } from '@/components/icons';
 import { toast } from 'sonner';
 import { FileDrop } from '@/components/files/file-drop';
 import { toUserMessage } from '@/lib/errors';
@@ -70,7 +70,7 @@ export function FileUploader({ target, kind, category, nextSortOrder, onUploaded
                   {item.status === 'sending' && t.files.uploader.sending}
                   {item.status === 'done' && (
                     <>
-                      <CheckCircle2 className="size-3.5 text-success" aria-hidden /> {t.files.uploader.done}
+                      <CheckCircle2 className="size-3.5 text-success" animation="draw" aria-hidden /> {t.files.uploader.done}
                     </>
                   )}
                   {item.status === 'error' && (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, ExternalLink, FileText, Trash2 } from 'lucide-react';
+import { Download, ExternalLink, FileText, Trash2 } from '@/components/icons';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { FieldLabelWithHelp } from '@/components/field-help';

@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, Plus } from 'lucide-react';
+import { CalendarDays, Plus } from '@/components/icons';
 import { AppointmentDialog } from '@/components/calendar/appointment-dialog';
 import { AppointmentEditor } from '@/components/calendar/appointment-editor';
 import { AppointmentSheet } from '@/components/calendar/appointment-sheet';

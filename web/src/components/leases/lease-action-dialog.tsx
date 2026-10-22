@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toUserMessage } from '@/lib/errors';
@@ -65,7 +65,7 @@ export function LeaseActionDialog({ trigger, title, description, submitLabel, on
               {t.common.cancel}
             </Button>
             <Button type="submit" disabled={saving || disabled}>
-              {saving && <Loader2 data-icon="inline-start" className="animate-spin" />}
+              {saving && <Loader2 data-icon="inline-start" />}
               {submitLabel}
             </Button>
           </DialogFooter>

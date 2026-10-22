@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Mail, MailX } from 'lucide-react';
+import { Loader2, Mail, MailX } from '@/components/icons';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/i18n/provider';
@@ -70,7 +70,7 @@ export function AppointmentParticipantsList({ appointmentId, participants, notif
               <span>{emailLabel}</span>
               {failed && canEdit && appointmentStatus === 'planned' && (
                 <Button type="button" size="xs" variant="outline" disabled={resending === participant.contact_id} onClick={() => void resend(participant.contact_id)}>
-                  {resending === participant.contact_id && <Loader2 data-icon="inline-start" className="animate-spin" />}
+                  {resending === participant.contact_id && <Loader2 data-icon="inline-start" />}
                   {t.resend}
                 </Button>
               )}

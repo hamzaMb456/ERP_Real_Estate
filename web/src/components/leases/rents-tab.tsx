@@ -1,6 +1,6 @@
 'use client';
 
-import { Banknote } from 'lucide-react';
+import { Banknote } from '@/components/icons';
 import { ChangeRentDialog } from '@/components/leases/change-rent-dialog';
 import type { LeaseDetails } from '@/components/leases/lease-details';
 import { Badge } from '@/components/ui/badge';

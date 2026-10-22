@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { MapPin, Users } from 'lucide-react';
+import { MapPin, Users } from '@/components/icons';
 import { AnimatedNumber, GrowBar, HoverLift } from '@/components/motion/primitives';
 import { LocationPicker } from '@/components/map';
 import type { PropertyDetails, PropertyUnit } from '@/components/property/types';

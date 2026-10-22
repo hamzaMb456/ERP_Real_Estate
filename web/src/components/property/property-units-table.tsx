@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Users } from 'lucide-react';
+import { Users } from '@/components/icons';
 import { StatusBadge } from '@/components/domain/badges';
 import { TransferDialog } from '@/components/ownership/transfer-dialog';
 import type { PropertyUnit } from '@/components/property/types';

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Archive, ArchiveRestore, CalendarSync, DoorOpen, FileCheck, Loader2, Pencil } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarSync, DoorOpen, FileCheck, Loader2, Pencil } from '@/components/icons';
 import { toast } from 'sonner';
 import type { LeaseDetails } from '@/components/leases/lease-details';
 import { ActivateDialog, EndDialog, RenewDialog } from '@/components/leases/lease-dialogs';
@@ -64,7 +64,7 @@ export function LeaseActions({ lease, onChanged }: Props) {
           </>
         )}
         <Button variant="outline" onClick={() => void toggleArchive()} disabled={archiving}>
-          {archiving ? <Loader2 data-icon="inline-start" className="animate-spin" /> : archived ? <ArchiveRestore data-icon="inline-start" /> : <Archive data-icon="inline-start" />}
+          {archiving ? <Loader2 data-icon="inline-start" /> : archived ? <ArchiveRestore data-icon="inline-start" /> : <Archive data-icon="inline-start" />}
           {archived ? t.leases.actions.restore : t.leases.actions.archive}
         </Button>
       </>

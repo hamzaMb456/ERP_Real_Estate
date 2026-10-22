@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/i18n/provider';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -42,7 +42,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
               }
             }}
           >
-            {busy && <Loader2 data-icon="inline-start" className="animate-spin" />}
+            {busy && <Loader2 data-icon="inline-start" />}
             {confirmLabel ?? t.common.delete}
           </Button>
         </DialogFooter>

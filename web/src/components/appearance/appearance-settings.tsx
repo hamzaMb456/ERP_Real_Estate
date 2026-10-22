@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Check, Monitor, Moon, Sun } from 'lucide-react';
+import { Check, Monitor, Moon, Sun } from '@/components/icons';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/page-header';

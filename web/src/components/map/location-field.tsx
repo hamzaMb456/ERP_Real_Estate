@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, MapPinOff, Search } from 'lucide-react';
+import { Loader2, MapPinOff, Search } from '@/components/icons';
 import { LocationPicker } from '@/components/map';
 import { Button } from '@/components/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
@@ -62,7 +62,7 @@ export function LocationField({ query, latitude, longitude, onChange }: Props) {
           />
         </InputGroup>
         <Button type="button" variant="outline" onClick={() => void run()} disabled={searching}>
-          {searching && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {searching && <Loader2 data-icon="inline-start" />}
           {t.properties.locationField.search}
         </Button>
       </div>

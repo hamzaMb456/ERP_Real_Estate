@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'motion/react';
-import { Archive, ArchiveRestore, ArrowLeft, Copy, FileText, IdCard, Loader2, Mail, MapPin, Pencil, Phone, UserX } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowLeft, Copy, FileText, IdCard, Loader2, Mail, MapPin, Pencil, Phone, UserX } from '@/components/icons';
 import { toast } from 'sonner';
 import { ContactAppointments } from '@/components/calendar/contact-appointments';
 import { CONTACT_ROLES, RoleBadge, type ContactRole } from '@/components/domain/badges';
@@ -236,7 +236,7 @@ export default function ContactDetailPage() {
                 {!current.is_organization && (
                   <Button variant="outline" onClick={() => void toggleArchive()} disabled={archiving}>
                     {archiving ? (
-                      <Loader2 data-icon="inline-start" className="animate-spin" />
+                      <Loader2 data-icon="inline-start" />
                     ) : archived ? (
                       <ArchiveRestore data-icon="inline-start" />
                     ) : (

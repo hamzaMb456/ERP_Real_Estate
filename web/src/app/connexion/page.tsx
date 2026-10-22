@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
-import { Building2, Check, Eye, EyeOff, Loader2, LockKeyhole } from 'lucide-react';
+import { Building2, Check, Eye, EyeOff, Loader2, LockKeyhole } from '@/components/icons';
 import { useAuth } from '@/components/auth-provider';
 import { staggerContainer, staggerItem } from '@/components/motion/primitives';
 import { Button } from '@/components/ui/button';
@@ -172,7 +172,7 @@ export default function ConnexionPage() {
                   initial={{ opacity: 0, x: 0 }}
                   animate={{ opacity: 1, x: [0, -8, 8, -5, 5, 0] }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.45 }}
+                  transition={{ duration: 0.2 }}
                 >
                   {error}
                 </motion.p>
@@ -180,7 +180,7 @@ export default function ConnexionPage() {
             </AnimatePresence>
 
             <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-              {submitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+              {submitting && <Loader2 data-icon="inline-start" />}
               {submitting ? t.shell.login.submitting : t.shell.login.submit}
             </Button>
           </form>

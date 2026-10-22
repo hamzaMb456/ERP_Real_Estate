@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'motion/react';
-import { ChevronRight, Plus, Search, UserX } from 'lucide-react';
+import { ChevronRight, Plus, Search, UserX } from '@/components/icons';
 import { CONTACT_ROLES, RoleBadge, type ContactRole } from '@/components/domain/badges';
-import { SkeletonList, Stagger, StaggerItem, staggerItem } from '@/components/motion/primitives';
+import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -48,12 +47,6 @@ type Contact = {
 };
 
 const PAGE_SIZE = 10;
-const MotionRow = motion.create(TableRow);
-
-const rowsContainer = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } },
-};
 
 function initials(name: string): string {
   return name
@@ -184,17 +177,11 @@ export default function ContactsPage() {
                       </TableHead>
                     </TableRow>
                   </TableHeader>
-                  <motion.tbody
-                    key={roleFilter + currentPage}
-                    variants={rowsContainer}
-                    initial="hidden"
-                    animate="visible"
-                    className="[&_tr:last-child]:border-0"
-                  >
+                  <tbody key={roleFilter + currentPage} className="[&_tr:last-child]:border-0">
                     {visible.map((contact) => {
                       const primary = CONTACT_ROLES.find((role) => contact.roles.some((item) => item.role === role.value));
                       return (
-                        <MotionRow key={contact.id} variants={staggerItem} className="group">
+                        <TableRow key={contact.id} className="group">
                           <TableCell className="ps-4">
                             <Link href={'/contacts/' + contact.id} className="flex items-center gap-3 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
                               <Avatar className="size-9">
@@ -232,10 +219,10 @@ export default function ContactsPage() {
                               </Link>
                             </Button>
                           </TableCell>
-                        </MotionRow>
+                        </TableRow>
                       );
                     })}
-                  </motion.tbody>
+                  </tbody>
                 </Table>
                 {visible.length === 0 && (
                   <div className="flex flex-col items-center gap-2 px-4 py-14 text-center">

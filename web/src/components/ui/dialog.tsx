@@ -5,7 +5,13 @@ import { cn } from "cn"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
-import { XIcon } from "lucide-react"
+import { XIcon } from "@/components/icons"
+import { gsapTokens } from "@/lib/gsap"
+import { useEntrance } from "@/lib/use-entrance"
+
+// Pop in with a slight 3D tilt. xPercent/yPercent keep the content centred while GSAP owns the transform.
+const DIALOG_FROM = { opacity: 0, scale: 0.82, y: 24, rotationX: 14, transformPerspective: 800, xPercent: -50, yPercent: -50 }
+const DIALOG_TO = { opacity: 1, scale: 1, y: 0, rotationX: 0, xPercent: -50, yPercent: -50, duration: gsapTokens.overlay.duration, ease: "back.out(1.4)" }
 
 function Dialog({
   ...props
@@ -51,17 +57,20 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  ref,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const setRef = useEntrance<HTMLDivElement>(ref, DIALOG_FROM, DIALOG_TO)
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
+        ref={setRef}
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-150 outline-none sm:max-w-sm data-open:animate-dialog-pop data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-150 outline-none sm:max-w-sm data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}

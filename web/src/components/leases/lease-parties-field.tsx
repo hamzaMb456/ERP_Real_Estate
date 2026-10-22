@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X } from '@/components/icons';
 import { FieldHelp } from '@/components/field-help';
 import { ContactPicker, type ContactOption } from '@/components/ownership/contact-picker';
 import { Button } from '@/components/ui/button';

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from '@/components/icons';
 import type { ContactRole } from '@/components/domain/badges';
 import { ContactForm, phoneForForm, type ContactFormValues } from '@/components/domain/contact-form';
 import { Pulse } from '@/components/motion/primitives';

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, User } from 'lucide-react';
+import { Plus, Search, User } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import {
   CommandDialog,

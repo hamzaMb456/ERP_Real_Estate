@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Monitor, Moon, Palette, Sun } from 'lucide-react';
+import { Monitor, Moon, Palette, Sun } from '@/components/icons';
+import { ThemeGlyph } from '@/components/icons/theme-glyph';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/i18n/provider';
@@ -16,14 +17,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const t = useT();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" aria-label={t.shell.theme.label}>
-          <Sun className="size-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-          <Moon className="absolute size-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+          <ThemeGlyph dark={resolvedTheme === 'dark'} className="size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

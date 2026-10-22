@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, KeyRound, ShoppingCart, type LucideIcon } from 'lucide-react';
+import { Home, KeyRound, ShoppingCart, type LucideIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 

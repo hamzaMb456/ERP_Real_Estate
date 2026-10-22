@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ImageOff } from 'lucide-react';
+import { ImageOff } from '@/components/icons';
 import { imageObjectUrl } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +31,7 @@ export function StorageImage({ fileId, width, alt, className }: { fileId: string
   if (!current.url) {
     return (
       <div role="img" aria-label={alt} className={cn('flex items-center justify-center bg-muted text-muted-foreground', className)}>
-        <ImageOff className="size-5" aria-hidden />
+        <ImageOff className="size-5" animation="draw" aria-hidden />
       </div>
     );
   }

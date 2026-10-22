@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FormProvider, useForm, useFormContext } from 'react-hook-form';
-import { Loader2, TriangleAlert } from 'lucide-react';
+import { Loader2, TriangleAlert } from '@/components/icons';
 import { toast } from 'sonner';
 import type { ContactOption } from '@/components/ownership/contact-picker';
 import { Button } from '@/components/ui/button';
@@ -155,7 +155,7 @@ function AppointmentForm({ initial, editingId, existing, staff, contacts, onSave
             {tr.common.cancel}
           </Button>
           <Button type="submit" disabled={formState.isSubmitting}>
-            {formState.isSubmitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+            {formState.isSubmitting && <Loader2 data-icon="inline-start" />}
             {tr.common.save}
           </Button>
         </DialogFooter>

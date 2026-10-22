@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck } from '@/components/icons';
 import { SkeletonList } from '@/components/motion/primitives';
 import { useContactOptions } from '@/components/ownership/use-contact-options';
 import { Button } from '@/components/ui/button';

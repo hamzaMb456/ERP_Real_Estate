@@ -6,6 +6,7 @@ import { cn } from "cn"
 import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
 
 import { toggleVariants } from "@/components/ui/toggle"
+import { useControlRef } from "@/lib/use-control-motion"
 
 const ToggleGroupContext = React.createContext<
   VariantProps<typeof toggleVariants> & {
@@ -60,13 +61,16 @@ function ToggleGroupItem({
   children,
   variant = "default",
   size = "default",
+  ref,
   ...props
 }: React.ComponentProps<typeof ToggleGroupPrimitive.Item> &
   VariantProps<typeof toggleVariants>) {
   const context = React.useContext(ToggleGroupContext)
+  const setRef = useControlRef<HTMLButtonElement>(ref, { lift: true })
 
   return (
     <ToggleGroupPrimitive.Item
+      ref={setRef}
       data-slot="toggle-group-item"
       data-variant={context.variant || variant}
       data-size={context.size || size}

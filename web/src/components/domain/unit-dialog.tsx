@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/icons';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { FieldLabelWithHelp } from '@/components/field-help';
@@ -299,7 +299,7 @@ function UnitForm({
           {t.common.cancel}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+          {isSubmitting && <Loader2 data-icon="inline-start" />}
           {isSubmitting ? t.common.saving : unit ? t.common.save : t.properties.unitForm.submitAdd}
         </Button>
       </DialogFooter>

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from '@/components/icons';
 import type { AppointmentStatus, FeedRow } from '@/lib/appointment-types';
 import { appointmentKindLabel, isoToTunisParts } from '@/lib/appointments';
 import { AppointmentStatusBadge } from './appointment-status-badge';

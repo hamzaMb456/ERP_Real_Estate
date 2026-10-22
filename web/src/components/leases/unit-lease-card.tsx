@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FilePlus2 } from 'lucide-react';
+import { FilePlus2 } from '@/components/icons';
 import { LeaseFlagBadges } from '@/components/leases/lease-status-badge';
 import { Pulse } from '@/components/motion/primitives';
 import { Button } from '@/components/ui/button';

@@ -12,7 +12,7 @@ import {
   Users,
   Wrench,
   type LucideIcon,
-} from 'lucide-react';
+} from '@/components/icons';
 
 import type { Messages } from '@/i18n/messages';
 

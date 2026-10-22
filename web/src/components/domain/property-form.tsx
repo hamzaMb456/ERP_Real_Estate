@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save } from '@/components/icons';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { GOVERNORATES } from '@/components/domain/labels';
@@ -283,7 +283,7 @@ export function PropertyForm(props: Props) {
             <Link href={cancelHref}>{t.common.cancel}</Link>
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />}
+            {isSubmitting ? <Loader2 data-icon="inline-start" /> : <Save data-icon="inline-start" />}
             {isSubmitting ? t.common.saving : editing ? t.common.saveChanges : t.properties.form.saveProperty}
           </Button>
         </CardFooter>
