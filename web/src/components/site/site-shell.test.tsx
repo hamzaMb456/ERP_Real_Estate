@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { I18nProvider } from '@/i18n/provider';
 import { setLocale } from '@/i18n/store';
@@ -33,6 +33,30 @@ describe('SiteHeader', () => {
     expect(within(nav).getByRole('link', { name: MESSAGES.ar.site.nav.rent })).toHaveAttribute('href', '/louer');
     expect(within(nav).getByRole('link', { name: MESSAGES.ar.site.nav.buy })).toHaveAttribute('href', '/acheter');
     expect(MESSAGES.ar.site.nav.rent).not.toBe('Louer');
+  });
+});
+
+describe('SiteHeader mobile menu', () => {
+  it('names the close button with the French catalog string', () => {
+    render(<SiteHeader />);
+    fireEvent.click(screen.getByRole('button', { name: MESSAGES.fr.site.menu.open }));
+    const dialog = screen.getByRole('dialog');
+    const close = within(dialog).getByRole('button', { name: MESSAGES.fr.site.menu.close });
+    expect(close).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: /^close$/i })).not.toBeInTheDocument();
+  });
+
+  it('names the close button with the Arabic catalog string, never "Close"', () => {
+    setLocale('ar');
+    render(
+      <I18nProvider>
+        <SiteHeader />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: MESSAGES.ar.site.menu.open }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: MESSAGES.ar.site.menu.close })).toBeInTheDocument();
+    expect(within(dialog).queryByText(/close/i)).not.toBeInTheDocument();
   });
 });
 

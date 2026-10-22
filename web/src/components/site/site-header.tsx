@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, Menu, User } from '@/components/icons';
+import { Building2, Menu, User, X } from '@/components/icons';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -77,7 +77,13 @@ export function SiteHeader() {
                 <Menu />
               </Button>
             </SheetTrigger>
-            <SheetContent side={dir === 'rtl' ? 'left' : 'right'} className="site-root">
+            {/* The built-in close button has an English label: use our own, localised. */}
+            <SheetContent side={dir === 'rtl' ? 'left' : 'right'} className="site-root" showCloseButton={false}>
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon-sm" className="absolute top-3 end-3" aria-label={t.site.menu.close}>
+                  <X />
+                </Button>
+              </SheetClose>
               <SheetHeader>
                 <SheetTitle className="font-heading-site">{t.site.menu.title}</SheetTitle>
                 <SheetDescription className="sr-only">{t.site.menu.description}</SheetDescription>
