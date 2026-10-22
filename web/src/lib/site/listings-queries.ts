@@ -243,7 +243,7 @@ async function safely<T>(name: string, empty: () => T, run: () => Promise<T>): P
   try {
     return await run();
   } catch (err) {
-    console.error(`[public-listings] ${name} failed`, err);
+    console.warn(`[public-listings] ${name} failed (is migration 0005 applied and the public role set up? see the slice 1 handoff)`, err);
     return empty();
   }
 }

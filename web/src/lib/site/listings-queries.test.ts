@@ -172,7 +172,7 @@ describe('getLatestListings', () => {
     publicQuery.mockRejectedValue(new Error('role public not found'));
     const { getLatestListings } = await load();
     await expect(getLatestListings('rent', 3)).resolves.toEqual([]);
-    expect(console.error).toHaveBeenCalledWith('[public-listings] getLatestListings failed', expect.any(Error));
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('[public-listings] getLatestListings failed'), expect.any(Error));
   });
 
   it('makes no network call without an organization id', async () => {
@@ -244,7 +244,7 @@ describe('searchListings', () => {
     publicQuery.mockRejectedValue(new Error('boom'));
     const { searchListings } = await load();
     await expect(searchListings('rent', DEFAULT_FILTERS)).resolves.toEqual({ items: [], total: 0, cities: [] });
-    expect(console.error).toHaveBeenCalledWith('[public-listings] searchListings failed', expect.any(Error));
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('[public-listings] searchListings failed'), expect.any(Error));
   });
 
   it('is resilient without an organization id', async () => {
@@ -293,7 +293,7 @@ describe('getListing', () => {
     publicQuery.mockRejectedValue(new Error('boom'));
     const { getListing } = await load();
     await expect(getListing(LISTING_ID)).resolves.toBeNull();
-    expect(console.error).toHaveBeenCalledWith('[public-listings] getListing failed', expect.any(Error));
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('[public-listings] getListing failed'), expect.any(Error));
   });
 
   it('returns null without an organization id', async () => {
@@ -325,7 +325,7 @@ describe('countPublished', () => {
     publicQuery.mockRejectedValue(new Error('boom'));
     const first = await load();
     await expect(first.countPublished()).resolves.toEqual({ total: 0, cities: 0 });
-    expect(console.error).toHaveBeenCalledWith('[public-listings] countPublished failed', expect.any(Error));
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('[public-listings] countPublished failed'), expect.any(Error));
 
     publicQuery.mockClear();
     const second = await load('');
@@ -351,7 +351,7 @@ describe('getPublishedCities', () => {
     publicQuery.mockRejectedValue(new Error('boom'));
     const first = await load();
     await expect(first.getPublishedCities()).resolves.toEqual([]);
-    expect(console.error).toHaveBeenCalledWith('[public-listings] getPublishedCities failed', expect.any(Error));
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('[public-listings] getPublishedCities failed'), expect.any(Error));
 
     publicQuery.mockClear();
     const second = await load('');
