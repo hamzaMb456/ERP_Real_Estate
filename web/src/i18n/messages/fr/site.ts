@@ -1,4 +1,5 @@
 // Public front office (vitrine): shell, navigation, footer and 404. Later slices add their sections to this namespace.
+import { plural } from '../../plural';
 
 export const site = {
   meta: {
@@ -41,5 +42,17 @@ export const site = {
     description: 'Cette page n’existe pas ou n’est plus disponible. Découvrez plutôt nos logements.',
     cta: 'Voir les logements à louer',
     home: 'Retour à l’accueil',
+  },
+  listingCard: {
+    available: 'Disponible',
+    availableFrom: (date: string) => `Dès le ${date}`,
+    perMonth: '/ mois',
+    rooms: (count: number) => plural(count, { one: '# pièce', other: '# pièces' }),
+    floor: (floor: string) => `Étage ${floor}`,
+    groundFloor: 'Rez-de-chaussée',
+    photoAlt: (title: string) => `Photo : ${title}`,
+    noPhoto: 'Photo non disponible',
+    favourite: 'Ajouter aux favoris',
+    soon: 'Bientôt',
   },
 };

@@ -1,3 +1,5 @@
+import { plural } from '../../plural';
+
 export const site = {
   meta: {
     title: 'إيمرالد إيموبيليي — كراء وبيع المساكن في تونس',
@@ -38,5 +40,17 @@ export const site = {
     description: 'هذه الصفحة غير موجودة أو لم تعد متاحة. اطلعوا على مساكننا بدلاً من ذلك.',
     cta: 'عرض المساكن المعروضة للكراء',
     home: 'العودة إلى الرئيسية',
+  },
+  listingCard: {
+    available: 'متاح',
+    availableFrom: (date: string) => `متاح ابتداءً من ${date}`,
+    perMonth: '/ شهريًا',
+    rooms: (count: number) => plural(count, { zero: '# غرف', one: 'غرفة واحدة', two: 'غرفتان', few: '# غرف', many: '# غرفة', other: '# غرفة' }),
+    floor: (floor: string) => `الطابق ${floor}`,
+    groundFloor: 'الطابق الأرضي',
+    photoAlt: (title: string) => `صورة: ${title}`,
+    noPhoto: 'الصورة غير متوفرة',
+    favourite: 'أضف إلى المفضلة',
+    soon: 'قريبًا',
   },
 };

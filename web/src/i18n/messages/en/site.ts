@@ -1,3 +1,5 @@
+import { plural } from '../../plural';
+
 export const site = {
   meta: {
     title: 'Emerald Immobilier — Homes for rent and for sale in Tunisia',
@@ -39,5 +41,17 @@ export const site = {
     description: 'This page does not exist or is no longer available. Have a look at our homes instead.',
     cta: 'See homes for rent',
     home: 'Back to home',
+  },
+  listingCard: {
+    available: 'Available',
+    availableFrom: (date: string) => `From ${date}`,
+    perMonth: '/ month',
+    rooms: (count: number) => plural(count, { one: '# room', other: '# rooms' }),
+    floor: (floor: string) => `Floor ${floor}`,
+    groundFloor: 'Ground floor',
+    photoAlt: (title: string) => `Photo: ${title}`,
+    noPhoto: 'Photo not available',
+    favourite: 'Add to favourites',
+    soon: 'Coming soon',
   },
 };

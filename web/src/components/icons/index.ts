@@ -107,3 +107,5 @@ export const Tag = makeIcon('Tag');
 export const Wrench = makeIcon('Wrench');
 export const Menu = makeIcon('Menu');
 export const ShieldCheck = makeIcon('ShieldCheck');
+export const Heart = makeIcon('Heart');
+export const BedDouble = makeIcon('BedDouble');
