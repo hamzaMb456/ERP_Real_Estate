@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -16,6 +16,7 @@ import { isoToTunisParts, tunisToIso } from '@/lib/appointments';
 import type { CalendarEventInput } from '@/lib/calendar';
 import { CALENDAR_STYLES } from './calendar-view-styles';
 import type { CalendarViewName } from './calendar-types';
+import { CalendarToolbar } from './calendar-toolbar';
 
 // The only file that imports @fullcalendar/*; the page loads it with next/dynamic (ssr: false).
 //
@@ -76,11 +77,25 @@ export default function CalendarView({ events, view, date, onViewChange, onDateC
     if (dayOf(api.getDate()) !== date) api.gotoDate(date);
   }, [view, date]);
 
+  // The period title (« octobre 2026 ») comes from FullCalendar; our toolbar shows it.
+  const [title, setTitle] = useState('');
+  const api = () => calendar.current?.getApi();
+
   const fcLocale = FC_LOCALES[locale];
 
   return (
-    <div className="erp-calendar" role="region" aria-label={v.label}>
+    <div className="erp-calendar space-y-4" role="region" aria-label={v.label}>
       <style>{CALENDAR_STYLES}</style>
+      <CalendarToolbar
+        view={view}
+        title={title}
+        date={date}
+        onViewChange={onViewChange}
+        onPrev={() => api()?.prev()}
+        onNext={() => api()?.next()}
+        onToday={() => api()?.today()}
+        onPickDate={(iso) => api()?.gotoDate(iso)}
+      />
       <FullCalendar
         ref={calendar}
         plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
@@ -92,10 +107,8 @@ export default function CalendarView({ events, view, date, onViewChange, onDateC
         firstDay={FIRST_DAY_MONDAY}
         initialView={view}
         initialDate={date}
-        // start / end follow the reading direction, so the toolbar mirrors itself in Arabic.
-        headerToolbar={{ start: 'prev,next today', center: 'title', end: 'dayGridMonth,timeGridWeek,listWeek' }}
-        buttonText={{ today: v.today, month: v.month, week: v.week, day: v.day, list: v.list }}
-        buttonHints={{ prev: v.prevHint, next: v.nextHint, today: v.todayHint }}
+        // The toolbar above is ours (shadcn), so FullCalendar draws no header of its own.
+        headerToolbar={false}
         viewHint={v.viewHint}
         navLinkHint={v.navLinkHint}
         moreLinkText={v.moreLink}
@@ -127,6 +140,7 @@ export default function CalendarView({ events, view, date, onViewChange, onDateC
           onEventClick(info.event.id);
         }}
         datesSet={(info) => {
+          setTitle(info.view.title);
           const type = info.view.type as CalendarViewName;
           const current = dayOf(info.view.calendar.getDate());
           if (type !== view) onViewChange(type);

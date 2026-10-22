@@ -56,6 +56,8 @@ export const calendar: typeof fr = {
     closeHint: 'Close',
     timeHint: 'Time',
     eventHint: 'Event',
+    pickDate: 'Pick a date',
+    viewGroup: 'Calendar view',
   },
   filters: {
     kinds: 'Event types',

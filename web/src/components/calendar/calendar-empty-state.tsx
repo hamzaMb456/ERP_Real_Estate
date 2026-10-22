@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from '@/components/icons';
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -11,16 +12,18 @@ type Props = {
   className?: string;
 };
 
-/** Dashed muted block for « nothing here »: icon in a muted circle, title, explanation, optional shortcut. */
+/** « Nothing here » for the calendar, lists and cards: the shared Empty block with the module's icon. */
 export function CalendarEmptyState({ icon: Icon, title, body, action, className }: Props) {
   return (
-    <div className={cn('flex flex-col items-center gap-2 rounded-xl border border-dashed bg-muted/40 px-4 py-8 text-center', className)}>
-      <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-        <Icon className="size-5" aria-hidden />
-      </span>
-      <p className="font-medium">{title}</p>
-      {body && <p className="max-w-sm text-sm text-muted-foreground">{body}</p>}
-      {action}
-    </div>
+    <Empty className={cn('border bg-muted/30', className)}>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icon />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {body && <EmptyDescription>{body}</EmptyDescription>}
+      </EmptyHeader>
+      {action && <EmptyContent>{action}</EmptyContent>}
+    </Empty>
   );
 }

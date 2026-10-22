@@ -65,6 +65,8 @@ export const calendar: typeof fr = {
     closeHint: 'إغلاق',
     timeHint: 'الوقت',
     eventHint: 'حدث',
+    pickDate: 'اختيار تاريخ',
+    viewGroup: 'عرض التقويم',
   },
   filters: {
     kinds: 'أنواع الأحداث',

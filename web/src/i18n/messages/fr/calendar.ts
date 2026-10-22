@@ -61,6 +61,8 @@ export const calendar = {
     closeHint: 'Fermer',
     timeHint: 'Heure',
     eventHint: 'Événement',
+    pickDate: 'Choisir une date',
+    viewGroup: 'Affichage du calendrier',
   },
   filters: {
     kinds: 'Types d’événements',

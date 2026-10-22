@@ -42,7 +42,7 @@ describe('CalendarView', () => {
     expect(screen.getByText(/octobre 2026/i)).toBeInTheDocument();
     expect(screen.getByText('Visite B-102')).toBeInTheDocument();
     expect(screen.getByText('Fin du bail · Bail 12')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Semaine' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Semaine' })).toBeInTheDocument();
   });
 
   it('reports the clicked event id', async () => {
