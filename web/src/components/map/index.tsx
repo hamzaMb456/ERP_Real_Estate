@@ -13,4 +13,10 @@ export const PropertiesMap = dynamic(() => import('./properties-map-inner').then
   loading: () => <div className="h-[60vh] animate-pulse rounded-xl bg-muted" />,
 });
 
+export const ListingsMap = dynamic(() => import('./listings-map-inner').then((module) => module.ListingsMapInner), {
+  ssr: false,
+  loading: () => <div className="h-[60vh] animate-pulse rounded-2xl bg-muted" />,
+});
+
 export type { MapPoint } from './properties-map-inner';
+export type { ListingMapPoint } from './listings-map-inner';

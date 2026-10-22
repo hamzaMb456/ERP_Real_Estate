@@ -111,3 +111,5 @@ export const Heart = makeIcon('Heart');
 export const BedDouble = makeIcon('BedDouble');
 export const Clock = makeIcon('Clock');
 export const ArrowRight = makeIcon('ArrowRight');
+export const SlidersHorizontal = makeIcon('SlidersHorizontal');
+export const List = makeIcon('List');
