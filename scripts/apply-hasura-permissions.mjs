@@ -118,7 +118,8 @@ const SELECT_COLUMNS = {
 };
 
 // What the public role reads. The views hold only published listings of non-archived units, and the site filters
-// by organization itself, so there is deliberately no row filter here (no aggregations either).
+// by organization itself, so there is deliberately no row filter here. Aggregations are allowed on public_listings
+// only: the search pages need the total count of a filtered search (public_listings_aggregate).
 const PUBLIC_SELECT_COLUMNS = {
   public_listings: [
     'id', 'organization_id', 'unit_id', 'kind', 'title', 'description', 'price', 'charges', 'deposit_months',
@@ -330,7 +331,10 @@ for (const [name, columns] of Object.entries(SELECT_COLUMNS)) {
 for (const [name, columns] of Object.entries(PUBLIC_SELECT_COLUMNS)) {
   creates.push({
     type: 'pg_create_select_permission',
-    args: { source, table: table(name), role: PUBLIC_ROLE, permission: { columns, filter: {} } },
+    args: {
+      source, table: table(name), role: PUBLIC_ROLE,
+      permission: { columns, filter: {}, ...(name === 'public_listings' ? { allow_aggregations: true } : {}) },
+    },
   });
 }
 
