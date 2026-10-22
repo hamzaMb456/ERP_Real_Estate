@@ -196,4 +196,74 @@ export const site = {
     },
     loading: 'جارٍ تحميل الإعلانات',
   },
+  listing: {
+    notFoundTitle: 'المسكن غير موجود',
+    meta: {
+      rent: 'للكراء',
+      sale: 'للبيع',
+      description: (kind: string, city: string | null, price: string, excerpt: string | null) =>
+        [`${kind}${city ? ` في ${city}` : ''}: ${price}.`, excerpt].filter(Boolean).join(' '),
+    },
+    loading: 'جارٍ تحميل المسكن',
+    breadcrumb: { label: 'مسار التنقل', home: 'الرئيسية' },
+    gallery: {
+      label: 'صور المسكن',
+      viewAll: (count: number) => plural(count, { one: 'عرض الصورة', two: 'عرض الصورتين', other: 'عرض كل الصور (#)' }),
+      open: (index: number, total: number) => `تكبير الصورة ${index} من ${total}`,
+      tour: 'جولة افتراضية',
+      tourHint: '(تفتح في علامة تبويب جديدة)',
+      close: 'إغلاق',
+    },
+    facts: {
+      label: 'المميزات',
+      furnished: 'مؤثث',
+      unfurnished: 'غير مؤثث',
+    },
+    description: 'الوصف',
+    amenities: 'التجهيزات',
+    location: {
+      title: 'الموقع',
+      mapLabel: 'خريطة موقع المسكن',
+      approximate: 'الموقع تقريبي: يتم تقديم العنوان الدقيق عند الزيارة.',
+    },
+    conditions: {
+      rentTitle: 'شروط الكراء',
+      saleTitle: 'شروط البيع',
+      rent: 'الكراء الشهري',
+      charges: 'المصاريف',
+      deposit: 'ضمان الكراء',
+      depositMonths: (months: number) =>
+        plural(months, { zero: '# أشهر', one: 'شهر واحد', two: 'شهران', few: '# أشهر', many: '# شهرًا', other: '# شهر' }),
+      availability: 'التوفر',
+      availableNow: 'متاح فورًا',
+      availableOn: (date: string) => `متاح ابتداءً من ${date}`,
+      price: 'سعر البيع',
+      reservationDeposit: 'عربون الحجز',
+      reservationDays: 'مدة الحجز',
+      days: (count: number) =>
+        plural(count, { zero: '# أيام', one: 'يوم واحد', two: 'يومان', few: '# أيام', many: '# يومًا', other: '# يوم' }),
+    },
+    documents: {
+      title: 'الوثائق المطلوبة',
+      items: [
+        { title: 'إثبات الهوية', text: 'بطاقة التعريف الوطنية أو جواز السفر.' },
+        { title: 'إثبات الدخل', text: 'آخر ثلاث قسائم أجر أو شهادة دخل.' },
+        { title: 'الضامن', text: 'اختياري، لكنه مستحسن.' },
+      ],
+    },
+    contact: {
+      title: 'اتصلوا بالوكالة',
+      chargesExtra: (amount: string) => `+ ${amount} مصاريف`,
+      intro: 'هل لديكم سؤال حول هذا العقار؟ فريقنا يجيبكم.',
+      phone: 'الهاتف',
+      email: 'البريد الإلكتروني',
+      soon: 'تقديم الملف عبر الإنترنت قريبًا.',
+    },
+    similar: {
+      title: 'عقارات مشابهة',
+      titleInCity: (city: string) => `عقارات مشابهة في ${city}`,
+      subtitle: 'مختارات من المساكن القريبة من حيث الموقع والسعر.',
+      all: 'عرض كل الإعلانات',
+    },
+  },
 };

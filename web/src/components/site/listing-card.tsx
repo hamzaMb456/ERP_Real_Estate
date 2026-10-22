@@ -18,7 +18,7 @@ const subscribeNever = () => () => {};
 const serverToday = (): string | null => null;
 
 /** True while the availability date is still ahead. Without a date the listing is available now. */
-function useAvailableFromFuture(availableFrom: string | null): boolean {
+export function useAvailableFromFuture(availableFrom: string | null): boolean {
   // The current day comes from the client snapshot only: the server snapshot is null, so the clock is never read
   // while the card is prerendered. Until the client knows the day, a dated listing shows « Dès le <date> »,
   // which is true whether that date is past or not.

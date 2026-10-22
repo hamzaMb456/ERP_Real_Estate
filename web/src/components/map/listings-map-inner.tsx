@@ -19,8 +19,9 @@ export type ListingMapPoint = {
   detail: string;
   /** City, shown under the title when known. */
   city?: string | null;
-  href: string;
-  linkLabel: string;
+  /** Link of the popup; leave out (with `linkLabel`) on the listing's own page. */
+  href?: string;
+  linkLabel?: string;
 };
 
 // The marker takes the colour of the public site's primary (the map sits inside `.site-root`).
@@ -51,9 +52,11 @@ export function ListingsMapInner({ points, label, className }: { points: Listing
                 <p className="font-semibold">{point.title}</p>
                 {point.city ? <p className="text-muted-foreground">{point.city}</p> : null}
                 <p className="font-semibold text-primary tabular-nums">{point.detail}</p>
-                <Link href={point.href} className="font-medium text-primary underline">
-                  {point.linkLabel}
-                </Link>
+                {point.href && point.linkLabel ? (
+                  <Link href={point.href} className="font-medium text-primary underline">
+                    {point.linkLabel}
+                  </Link>
+                ) : null}
               </div>
             </Popup>
           </Marker>
