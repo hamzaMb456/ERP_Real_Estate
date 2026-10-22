@@ -11,6 +11,7 @@ import { FieldHelp } from '@/components/field-help';
 import { DocumentList } from '@/components/files/document-list';
 import { PhotoGallery } from '@/components/files/photo-gallery';
 import { UnitLeaseCard } from '@/components/leases/unit-lease-card';
+import { ListingCardErp } from '@/components/listings/listing-card-erp';
 import { HoverLift, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { UnitOwnersTab } from '@/components/ownership/unit-owners-tab';
 import { PageHeader } from '@/components/page-header';
@@ -209,6 +210,7 @@ export default function UnitDetailPage() {
               <Fact icon={Layers} label={t.properties.unit.factFloor} value={current.floor === null ? '—' : String(current.floor)} />
             </div>
             <UnitLeaseCard unitId={current.id} canCreate={canEdit && !archived} />
+            <ListingCardErp unitId={current.id} unitStatus={current.status} />
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-1.5 text-base">

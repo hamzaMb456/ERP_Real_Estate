@@ -12,5 +12,6 @@ import { shell } from './shell';
 import { appearance } from './appearance';
 import { calendar } from './calendar';
 import { notifications } from './notifications';
+import { listings } from './listings';
 
-export const fr = { common, nav, shell, labels, errors, properties, files, contacts, ownership, leases, dashboard, appearance, calendar, notifications };
+export const fr = { common, nav, shell, labels, errors, properties, files, contacts, ownership, leases, dashboard, appearance, calendar, notifications, listings };
