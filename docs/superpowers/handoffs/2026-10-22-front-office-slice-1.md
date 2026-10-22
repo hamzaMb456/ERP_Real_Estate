@@ -1,0 +1,51 @@
+# Passation — Vitrine publique, tranche 1 (location et vente en ligne)
+
+Date : 2026-10-22 · Branche `vitrine` (rien n'est poussé, rien n'est appliqué sur Nhost)
+Plan : `docs/superpowers/plans/2026-10-22-front-office-slice-1.md` · Spec : `docs/superpowers/specs/2026-10-22-front-office-design.md`
+
+## Ce qui a changé
+
+- L'ERP vit maintenant sous `/erp` (`/erp/biens`, `/erp/baux`, `/erp/connexion`…). Les anciens liens (`/biens`, `/baux/123?onglet=loyers`, `/connexion`, liens des e-mails) redirigent vers `/erp/...` en gardant chemin et paramètres.
+- Le site public est à la racine : `/` (accueil), `/louer`, `/acheter`, `/logement/<id>`. Il lit uniquement deux vues (`public_listings`, `public_listing_photos`) avec le rôle Hasura `public`, sans connexion.
+- Nouvelle carte « Publication » sur la fiche d'une unité (ERP) : créer, publier, mettre en pause, clôturer une annonce.
+
+## À faire, dans cet ordre
+
+1. **Base de données.** Dans l'éditeur SQL de Nhost (« Track this » désactivé), copiez `db/migrations/0005_listings.sql` (`Get-Content -Raw -Encoding UTF8 … | Set-Clipboard`), exécutez, puis `db/seeds/0005_listings.sql` (deux annonces en brouillon, sans photo).
+   *Vérifier :* `select count(*) from public.listings;` renvoie 2 ; `select * from public.public_listings;` renvoie 0 ligne (rien n'est publié).
+2. **Rôle public.** Nhost → Settings → Hasura → Environment variables : `HASURA_GRAPHQL_UNAUTHORIZED_ROLE` = `public`. Sauvegardez ; Hasura redémarre.
+   *Vérifier :* la console Hasura répond de nouveau (30 s environ).
+3. **Permissions Hasura.** Depuis la racine du dépôt, `$env:HASURA_ADMIN_SECRET` renseigné (jamais écrit dans un fichier) : d'abord `node scripts/apply-hasura-permissions.mjs --dry-run`, qui doit finir par `Dry run: 23 tracked tables/views, 54 relationships, 175 permissions, 6 functions. Nothing sent.`, puis sans `--dry-run`. Le script ajoute aussi `allow_aggregations` pour le rôle `public` sur `public_listings` (compteurs de l'accueil). On peut le relancer sans risque.
+   *Vérifier :* `node scripts/check-hasura.mjs` ne signale aucune métadonnée incohérente.
+4. **Variables du site.** Dans `web/.env.local` : `NEXT_PUBLIC_AGENCY_ORG_ID` (résultat de `select id from organizations;`), `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_AGENCY_PHONE`, `NEXT_PUBLIC_AGENCY_EMAIL`, `NEXT_PUBLIC_AGENCY_ADDRESS` (modèle : `web/.env.example`). Puis `docker compose restart web`.
+   **Important :** les adresses canoniques et les aperçus de partage (Open Graph) utilisent `NEXT_PUBLIC_SITE_URL` et retombent sur `http://localhost:3000` si elle est vide. Mettez l'URL publique réelle avant toute mise en ligne.
+   *Vérifier :* `http://localhost:3000/` s'affiche (menu, pied de page avec vos coordonnées), `/louer` affiche « aucun logement » sans erreur.
+5. **Publier une première unité.** Dans l'ERP, ouvrez une unité **libre** (ou en vente pour une annonce de vente) qui a **au moins une photo** (onglet Photos), carte « Publication » → « Créer une annonce » → titre, prix → « Publier ». Règles : l'unité et son bien ne sont pas archivés ; location = unité libre, ou louée avec un bail qui finit dans les 90 jours et une date de disponibilité postérieure ; vente = unité « à vendre » ou louée ; un prix ; une photo. Une seule annonce ouverte par unité et par type. Messages possibles :
+   - « Indiquez un prix avant de publier. »
+   - « Ajoutez au moins une photo du logement avant de publier. »
+   - « Ce logement est archivé : il ne peut pas être publié. »
+   - « Ce logement ne peut pas être mis en location maintenant (il doit être libre, ou loué avec un bail qui se termine dans les 90 jours). »
+   - « Ce logement ne peut pas être mis en vente (il doit être « à vendre » ou loué). »
+
+   *Vérifier :* déconnecté (fenêtre privée), `/louer` montre la carte avec sa photo, un clic ouvre la fiche. Les pages publiques sont mises en cache quelques minutes : un changement peut mettre 1 à 5 minutes à apparaître.
+   **Test des photos anonymes :** dans la fenêtre privée, faites un clic droit sur la photo de la carte → « Ouvrir l'image dans un nouvel onglet ». Si elle s'affiche, c'est bon. Sinon (403/404), prévenez-moi : il faudra élargir dans le script les colonnes publiques de `storage.files` (`bucket_id`, `name`, `etag`, `is_uploaded`, `created_at`) et ajouter un `select` sur `storage.buckets` (modification du script, à faire par moi).
+   **Test GraphQL sans connexion :** `curl -s https://<NEXT_PUBLIC_NHOST_SUBDOMAIN>.graphql.<NEXT_PUBLIC_NHOST_REGION>.nhost.run/v1 -H "Content-Type: application/json" -d "{\"query\":\"{ public_listings(limit: 1) { id title } }\"}"` doit répondre avec les données (pas d'erreur `field not found` ni `access-denied`), sans aucun en-tête d'autorisation.
+6. **Test de bout en bout.** Avec vos identifiants de test (`web/.env.test.local` : `E2E_EMAIL`, `E2E_PASSWORD`) : `cd web; npx playwright test e2e/front-office.spec.ts`, avec `E2E_BASE_URL=http://localhost:3000` pour viser le serveur Docker. Le test crée son propre bien, une unité, une photo, publie « Appartement test E2E » à 1 234 TND, le voit sur `/louer` en visiteur, le clôture, puis archive le bien (durée : plusieurs minutes, à cause du cache). Supprimez ensuite `web/test-results`.
+
+## Limites connues / reporté
+
+- **Page introuvable = statut HTTP 200** (avec `noindex`), pas 404 : le rendu en flux de Next ne permet pas autrement. Suite possible : un contrôle d'existence dans `proxy.ts`.
+- Le bandeau de l'accueil est une illustration SVG : remplacez-la par une vraie photo dans `web/public/site/hero.svg` (même chemin).
+- Les pages « Mentions légales » et « Confidentialité » ne sont pas rédigées (liens inertes).
+- Favoris, alertes et dépôt de dossier en ligne affichent « Bientôt » jusqu'aux tranches 2 à 4.
+- Mineurs : une annonce de vente d'une unité ensuite vendue reste visible côté base (le site la masque) ; renouveler un bail ne revérifie pas l'annonce de location ; remise en ligne d'une annonce clôturée non bloquée en base ; pause/clôture abandonnent les modifications non enregistrées du formulaire ; pas de plafond sur le prix ; compteurs de l'accueil à « 0 » si le serveur est injoignable ; « Similaires » ne regarde que les 12 annonces les plus récentes de la ville.
+
+## À tester avec le vrai serveur (non vérifié ici)
+
+1. **Clôturer / rouvrir une annonce** : la carte ne rouvre jamais une annonce clôturée, mais la base ne bloque pas un retour `closed → published` par une mise à jour du statut.
+2. **Équipements** (`amenities`, tableau texte) : l'écriture depuis le formulaire passe par Hasura ; cochez quelques équipements, enregistrez, rechargez, vérifiez qu'ils sont conservés et affichés sur la fiche publique.
+3. **Filtre Hasura sur le stockage** : la lecture publique des photos passe par un filtre de relation sur `storage.files` ; c'est ce que contrôle le « test des photos anonymes » (étape 5). Vérifiez aussi qu'une photo d'une unité **non publiée** reste inaccessible sans connexion.
+
+## Vérifié ici
+
+`tsc`, `eslint`, 535 tests vitest, `npm run build` ; tests SQL 0002 à 0005 sur Postgres local (`OK: all`) ; `apply-hasura-permissions.mjs --dry-run`. **Non vérifié :** tout ce qui touche le vrai Nhost, le test Playwright, un navigateur connecté.

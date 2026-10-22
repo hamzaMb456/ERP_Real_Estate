@@ -20,7 +20,7 @@ export default defineConfig({
     ? undefined
     : {
         command: 'npm run dev',
-        url: 'http://localhost:3000/connexion',
+        url: 'http://localhost:3000/erp/connexion',
         reuseExistingServer: true,
         timeout: 120_000,
       },
