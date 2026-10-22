@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { I18nProvider } from '@/i18n/provider';
 import { setLocale } from '@/i18n/store';
 import { MESSAGES } from '@/i18n/messages';
@@ -57,6 +59,29 @@ describe('SiteHeader mobile menu', () => {
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByRole('button', { name: MESSAGES.ar.site.menu.close })).toBeInTheDocument();
     expect(within(dialog).queryByText(/close/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('language switcher panel', () => {
+  it('carries the site-root class in the public header so the portal keeps the site theme', async () => {
+    const user = userEvent.setup();
+    render(<SiteHeader />);
+    await user.click(screen.getByRole('button', { name: MESSAGES.fr.shell.language.change }));
+    expect(await screen.findByRole('menu')).toHaveClass('site-root');
+  });
+
+  it('carries the site-root class in the public footer', async () => {
+    const user = userEvent.setup();
+    render(<SiteFooter id="contact" {...contact} />);
+    await user.click(screen.getByRole('button', { name: MESSAGES.fr.shell.language.change }));
+    expect(await screen.findByRole('menu')).toHaveClass('site-root');
+  });
+
+  it('leaves the ERP switcher without the class', async () => {
+    const user = userEvent.setup();
+    render(<LanguageSwitcher />);
+    await user.click(screen.getByRole('button', { name: MESSAGES.fr.shell.language.change }));
+    expect(await screen.findByRole('menu')).not.toHaveClass('site-root');
   });
 });
 

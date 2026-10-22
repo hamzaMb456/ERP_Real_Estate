@@ -16,7 +16,7 @@ Plan : `docs/superpowers/plans/2026-10-22-front-office-slice-1.md` · Spec : `do
 2. **Rôle public.** Nhost → Settings → Hasura → Environment variables : `HASURA_GRAPHQL_UNAUTHORIZED_ROLE` = `public`. Sauvegardez ; Hasura redémarre.
    *Vérifier :* la console Hasura répond de nouveau (30 s environ).
 3. **Permissions Hasura.** Depuis la racine du dépôt, `$env:HASURA_ADMIN_SECRET` renseigné (jamais écrit dans un fichier) : d'abord `node scripts/apply-hasura-permissions.mjs --dry-run`, qui doit finir par `Dry run: 23 tracked tables/views, 54 relationships, 175 permissions, 6 functions. Nothing sent.`, puis sans `--dry-run`. Le script ajoute aussi `allow_aggregations` pour le rôle `public` sur `public_listings` (compteurs de l'accueil). On peut le relancer sans risque.
-   *Vérifier :* `node scripts/check-hasura.mjs` ne signale aucune métadonnée incohérente.
+   *Vérifier :* `node scripts/check-hasura.mjs` affiche `tracked` pour `public.listings`, `public.public_listings` et `public.public_listing_photos` (ces trois noms figurent dans sa liste `EXPECTED`) et ne signale aucune métadonnée incohérente. L'accès sans connexion se vérifie à l'étape 5 (test GraphQL).
 4. **Variables du site.** Dans `web/.env.local` : `NEXT_PUBLIC_AGENCY_ORG_ID` (résultat de `select id from organizations;`), `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_AGENCY_PHONE`, `NEXT_PUBLIC_AGENCY_EMAIL`, `NEXT_PUBLIC_AGENCY_ADDRESS` (modèle : `web/.env.example`). Puis `docker compose up -d --force-recreate web` (un simple `restart` ne relit pas `.env.local`).
    **Important :** les adresses canoniques et les aperçus de partage (Open Graph) utilisent `NEXT_PUBLIC_SITE_URL` et retombent sur `http://localhost:3000` si elle est vide. Mettez l'URL publique réelle avant toute mise en ligne.
    *Vérifier :* `http://localhost:3000/` s'affiche (menu, pied de page avec vos coordonnées), `/louer` affiche « aucun logement » sans erreur.
@@ -38,6 +38,7 @@ Plan : `docs/superpowers/plans/2026-10-22-front-office-slice-1.md` · Spec : `do
 ## Limites connues / reporté
 
 - **Page introuvable = statut HTTP 200** (avec `noindex`), pas 404 : le rendu en flux de Next ne permet pas autrement. Suite possible : un contrôle d'existence dans `proxy.ts`.
+- Le rôle Hasura `public` n'a pas de filtre par organisation : n'importe qui peut interroger les annonces publiées de toutes les organisations ; le site filtre sur `NEXT_PUBLIC_AGENCY_ORG_ID` et le modèle est une agence par déploiement (spec F5/R7).
 - Le bandeau de l'accueil est une illustration SVG : remplacez-la par une vraie photo dans `web/public/site/hero.svg` (même chemin).
 - Les pages « Mentions légales » et « Confidentialité » ne sont pas rédigées (liens inertes).
 - Favoris, alertes et dépôt de dossier en ligne affichent « Bientôt » jusqu'aux tranches 2 à 4.

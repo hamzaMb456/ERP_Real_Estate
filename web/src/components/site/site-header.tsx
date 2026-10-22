@@ -58,7 +58,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="ms-auto flex items-center gap-2">
-          <LanguageSwitcher className="hidden md:inline-flex" />
+          <LanguageSwitcher className="hidden md:inline-flex" contentClassName="site-root" />
           <Button
             asChild
             variant="outline"
@@ -106,7 +106,7 @@ export function SiteHeader() {
                     </Link>
                   </Button>
                 </SheetClose>
-                <LanguageSwitcher variant="labeled" className="h-10 w-full justify-center" />
+                <LanguageSwitcher variant="labeled" className="h-10 w-full justify-center" contentClassName="site-root" />
               </div>
             </SheetContent>
           </Sheet>

@@ -46,6 +46,17 @@ describe('public api', () => {
     expect(JSON.parse(init.body as string)).toEqual({ query: 'query Q($a: Int) { x }', variables: { a: 1 } });
   });
 
+  it('passes an abort signal so a hung backend fails fast', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ data: { ok: 1 } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await publicQuery('query { x }', {});
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect(init.signal?.aborted).toBe(false);
+  });
+
   it('rejects when the response carries GraphQL errors', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ errors: [{ message: 'role public not found' }] })));
     await expect(publicQuery('query { x }', {})).rejects.toThrow('role public not found');

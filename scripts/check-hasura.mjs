@@ -18,6 +18,7 @@ const EXPECTED = [
   'leases', 'lease_units', 'lease_parties', 'lease_rents', 'lease_terms', 'lease_files',
   'lease_overview', 'current_lease_rents', 'unit_current_lease',
   'appointments', 'appointment_participants', 'notifications', 'staff_members', 'calendar_feed',
+  'listings', 'public_listings', 'public_listing_photos',
 ];
 const DEMO_ORG = '11111111-1111-4111-8111-111111111111';
 

@@ -13,7 +13,16 @@ import { LOCALES, LOCALE_NAMES, isLocale } from '@/i18n/config';
 import { useI18n } from '@/i18n/provider';
 
 /** Language picker. `icon` fits the app header; `labeled` shows the current language name (sign-in page). */
-export function LanguageSwitcher({ variant = 'icon', className }: { variant?: 'icon' | 'labeled'; className?: string }) {
+export function LanguageSwitcher({
+  variant = 'icon',
+  className,
+  contentClassName,
+}: {
+  variant?: 'icon' | 'labeled';
+  className?: string;
+  /** Class for the dropdown panel (it renders in a portal, outside any wrapper such as `.site-root`). */
+  contentClassName?: string;
+}) {
   const { locale, t, setLocale } = useI18n();
   return (
     <DropdownMenu>
@@ -29,7 +38,7 @@ export function LanguageSwitcher({ variant = 'icon', className }: { variant?: 'i
           </Button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className={contentClassName}>
         <DropdownMenuRadioGroup value={locale} onValueChange={(value) => isLocale(value) && setLocale(value)}>
           {LOCALES.map((code) => (
             <DropdownMenuRadioItem key={code} value={code} lang={code}>

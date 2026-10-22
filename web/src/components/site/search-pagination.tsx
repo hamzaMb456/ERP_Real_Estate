@@ -27,7 +27,12 @@ export function pageItems(current: number, totalPages: number): PageItem[] {
   const items: PageItem[] = [];
   pages.forEach((page, index) => {
     const previous = pages[index - 1];
-    if (previous !== undefined && page - previous > 1) items.push({ kind: 'gap', key: `gap-${page}` });
+    if (previous !== undefined && page - previous === 2) {
+      // A gap marker hiding a single page is longer than the page number itself.
+      items.push({ kind: 'page', page: previous + 1 });
+    } else if (previous !== undefined && page - previous > 2) {
+      items.push({ kind: 'gap', key: `gap-${page}` });
+    }
     items.push({ kind: 'page', page });
   });
   return items;
@@ -46,6 +51,8 @@ export function SearchPagination({
   totalPages: number;
 }) {
   const t = useT().site.search.pagination;
+  // Past the last page the content says the page does not exist: the window sits on the last pages but none is current.
+  const beyondLastPage = filters.page > totalPages;
   const current = Math.min(filters.page, totalPages);
   if (totalPages <= 1) return null;
 
@@ -54,7 +61,7 @@ export function SearchPagination({
   return (
     <nav aria-label={t.label} className="mt-10 flex flex-wrap items-center justify-center gap-2">
       {current > 1 ? (
-        <Link href={hrefOf(current - 1)} rel="prev" aria-label={t.previous} className={cn(ITEM, LINK)}>
+        <Link href={hrefOf(beyondLastPage ? totalPages : current - 1)} rel="prev" aria-label={t.previous} className={cn(ITEM, LINK)}>
           <ChevronLeft className="size-4 rtl:-scale-x-100" animation="none" />
           <span className="hidden sm:inline">{t.previous}</span>
         </Link>
@@ -65,7 +72,7 @@ export function SearchPagination({
           <span key={item.key} aria-hidden="true" className="px-1 text-muted-foreground">
             …
           </span>
-        ) : item.page === current ? (
+        ) : item.page === current && !beyondLastPage ? (
           <span key={item.page} aria-current="page" className={cn(ITEM, 'border-primary bg-primary text-primary-foreground')}>
             {formatNumber(item.page, 0)}
           </span>

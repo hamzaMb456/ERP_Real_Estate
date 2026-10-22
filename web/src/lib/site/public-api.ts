@@ -11,6 +11,8 @@ export function publicGraphqlUrl(): string {
   return `https://${subdomain}.graphql.${region}.nhost.run/v1`;
 }
 
+const PUBLIC_QUERY_TIMEOUT_MS = 8000;
+
 type GraphqlReply<T> = { data?: T | null; errors?: { message: string }[] };
 
 /** Runs a query as the public role. Throws on a network/HTTP failure, on GraphQL errors and on an empty reply. */
@@ -19,6 +21,8 @@ export async function publicQuery<T>(query: string, variables: Record<string, un
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables }),
+    // A hung backend must fail fast: callers turn the failure into an empty result.
+    signal: AbortSignal.timeout(PUBLIC_QUERY_TIMEOUT_MS),
   });
   if (!response.ok) {
     throw new Error(`Public GraphQL request failed with HTTP ${response.status}`);

@@ -219,6 +219,37 @@ describe('pagination', () => {
     ]);
   });
 
+  it('renders the page a gap would hide instead of an ellipsis, keeping the ellipsis for longer gaps', () => {
+    renderResults({ filters: parseSearchParams({ page: '5' }), total: 240, items: listings(PAGE_SIZE) });
+    const nav = screen.getByRole('navigation', { name: MESSAGES.fr.site.search.pagination.label });
+    const labels = within(nav)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('aria-label'));
+    // Window 3..7 leaves only page 2 between 1 and 3: it gets its number. 8..19 stay behind one ellipsis.
+    expect(labels).toEqual([
+      'Page précédente',
+      'Page 1',
+      'Page 2',
+      'Page 3',
+      'Page 4',
+      'Page 6',
+      'Page 7',
+      'Page 20',
+      'Page suivante',
+    ]);
+    expect(within(nav).getAllByText('…')).toHaveLength(1);
+  });
+
+  it('marks no page as current beyond the last page and keeps the way back to page 1', () => {
+    renderResults({ filters: parseSearchParams({ page: '9' }), total: 30, items: [] });
+    const nav = screen.getByRole('navigation', { name: MESSAGES.fr.site.search.pagination.label });
+    expect(nav.querySelector('[aria-current="page"]')).toBeNull();
+    expect(within(nav).getByRole('link', { name: 'Page 3' })).toHaveAttribute('href', '/louer?page=3');
+    expect(within(nav).getByRole('link', { name: 'Page précédente' })).toHaveAttribute('href', '/louer?page=3');
+    expect(within(nav).queryByRole('link', { name: 'Page suivante' })).toBeNull();
+    expect(screen.getByRole('link', { name: MESSAGES.fr.site.search.empty.firstPage })).toHaveAttribute('href', '/louer');
+  });
+
   it('has no pagination for a single page and no previous link on page 1', () => {
     const { unmount } = renderResults({ total: 5, items: listings(5) });
     expect(screen.queryByRole('navigation', { name: MESSAGES.fr.site.search.pagination.label })).toBeNull();

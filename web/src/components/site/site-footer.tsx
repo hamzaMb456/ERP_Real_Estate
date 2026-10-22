@@ -92,7 +92,7 @@ export function SiteFooter({ id, phone, email, address }: SiteFooterProps) {
               </li>
             </ul>
           </nav>
-          <LanguageSwitcher variant="labeled" className="w-fit" />
+          <LanguageSwitcher variant="labeled" className="w-fit" contentClassName="site-root" />
         </div>
       </div>
 
