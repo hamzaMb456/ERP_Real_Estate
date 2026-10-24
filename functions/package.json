@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "vitest run --config _vitest.config.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:lambda": "node scripts/build-lambda.mjs"
   },
   "dependencies": {
     "nodemailer": "^7.0.13"
@@ -12,6 +13,8 @@
   "devDependencies": {
     "@types/node": "^20.19.43",
     "@types/nodemailer": "^7.0.12",
+    "archiver": "^7.0.1",
+    "esbuild": "^0.24.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12"
   }
