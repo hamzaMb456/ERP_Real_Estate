@@ -4,8 +4,9 @@ import { useId, type ReactNode } from 'react';
 import { Check, FileText, IdCard, ShieldCheck, type LucideIcon } from '@/components/icons';
 import { ListingsMap } from '@/components/map';
 import { useT } from '@/i18n/provider';
-import { formatTnd } from '@/lib/format';
+import { formatArea, formatNumber, formatTnd } from '@/lib/format';
 import { formatDate } from '@/lib/ownership';
+import { ENERGY_CLASSES } from '@/lib/website';
 import type { PublicListing } from '@/lib/site/listings-queries';
 import { cn } from '@/lib/utils';
 import { CARD } from './listing-header';
@@ -18,7 +19,7 @@ const roundCoordinate = (value: number) => Math.round(value * COORDINATE_DECIMAL
 function Section({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className={cn(CARD, className)}>
+    <section aria-labelledby={id} data-scroll-item="" className={cn(CARD, className)} suppressHydrationWarning>
       <h2 id={id} className="font-heading-site mb-5 text-xl font-bold text-foreground">
         {title}
       </h2>
@@ -34,6 +35,46 @@ export function ListingDescription({ listing }: { listing: PublicListing }) {
   if (!text) return null;
   return (
     <Section title={t.description}>
+      <p className="text-base leading-relaxed whitespace-pre-line [overflow-wrap:anywhere] text-muted-foreground">{text}</p>
+    </Section>
+  );
+}
+
+/** « Caractéristiques détaillées »: condition, year built, floors, outdoor area, orientation, energy class (only what is filled). */
+export function ListingFeatures({ listing }: { listing: PublicListing }) {
+  const t = useT();
+  const copy = t.site.listing.features;
+  const conditions = t.listings.conditions as Record<string, string>;
+  const orientations = t.listings.orientations as Record<string, string>;
+  const sides = [...new Set(listing.orientation)].filter((side) => side in orientations).map((side) => orientations[side]);
+  const energy = listing.energyClass && ENERGY_CLASSES.some((value) => value === listing.energyClass) ? listing.energyClass : null;
+  const items: { label: string; value: string }[] = [
+    listing.propertyCondition && listing.propertyCondition in conditions ? { label: copy.condition, value: conditions[listing.propertyCondition] } : null,
+    listing.yearBuilt !== null ? { label: copy.yearBuilt, value: String(listing.yearBuilt) } : null,
+    listing.floorsCount !== null ? { label: copy.floors, value: formatNumber(listing.floorsCount, 0) } : null,
+    listing.outdoorAreaM2 !== null ? { label: copy.outdoorArea, value: formatArea(listing.outdoorAreaM2) } : null,
+    sides.length > 0 ? { label: copy.orientation, value: sides.join(' · ') } : null,
+    energy ? { label: copy.energyClass, value: energy } : null,
+  ].filter((item): item is { label: string; value: string } => item !== null);
+  if (items.length === 0) return null;
+  return (
+    <Section title={copy.title}>
+      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+        {items.map((item) => (
+          <Term key={item.label} label={item.label} value={item.value} />
+        ))}
+      </dl>
+    </Section>
+  );
+}
+
+/** The bien's neighbourhood text, plain text with its line breaks kept. */
+export function ListingNeighbourhood({ listing }: { listing: PublicListing }) {
+  const t = useT().site.listing;
+  const text = listing.neighbourhoodDescription?.trim();
+  if (!text) return null;
+  return (
+    <Section title={t.neighbourhood}>
       <p className="text-base leading-relaxed whitespace-pre-line [overflow-wrap:anywhere] text-muted-foreground">{text}</p>
     </Section>
   );
@@ -117,15 +158,23 @@ function Term({
 
 /** Rent: rent, charges, deposit, availability. Sale: price, reservation deposit and its duration. */
 export function ListingConditions({ listing }: { listing: PublicListing }) {
-  const t = useT().site.listing.conditions;
-  const perMonth = useT().site.listingCard.perMonth;
+  const messages = useT();
+  const t = messages.site.listing.conditions;
+  const terms = messages.site.listing.terms;
+  const perMonth = messages.site.listingCard.perMonth;
   const isRent = listing.kind === 'rent';
+  const legalStatuses = messages.listings.legalStatuses as Record<string, string>;
+  const includedCharges = messages.listings.includedCharges as Record<string, string>;
+  const included = [...new Set(listing.chargesIncluded)].filter((key) => key in includedCharges).map((key) => includedCharges[key]);
 
   if (!isRent) {
     return (
       <Section title={t.saleTitle}>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           <Term label={t.price} value={formatTnd(listing.price)} amount strong />
+          {listing.legalStatus && listing.legalStatus in legalStatuses ? (
+            <Term label={messages.site.listing.features.legalStatus} value={legalStatuses[listing.legalStatus]} />
+          ) : null}
           {listing.reservationDeposit > 0 ? <Term label={t.reservationDeposit} value={formatTnd(listing.reservationDeposit)} amount /> : null}
           {listing.reservationDays > 0 ? <Term label={t.reservationDays} value={t.days(listing.reservationDays)} /> : null}
         </dl>
@@ -138,6 +187,7 @@ export function ListingConditions({ listing }: { listing: PublicListing }) {
       <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Term label={t.rent} value={formatTnd(listing.price)} hint={perMonth} amount strong />
         {listing.charges !== null ? <Term label={t.charges} value={formatTnd(listing.charges)} hint={perMonth} amount /> : null}
+        {listing.visitFee !== null && listing.visitFee > 0 ? <Term label={t.visitFee} value={formatTnd(listing.visitFee)} amount /> : null}
         {listing.depositMonths > 0 ? (
           <Term
             label={t.deposit}
@@ -150,6 +200,9 @@ export function ListingConditions({ listing }: { listing: PublicListing }) {
           value={listing.availableFrom ? t.availableOn(formatDate(listing.availableFrom)) : t.availableNow}
           strong
         />
+        {listing.minLeaseMonths !== null ? <Term label={terms.minLease} value={terms.minLeaseMonths(listing.minLeaseMonths)} /> : null}
+        {listing.petsAllowed !== null ? <Term label={terms.pets} value={listing.petsAllowed ? terms.petsAllowed : terms.petsForbidden} /> : null}
+        {included.length > 0 ? <Term label={terms.chargesIncluded} value={included.join(' · ')} /> : null}
       </dl>
     </Section>
   );

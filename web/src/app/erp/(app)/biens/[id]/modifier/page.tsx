@@ -14,6 +14,7 @@ const PROPERTY_QUERY = `
   query PropertyForEdit($id: uuid!) {
     property: properties_by_pk(id: $id) {
       id name type branch_id address_line city governorate postal_code latitude longitude
+      year_built floors_count neighbourhood_description
     }
   }
 `;
@@ -29,6 +30,9 @@ type PropertyRow = {
   postal_code: string | null;
   latitude: number | string | null;
   longitude: number | string | null;
+  year_built: number | null;
+  floors_count: number | null;
+  neighbourhood_description: string | null;
 };
 
 const toNumber = (value: number | string | null) => (value === null ? null : Number(value));
@@ -44,6 +48,9 @@ function toFormValues(row: PropertyRow): PropertyFormValues {
     postal_code: row.postal_code ?? '',
     latitude: toNumber(row.latitude),
     longitude: toNumber(row.longitude),
+    year_built: row.year_built === null ? '' : String(row.year_built),
+    floors_count: row.floors_count === null ? '' : String(row.floors_count),
+    neighbourhood_description: row.neighbourhood_description ?? '',
   };
 }
 

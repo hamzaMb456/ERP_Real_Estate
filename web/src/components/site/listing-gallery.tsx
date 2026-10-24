@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Camera, ExternalLink, ImageOff } from '@/components/icons';
 import { PhotoViewer } from '@/components/files/photo-viewer';
 import { useT } from '@/i18n/provider';
+import { canMatchMedia, gsap, MOTION_QUERIES, useGSAP } from '@/lib/gsap';
 import { safeTourUrl } from '@/lib/site/listing-links';
 import { publicImageUrl } from '@/lib/site/image-url';
 import type { PublicListing } from '@/lib/site/listings-queries';
@@ -14,6 +15,8 @@ const THUMB_WIDTH = 600;
 const MAX_THUMBS = 4;
 
 const FRAME = 'relative overflow-hidden rounded-xl bg-muted';
+const ENTRANCE_DURATION = 0.7;
+const ENTRANCE_STAGGER = 0.09;
 const OVERLAY_BUTTON =
   'inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card/90 px-4 text-sm font-semibold text-foreground shadow-md backdrop-blur-md transition-colors hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none';
 
@@ -88,6 +91,7 @@ function GalleryPhoto({
 export function ListingGallery({ listing }: { listing: PublicListing }) {
   const t = useT().site.listing.gallery;
   const noPhoto = useT().site.listingCard.noPhoto;
+  const root = useRef<HTMLElement>(null);
   const [viewer, setViewer] = useState<number | null>(null);
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
   const ids = photoIds(listing);
@@ -95,6 +99,21 @@ export function ListingGallery({ listing }: { listing: PublicListing }) {
   const thumbs = ids.slice(1, 1 + MAX_THUMBS);
   const hasThumbs = thumbs.length > 0;
   const altOf = (index: number) => t.open(index + 1, ids.length);
+
+  // The photos settle in one after the other: the big one first, then the thumbnails. Skipped with reduced motion.
+  useGSAP(
+    () => {
+      if (!canMatchMedia() || !root.current) return;
+      const mm = gsap.matchMedia();
+      mm.add(MOTION_QUERIES.full, () => {
+        const frames = root.current?.querySelectorAll('[data-gallery-frame]');
+        if (!frames || frames.length === 0) return;
+        gsap.from(frames, { autoAlpha: 0, scale: 1.05, y: 18, duration: ENTRANCE_DURATION, stagger: ENTRANCE_STAGGER, ease: 'power3.out', clearProps: 'opacity,visibility,transform' });
+      });
+      return () => mm.revert();
+    },
+    { scope: root },
+  );
 
   const markFailed = (id: string) => setFailed((previous) => new Set(previous).add(id));
   const photo = (index: number, width: number, eager = false) => (
@@ -110,7 +129,7 @@ export function ListingGallery({ listing }: { listing: PublicListing }) {
   );
 
   return (
-    <section aria-label={t.label} className="relative mb-8">
+    <section ref={root} aria-label={t.label} className="relative mb-8">
       {ids.length === 0 ? (
         <div
           role="img"
@@ -121,13 +140,13 @@ export function ListingGallery({ listing }: { listing: PublicListing }) {
         </div>
       ) : (
         <div className={cn('grid gap-3 md:h-[30rem]', hasThumbs ? 'md:grid-cols-12' : '')}>
-          <div className={cn(FRAME, 'aspect-[4/3] md:aspect-auto md:h-full', hasThumbs ? 'md:col-span-7' : '')}>
+          <div data-gallery-frame="" className={cn(FRAME, 'aspect-[4/3] md:aspect-auto md:h-full', hasThumbs ? 'md:col-span-7' : '')}>
             {photo(0, MAIN_WIDTH, true)}
           </div>
           {hasThumbs ? (
             <div className="hidden h-full grid-cols-2 grid-rows-2 gap-3 md:col-span-5 md:grid">
               {thumbs.map((id, position) => (
-                <div key={`${position}-${id}`} className={cn(FRAME, thumbSpan(thumbs.length, position))}>
+                <div key={`${position}-${id}`} data-gallery-frame="" className={cn(FRAME, thumbSpan(thumbs.length, position))}>
                   {photo(position + 1, THUMB_WIDTH)}
                 </div>
               ))}

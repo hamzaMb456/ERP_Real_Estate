@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -19,12 +19,47 @@ import { ScrollItem, StaggerItem } from '@/components/motion/primitives';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { useT } from '@/i18n/provider';
 import { formatNumber } from '@/lib/format';
+import { canMatchMedia, gsap, MOTION_QUERIES, ScrollTrigger, useGSAP } from '@/lib/gsap';
 import type { PublicListing } from '@/lib/site/listings-queries';
 import { cn } from '@/lib/utils';
 import { ListingCard } from './listing-card';
 
 const SECTION = 'mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8';
 const SURFACE = 'rounded-xl border border-primary/15 bg-card shadow-[0_1px_3px_rgb(0_0_0/0.05),0_12px_24px_-12px_rgb(4_120_87/0.18)]';
+
+/** A number that counts up once when it scrolls into view (the final value is always in the markup). */
+function CountUp({ value }: { value: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useGSAP(
+    () => {
+      const element = ref.current;
+      if (!canMatchMedia() || !element) return;
+      const mm = gsap.matchMedia();
+      mm.add(MOTION_QUERIES.full, () => {
+        const state = { value: 0 };
+        element.textContent = formatNumber(0, 0);
+        const trigger = ScrollTrigger.create({
+          trigger: element,
+          start: 'top 95%',
+          once: true,
+          onEnter: () =>
+            gsap.to(state, {
+              value,
+              duration: 1.4,
+              ease: 'power2.out',
+              onUpdate: () => {
+                element.textContent = formatNumber(Math.round(state.value), 0);
+              },
+            }),
+        });
+        return () => trigger.kill();
+      });
+      return () => mm.revert();
+    },
+    { scope: ref, dependencies: [value] },
+  );
+  return <span ref={ref}>{formatNumber(value, 0)}</span>;
+}
 
 function StatCard({ icon: Icon, value, label }: { icon: LucideIcon; value: ReactNode; label: string }) {
   return (
@@ -48,8 +83,8 @@ export function HomeStats({ total, cities }: { total: number; cities: number }) 
   return (
     <section aria-label={t.label} className={cn(SECTION, 'relative z-10 -mt-10 mb-20')}>
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Building2} value={formatNumber(total, 0)} label={t.listings} />
-        <StatCard icon={MapIcon} value={formatNumber(cities, 0)} label={t.cities} />
+        <StatCard icon={Building2} value={<CountUp value={total} />} label={t.listings} />
+        <StatCard icon={MapIcon} value={<CountUp value={cities} />} label={t.cities} />
         <StatCard icon={Clock} value={t.visit} label={t.visitHint} />
         <StatCard icon={FileCheck} value={t.online} label={t.onlineHint} />
       </ul>

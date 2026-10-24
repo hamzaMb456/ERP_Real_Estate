@@ -20,5 +20,7 @@ export const notifications = {
     registration_due: 'Enregistrement à faire',
     registration_overdue: 'Enregistrement en retard',
     appointment_reminder: 'Rappel de rendez-vous',
+    rental_request: 'Demande de location',
+    visit_request: 'Demande de visite',
   },
 };

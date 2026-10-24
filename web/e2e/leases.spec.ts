@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { EMAIL, PASSWORD, isoInDays, pickContact, signIn } from './helpers';
+import { EMAIL, PASSWORD, addUnit, createBien, isoInDays, pickContact, signIn } from './helpers';
 
 test.skip(!EMAIL || !PASSWORD, 'Set E2E_EMAIL and E2E_PASSWORD in web/.env.test.local');
 
@@ -9,21 +9,10 @@ test('lease: draft → activate → unit rented → rent change → renew → en
   await signIn(page);
 
   // A bien with two units.
-  await page.goto('/erp/biens/nouveau');
-  await page.getByLabel('Nom du bien *').fill(bienName);
-  await page.getByRole('combobox', { name: 'Succursale *' }).click();
-  await page.getByRole('option', { name: /Tunis Nord/ }).click();
-  await page.getByLabel('Adresse', { exact: true }).fill('Rue E2E');
-  await page.getByLabel('Ville').fill('Tunis');
-  await page.getByRole('button', { name: 'Enregistrer le bien' }).click();
-  await expect(page.getByRole('heading', { name: bienName })).toBeVisible();
+  await createBien(page, bienName);
   const bienUrl = page.url().split('#')[0];
   for (const code of ['E-1', 'E-2']) {
-    await page.getByRole('button', { name: 'Ajouter une unité' }).click();
-    await page.getByLabel('Référence *').fill(code);
-    await page.getByLabel('Surface').fill('50');
-    await page.getByLabel('Loyer mensuel').fill('500');
-    await page.getByRole('button', { name: 'Ajouter l’unité' }).click();
+    await addUnit(page, { code, surface: '50', rent: '500' });
     await expect(page.getByText('Unité créée')).toBeVisible();
   }
 

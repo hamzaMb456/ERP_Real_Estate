@@ -8,6 +8,10 @@ const NOTIFICATION_LABELS: Record<string, string> = {
   registration_due: 'Enregistrement à faire',
   registration_overdue: 'Enregistrement en retard',
   appointment_reminder: 'Rappel de rendez-vous',
+  visit_accepted: 'Votre visite est confirmée',
+  visit_declined: 'Demande de visite refusée',
+  rental_request: 'Nouvelle demande de location',
+  visit_request: 'Nouvelle demande de visite',
 };
 
 const APPOINTMENT_KINDS: Record<string, string> = {

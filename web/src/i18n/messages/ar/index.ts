@@ -14,6 +14,9 @@ import { appearance } from './appearance';
 import { calendar } from './calendar';
 import { notifications } from './notifications';
 import { listings } from './listings';
+import { units } from './units';
+import { requests } from './requests';
 import { site } from './site';
+import { visitSettings } from './visit-settings';
 
-export const ar: typeof fr = { common, nav, shell, labels, errors, properties, files, contacts, ownership, leases, dashboard, appearance, calendar, notifications, listings, site };
+export const ar: typeof fr = { common, nav, shell, labels, errors, properties, files, contacts, ownership, leases, dashboard, appearance, calendar, notifications, listings, units, requests, site, visitSettings };

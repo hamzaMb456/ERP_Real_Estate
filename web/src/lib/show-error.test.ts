@@ -29,9 +29,4 @@ describe('showError', () => {
     showError('Action impossible', new Error('lease_overlap:3'), vi.fn());
     expect((error.mock.calls[0][1] as { action: unknown }).action).toBeUndefined();
   });
-
-  it('words a publishing rule of a listing in French', () => {
-    showError('Publication impossible', new Error('database query error: LISTING_NEEDS_PHOTO'));
-    expect((error.mock.calls[0][1] as { description: string }).description).toBe('Ajoutez au moins une photo du logement avant de publier.');
-  });
 });

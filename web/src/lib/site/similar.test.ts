@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { NO_DETAILS } from './listing-details';
 import type { PublicListing } from './listings-queries';
 import { pickSimilar } from './similar';
 
@@ -19,6 +20,7 @@ function listing(id: string, price: number, overrides: Partial<PublicListing> = 
     furnished: false,
     amenities: [],
     virtualTourUrl: null,
+    ...NO_DETAILS,
     publishedAt: null,
     unitType: 'apartment',
     rooms: 2,

@@ -5,7 +5,7 @@ import { formatNotificationTime, notificationHref, notificationKindLabel, notifi
 afterEach(() => activateLocale('fr'));
 
 describe('notificationKindLabels', () => {
-  it('gives the French wording of the six kinds', () => {
+  it('gives the French wording of the eight kinds', () => {
     expect(notificationKindLabels()).toEqual({
       lease_ending_soon: 'Bail bientôt à échéance',
       lease_grace: 'Bail échu · à renouveler',
@@ -13,6 +13,8 @@ describe('notificationKindLabels', () => {
       registration_due: 'Enregistrement à faire',
       registration_overdue: 'Enregistrement en retard',
       appointment_reminder: 'Rappel de rendez-vous',
+      rental_request: 'Demande de location',
+      visit_request: 'Demande de visite',
     });
   });
 

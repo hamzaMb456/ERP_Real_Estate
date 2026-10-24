@@ -15,8 +15,10 @@ export const nav = {
     commonAreas: 'Parties communes',
     incompleteRecords: 'Fiches incomplètes',
     archivedProperties: 'Biens archivés',
+    units: 'Unités',
     contacts: 'Contacts',
     calendar: 'Calendrier',
+    visits: 'Visites',
     rentersAndLeases: 'Locataires et baux',
     leases: 'Baux',
     rentalRequests: 'Demandes de location',
@@ -35,6 +37,7 @@ export const nav = {
     usersAndRoles: 'Utilisateurs et rôles',
     auditLog: 'Journal d’audit',
     appearance: 'Apparence',
+    visitSettings: 'Paiement des visites',
   },
   crumbs: { new: 'Nouveau', edit: 'Modifier', record: 'Fiche' },
 };

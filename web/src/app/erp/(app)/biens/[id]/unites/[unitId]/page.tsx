@@ -11,7 +11,6 @@ import { FieldHelp } from '@/components/field-help';
 import { DocumentList } from '@/components/files/document-list';
 import { PhotoGallery } from '@/components/files/photo-gallery';
 import { UnitLeaseCard } from '@/components/leases/unit-lease-card';
-import { ListingCardErp } from '@/components/listings/listing-card-erp';
 import { HoverLift, Pulse, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { UnitOwnersTab } from '@/components/ownership/unit-owners-tab';
 import { PageHeader } from '@/components/page-header';
@@ -19,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { WebsiteCard } from '@/components/website/website-card';
 import { toUserMessage } from '@/lib/errors';
 import { formatArea, formatTnd } from '@/lib/format';
 import { graphql } from '@/lib/graphql';
@@ -31,7 +31,11 @@ const UNIT_QUERY = `
   query Unit($id: uuid!) {
     unit: units_by_pk(id: $id) {
       id code type floor rooms surface_m2 rent_amount status archived_at
-      property { id name }
+      title description sale_price charges available_from furnished amenities show_on_website
+      bedrooms bathrooms parking_spaces property_condition orientation outdoor_area_m2 energy_class deposit_months
+      min_lease_months pets_allowed charges_included legal_status reservation_deposit reservation_days virtual_tour_url
+      property { id name archived_at }
+      photos: files_aggregate(where: { kind: { _eq: "photo" } }) { aggregate { count } }
     }
   }
 `;
@@ -44,7 +48,11 @@ const UPDATE_UNIT = `
 
 const UNIT_TABS = ['apercu', 'proprietaires', 'photos', 'documents'] as const;
 
-type UnitDetails = UnitFormUnit & { archived_at: string | null; property: { id: string; name: string } };
+type UnitDetails = UnitFormUnit & {
+  archived_at: string | null;
+  property: { id: string; name: string; archived_at: string | null };
+  photos: { aggregate: { count: number } | null };
+};
 
 function Fact({ icon: Icon, label, value }: { icon: typeof Layers; label: string; value: string }) {
   return (
@@ -210,7 +218,13 @@ export default function UnitDetailPage() {
               <Fact icon={Layers} label={t.properties.unit.factFloor} value={current.floor === null ? '—' : String(current.floor)} />
             </div>
             <UnitLeaseCard unitId={current.id} canCreate={canEdit && !archived} />
-            <ListingCardErp unitId={current.id} unitStatus={current.status} />
+            <WebsiteCard
+              unit={{ ...current, photoCount: current.photos.aggregate?.count ?? 0 }}
+              canEdit={canEdit && !archived}
+              onChanged={() => setReload((value) => value + 1)}
+              onEdit={() => setHash('modifier')}
+              onAddPhotos={() => setTab('photos')}
+            />
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-1.5 text-base">

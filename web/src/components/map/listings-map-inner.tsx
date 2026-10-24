@@ -17,6 +17,8 @@ export type ListingMapPoint = {
   title: string;
   /** Price line, e.g. « 1 450,000 TND ». */
   detail: string;
+  /** Short price for the price pin, e.g. « 1 450 TND ». */
+  short?: string;
   /** City, shown under the title when known. */
   city?: string | null;
   /** Link of the popup; leave out (with `linkLabel`) on the listing's own page. */
@@ -28,7 +30,27 @@ export type ListingMapPoint = {
 const PIN_COLOR = 'var(--primary)';
 
 /** Public search map: one pin per located listing, its popup links to the listing page. Browser only (Leaflet). */
-export function ListingsMapInner({ points, label, className }: { points: ListingMapPoint[]; label: string; className?: string }) {
+/** A price bubble instead of the plain pin: the visitor reads prices straight on the map. */
+function priceIcon(text: string): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    iconSize: [0, 0],
+    html: '<span style="position:absolute;transform:translate(-50%,-50%);padding:5px 10px;border-radius:999px;background:var(--card);color:var(--foreground);border:1.5px solid var(--primary);font:700 12px/1 var(--font-sans, system-ui);white-space:nowrap;box-shadow:0 2px 8px rgb(0 0 0/.18)">' + text + '</span>',
+  });
+}
+
+/** Public search map: one pin per located listing, its popup links to the listing page. Browser only (Leaflet). */
+export function ListingsMapInner({
+  points,
+  label,
+  className,
+  pricePins = false,
+}: {
+  points: ListingMapPoint[];
+  label: string;
+  className?: string;
+  pricePins?: boolean;
+}) {
   const { dir } = useI18n();
   const bounds = points.length > 0 ? L.latLngBounds(points.map((point) => [point.lat, point.lon] as [number, number])) : undefined;
   // A new key re-creates the map so it fits the page's listings.
@@ -46,7 +68,7 @@ export function ListingsMapInner({ points, label, className }: { points: Listing
       >
         <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
         {points.map((point) => (
-          <Marker key={point.id} position={[point.lat, point.lon]} icon={pinIcon(PIN_COLOR)}>
+          <Marker key={point.id} position={[point.lat, point.lon]} icon={pricePins && point.short ? priceIcon(point.short) : pinIcon(PIN_COLOR)}>
             <Popup>
               <div dir={dir} className="space-y-1 text-sm">
                 <p className="font-semibold">{point.title}</p>

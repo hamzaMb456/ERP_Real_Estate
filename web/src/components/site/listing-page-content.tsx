@@ -1,20 +1,22 @@
 'use client';
 
 import type { PublicListing } from '@/lib/site/listings-queries';
-import { ListingContactCard } from './listing-contact-card';
+import { ListingBookingCard } from './listing-booking-card';
 import {
   ListingAmenities,
   ListingConditions,
   ListingDescription,
   ListingDocuments,
+  ListingFeatures,
   ListingLocation,
+  ListingNeighbourhood,
 } from './listing-details';
 import { ListingGallery } from './listing-gallery';
 import { ListingBreadcrumb, ListingHeader } from './listing-header';
 import { ListingSimilar } from './listing-similar';
 
 /**
- * Body of the unit page: breadcrumb, gallery, then the header and the details on the left with the sticky contact
+ * Body of the unit page: breadcrumb, gallery, then the header and the details on the left with the sticky booking
  * card on the right (on phones the card follows the header, before the details), then similar listings.
  * The data is read on the server; this part only displays it.
  */
@@ -29,12 +31,14 @@ export function ListingPageContent({ listing, similar }: { listing: PublicListin
             <ListingHeader listing={listing} />
           </div>
           <div className="min-w-0 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1 lg:self-stretch">
-            <ListingContactCard listing={listing} />
+            <ListingBookingCard listing={listing} />
           </div>
           <div className="min-w-0 space-y-8 lg:col-span-8">
             <ListingDescription listing={listing} />
+            <ListingFeatures listing={listing} />
             <ListingAmenities listing={listing} />
             <ListingLocation listing={listing} />
+            <ListingNeighbourhood listing={listing} />
             <ListingConditions listing={listing} />
             <ListingDocuments listing={listing} />
           </div>

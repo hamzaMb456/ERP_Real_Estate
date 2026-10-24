@@ -1,19 +1,21 @@
-'use client';
+﻿'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { StoredSession } from '@nhost/nhost-js';
 import { FetchError } from '@nhost/nhost-js/fetch';
 import { getMessages } from '@/i18n/store';
 import { nhost } from '@/lib/nhost';
+import { accountErrorKey } from '@/lib/site/account';
 
 type AuthState = {
   session: StoredSession | null;
   ready: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<'verify' | 'ok'>;
 };
 
-const AuthContext = createContext<AuthState | null>(null);
+export const AuthContext = createContext<AuthState | null>(null);
 
 function describeSignInError(code: string | undefined, serverMessage: string | undefined, status: number): string {
   const { auth } = getMessages().shell;
@@ -29,6 +31,12 @@ function describeSignInError(code: string | undefined, serverMessage: string | u
     default:
       return auth.other(code ?? auth.errorStatus(status), serverMessage);
   }
+}
+
+function describeSignUpError(code: string | undefined, _serverMessage: string | undefined, _status: number): string {
+  const { account } = getMessages().site;
+  const key = accountErrorKey(code);
+  return account.errors[key];
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -72,6 +80,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signUp = useCallback(async (name: string, email: string, password: string): Promise<'verify' | 'ok'> => {
+    try {
+      const response = await nhost.auth.signUpEmailPassword({
+        email,
+        password,
+        options: { displayName: name },
+      });
+      // When email verification is required the response has no session yet.
+      return response.body.session ? 'ok' : 'verify';
+    } catch (error) {
+      if (error instanceof FetchError) {
+        const body = error.body as { error?: string; message?: string } | null;
+        throw new Error(describeSignUpError(body?.error, body?.message, error.status));
+      }
+      if (error instanceof TypeError) {
+        throw new Error(getMessages().shell.auth.unreachable);
+      }
+      throw error;
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     const current = nhost.getUserSession();
     if (current) {
@@ -80,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     nhost.clearSession();
   }, []);
 
-  const value = useMemo(() => ({ session, ready, signIn, signOut }), [session, ready, signIn, signOut]);
+  const value = useMemo(() => ({ session, ready, signIn, signUp, signOut }), [session, ready, signIn, signUp, signOut]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

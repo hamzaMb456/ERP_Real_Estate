@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "@nhost/cli": "^1.52.1"
+  }
+}

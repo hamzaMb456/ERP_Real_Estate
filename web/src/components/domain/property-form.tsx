@@ -1,21 +1,21 @@
 'use client';
 
-import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm, useWatch } from 'react-hook-form';
-import { Loader2, Save } from '@/components/icons';
+import { Controller, useForm, useWatch, type FieldPath } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { GOVERNORATES } from '@/components/domain/labels';
 import { FieldLabelWithHelp } from '@/components/field-help';
+import { PendingPhotos, uploadPendingPhotos } from '@/components/files/pending-photos';
+import { ChoiceChips, QuestionFlow, type FlowStep } from '@/components/forms/question-flow';
 import { LocationField } from '@/components/map/location-field';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Field, FieldDescription, FieldError, FieldGroup } from '@/components/ui/field';
+import { Card, CardContent } from '@/components/ui/card';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { toUserMessage } from '@/lib/errors';
 import { addressQuery } from '@/lib/geocode';
 import { graphql } from '@/lib/graphql';
@@ -51,6 +51,15 @@ function makeSchema(m: Messages['properties']['form']) {
     .refine((value) => value === '' || /^\d{4}$/.test(value), m.postalInvalid),
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
+  year_built: z
+    .string()
+    .trim()
+    .refine((value) => value === '' || (/^\d{4}$/.test(value) && Number(value) >= 1800 && Number(value) <= 2100), m.yearBuiltInvalid),
+  floors_count: z
+    .string()
+    .trim()
+    .refine((value) => value === '' || (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 200), m.floorsCountInvalid),
+  neighbourhood_description: z.string().trim(),
   });
 }
 
@@ -66,6 +75,9 @@ const EMPTY_PROPERTY: PropertyFormValues = {
   postal_code: '',
   latitude: null,
   longitude: null,
+  year_built: '',
+  floors_count: '',
+  neighbourhood_description: '',
 };
 
 const orNull = (value: string) => (value === '' ? null : value);
@@ -74,12 +86,16 @@ type Props = { mode: 'create' } | { mode: 'edit'; propertyId: string; initial: P
 
 export function PropertyForm(props: Props) {
   const t = useT();
-  const schema = useMemo(() => makeSchema(t.properties.form), [t]);
+  const f = t.properties.form;
+  const q = t.properties.flow.property;
+  const schema = useMemo(() => makeSchema(f), [f]);
   const router = useRouter();
   const editing = props.mode === 'edit';
+  // Optional photos of the bien (create mode only): uploaded once the bien exists. ERP only, never on the public site.
+  const [photos, setPhotos] = useState<File[]>([]);
   const cancelHref = props.mode === 'edit' ? '/erp/biens/' + props.propertyId : '/erp/biens';
   const branches = useGraphql<{ branches: { id: string; name: string; city: string | null }[] }>(BRANCHES_QUERY);
-  const { control, register, handleSubmit, formState, setValue } = useForm<PropertyFormValues>({
+  const { control, register, handleSubmit, formState, setValue, trigger } = useForm<PropertyFormValues>({
     resolver: zodResolver(schema),
     defaultValues: props.mode === 'edit' ? props.initial : EMPTY_PROPERTY,
   });
@@ -90,7 +106,7 @@ export function PropertyForm(props: Props) {
     name: ['address_line', 'postal_code', 'city', 'governorate', 'latitude', 'longitude'],
   });
 
-  async function onSubmit(values: PropertyFormValues) {
+  async function onValid(values: PropertyFormValues) {
     const fields = {
       name: values.name,
       branch_id: values.branch_id,
@@ -100,194 +116,239 @@ export function PropertyForm(props: Props) {
       postal_code: orNull(values.postal_code),
       latitude: values.latitude,
       longitude: values.longitude,
+      year_built: values.year_built === '' ? null : Number(values.year_built),
+      floors_count: values.floors_count === '' ? null : Number(values.floors_count),
+      neighbourhood_description: orNull(values.neighbourhood_description),
     };
     try {
       if (props.mode === 'edit') {
         await graphql(UPDATE_PROPERTY, { id: props.propertyId, set: fields });
-        toast.success(t.properties.form.updated, { description: values.name });
+        toast.success(f.updated, { description: values.name });
         router.push('/erp/biens/' + props.propertyId);
         return;
       }
       const created = await graphql<{ insert_properties_one: { id: string } }>(ADD_PROPERTY, {
         object: { ...fields, type: values.type },
       });
-      toast.success(t.properties.form.created, {
-        description:
-          values.type === 'building'
-            ? t.properties.form.createdBuilding(values.name)
-            : t.properties.form.createdSingle(values.name),
+      if (photos.length > 0) {
+        const failed = await uploadPendingPhotos({ propertyId: created.insert_properties_one.id }, photos);
+        if (failed > 0) toast.error(f.saveFailed, { description: f.photosUploadFailed(failed, photos.length) });
+      }
+      toast.success(f.created, {
+        description: values.type === 'building' ? f.createdBuilding(values.name) : f.createdSingle(values.name),
       });
       router.push('/erp/biens/' + created.insert_properties_one.id);
     } catch (error) {
-      toast.error(t.properties.form.saveFailed, { description: toUserMessage(error) });
+      toast.error(f.saveFailed, { description: toUserMessage(error) });
     }
   }
 
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
-      <Card>
-        <CardContent>
-          <FieldGroup>
-            <Field data-invalid={!!errors.name}>
-              <FieldLabelWithHelp htmlFor="name" help={t.properties.form.nameHelp}>
-                {t.properties.form.name}
-              </FieldLabelWithHelp>
-              <Input
-                id="name"
-                placeholder={t.properties.form.namePlaceholder}
-                aria-invalid={!!errors.name}
-                aria-describedby={errors.name ? 'name-error' : undefined}
-                {...register('name')}
-              />
-              <FieldError id="name-error" errors={[errors.name]} />
-            </Field>
+  const checkFields = (names?: string[]) => trigger(names as FieldPath<PropertyFormValues>[] | undefined);
+  const typeOptions = Object.entries(t.labels.propertyTypes).map(([value, label]) => ({ value, label }));
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <Controller
-                control={control}
-                name="type"
-                render={({ field }) => (
-                  <Field>
-                    <FieldLabelWithHelp
-                      htmlFor="type"
-                      help={t.properties.form.typeHelp}
-                    >
-                      {t.properties.form.type}
-                    </FieldLabelWithHelp>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={editing}>
-                      <SelectTrigger id="type" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(t.labels.propertyTypes).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {editing ? (
-                      <FieldDescription>{t.properties.form.typeLocked}</FieldDescription>
-                    ) : (
-                      type !== 'building' && (
-                        <FieldDescription>
-                          {t.properties.form.autoUnit(type === 'house' ? 'MAISON' : 'TERRAIN')}
-                        </FieldDescription>
-                      )
-                    )}
-                  </Field>
-                )}
-              />
-              <Controller
-                control={control}
-                name="branch_id"
-                render={({ field }) => (
-                  <Field data-invalid={!!errors.branch_id}>
-                    <FieldLabelWithHelp htmlFor="branch_id" help={t.properties.form.branchHelp}>
-                      {t.properties.form.branch}
-                    </FieldLabelWithHelp>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={branches.status !== 'success'}>
-                      <SelectTrigger id="branch_id" className="w-full" aria-invalid={!!errors.branch_id}>
-                        <SelectValue placeholder={branches.status === 'loading' ? t.common.loading : t.properties.form.branchPlaceholder} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {branches.status === 'success' &&
-                          branches.data.branches.map((branch) => (
-                            <SelectItem key={branch.id} value={branch.id}>
-                              {branch.name}
-                              {branch.city ? ' · ' + branch.city : ''}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    {branches.status === 'error' && (
-                      <FieldDescription className="text-destructive">{t.properties.form.branchesError}</FieldDescription>
-                    )}
-                    <FieldError errors={[errors.branch_id]} />
-                  </Field>
-                )}
-              />
-            </div>
-
-            <Field>
-              <FieldLabelWithHelp htmlFor="address_line" help={t.properties.form.addressHelp}>
-                {t.properties.form.address}
-              </FieldLabelWithHelp>
-              <Input id="address_line" placeholder={t.properties.form.addressPlaceholder} {...register('address_line')} />
-            </Field>
-
-            <div className="grid gap-6 sm:grid-cols-3">
-              <Field>
-                <FieldLabelWithHelp htmlFor="city" help={t.properties.form.cityHelp}>
-                  {t.properties.form.city}
-                </FieldLabelWithHelp>
-                <Input id="city" placeholder={t.properties.form.cityPlaceholder} {...register('city')} />
-              </Field>
-              <Controller
-                control={control}
-                name="governorate"
-                render={({ field }) => (
-                  <Field>
-                    <FieldLabelWithHelp htmlFor="governorate" help={t.properties.form.governorateHelp}>
-                      {t.properties.form.governorate}
-                    </FieldLabelWithHelp>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger id="governorate" className="w-full">
-                        <SelectValue placeholder={t.properties.form.governoratePlaceholder} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GOVERNORATES.map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {t.labels.governorates[name] ?? name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                )}
-              />
-              <Field data-invalid={!!errors.postal_code}>
-                <FieldLabelWithHelp htmlFor="postal_code" help={t.properties.form.postalCodeHelp}>
-                  {t.properties.form.postalCode}
-                </FieldLabelWithHelp>
-                <Input
-                  id="postal_code"
-                  inputMode="numeric"
-                  placeholder="2016"
-                  aria-invalid={!!errors.postal_code}
-                  aria-describedby={errors.postal_code ? 'postal_code-error' : undefined}
-                  {...register('postal_code')}
+  const steps: FlowStep[] = [
+    {
+      id: 'name',
+      title: q.name,
+      help: f.nameHelp,
+      fields: ['name'],
+      children: (
+        <Field data-invalid={!!errors.name}>
+          <FieldLabel htmlFor="name">{f.name}</FieldLabel>
+          <Input id="name" placeholder={f.namePlaceholder} aria-invalid={!!errors.name} {...register('name')} />
+          <FieldError id="name-error" errors={[errors.name]} />
+        </Field>
+      ),
+    },
+  ];
+  if (!editing) {
+    steps.push({
+      id: 'type',
+      title: q.type,
+      help: f.typeHelp,
+      fields: ['type'],
+      children: (
+        <div className="space-y-3">
+          <Controller
+            control={control}
+            name="type"
+            render={({ field }) => <ChoiceChips label={f.type} value={field.value} options={typeOptions} onChange={field.onChange} />}
+          />
+          {type !== 'building' && <p className="text-sm text-muted-foreground">{f.autoUnit(type === 'house' ? f.autoUnitHouse : f.autoUnitLand)}</p>}
+        </div>
+      ),
+    });
+  }
+  steps.push(
+    {
+      id: 'branch',
+      title: q.branch,
+      help: f.branchHelp,
+      fields: ['branch_id'],
+      children: (
+        <Field data-invalid={!!errors.branch_id}>
+          {branches.status === 'loading' && <p className="text-sm text-muted-foreground">{t.common.loading}</p>}
+          {branches.status === 'error' && <p className="text-sm text-destructive">{f.branchesError}</p>}
+          {branches.status === 'success' && (
+            <Controller
+              control={control}
+              name="branch_id"
+              render={({ field }) => (
+                <ChoiceChips
+                  label={f.branch}
+                  value={field.value}
+                  options={branches.data.branches.map((branch) => ({ value: branch.id, label: branch.name + (branch.city ? ' · ' + branch.city : '') }))}
+                  onChange={field.onChange}
                 />
-                <FieldError id="postal_code-error" errors={[errors.postal_code]} />
+              )}
+            />
+          )}
+          <FieldError errors={[errors.branch_id]} />
+        </Field>
+      ),
+    },
+    {
+      id: 'address',
+      title: q.address,
+      help: q.addressHelp,
+      fields: ['postal_code'],
+      optional: true,
+      children: (
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <Field>
+            <FieldLabelWithHelp htmlFor="address_line" help={f.addressHelp}>
+              {f.address}
+            </FieldLabelWithHelp>
+            <Input id="address_line" placeholder={f.addressPlaceholder} {...register('address_line')} />
+          </Field>
+          <Field data-invalid={!!errors.postal_code}>
+            <FieldLabelWithHelp htmlFor="postal_code" help={f.postalCodeHelp}>
+              {f.postalCode}
+            </FieldLabelWithHelp>
+            <Input id="postal_code" inputMode="numeric" placeholder="2016" aria-invalid={!!errors.postal_code} {...register('postal_code')} />
+            <FieldError id="postal_code-error" errors={[errors.postal_code]} />
+          </Field>
+        </div>
+      ),
+    },
+    {
+      id: 'place',
+      title: q.place,
+      help: q.placeHelp,
+      optional: true,
+      children: (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabelWithHelp htmlFor="city" help={f.cityHelp}>
+              {f.city}
+            </FieldLabelWithHelp>
+            <Input id="city" placeholder={f.cityPlaceholder} {...register('city')} />
+          </Field>
+          <Controller
+            control={control}
+            name="governorate"
+            render={({ field }) => (
+              <Field>
+                <FieldLabelWithHelp htmlFor="governorate" help={f.governorateHelp}>
+                  {f.governorate}
+                </FieldLabelWithHelp>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="governorate" className="w-full">
+                    <SelectValue placeholder={f.governoratePlaceholder} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GOVERNORATES.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {t.labels.governorates[name] ?? name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
-            </div>
-
-            <Field>
-              <FieldLabelWithHelp help={t.properties.form.positionHelp}>
-                {t.properties.form.position}
+            )}
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'position',
+      title: q.position,
+      help: f.positionHelp,
+      optional: true,
+      children: (
+        <LocationField
+          query={addressQuery([addressLine, postalCode, city, governorate])}
+          latitude={latitude}
+          longitude={longitude}
+          onChange={(position) => {
+            setValue('latitude', position?.lat ?? null, { shouldDirty: true });
+            setValue('longitude', position?.lon ?? null, { shouldDirty: true });
+          }}
+        />
+      ),
+    },
+    {
+      id: 'building',
+      title: q.building,
+      help: q.buildingHelp,
+      fields: ['year_built', 'floors_count'],
+      optional: true,
+      children: (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field data-invalid={!!errors.year_built}>
+            <FieldLabelWithHelp htmlFor="year_built" help={f.yearBuiltHelp}>
+              {f.yearBuilt}
+            </FieldLabelWithHelp>
+            <Input id="year_built" inputMode="numeric" placeholder="2018" aria-invalid={!!errors.year_built} {...register('year_built')} />
+            <FieldError errors={[errors.year_built]} />
+          </Field>
+          {type === 'building' && (
+            <Field data-invalid={!!errors.floors_count}>
+              <FieldLabelWithHelp htmlFor="floors_count" help={f.floorsCountHelp}>
+                {f.floorsCount}
               </FieldLabelWithHelp>
-              <LocationField
-                query={addressQuery([addressLine, postalCode, city, governorate])}
-                latitude={latitude}
-                longitude={longitude}
-                onChange={(position) => {
-                  setValue('latitude', position?.lat ?? null, { shouldDirty: true });
-                  setValue('longitude', position?.lon ?? null, { shouldDirty: true });
-                }}
-              />
+              <Input id="floors_count" inputMode="numeric" placeholder="6" aria-invalid={!!errors.floors_count} {...register('floors_count')} />
+              <FieldError errors={[errors.floors_count]} />
             </Field>
-          </FieldGroup>
-        </CardContent>
-        <CardFooter className="justify-end gap-2 border-t">
-          <Button asChild variant="ghost">
-            <Link href={cancelHref}>{t.common.cancel}</Link>
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 data-icon="inline-start" /> : <Save data-icon="inline-start" />}
-            {isSubmitting ? t.common.saving : editing ? t.common.saveChanges : t.properties.form.saveProperty}
-          </Button>
-        </CardFooter>
-      </Card>
-    </form>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'neighbourhood',
+      title: q.neighbourhood,
+      help: f.neighbourhoodHelp,
+      optional: true,
+      children: (
+        <Field>
+          <FieldLabel htmlFor="neighbourhood_description">{f.neighbourhood}</FieldLabel>
+          <Textarea id="neighbourhood_description" rows={4} placeholder={f.neighbourhoodPlaceholder} {...register('neighbourhood_description')} />
+        </Field>
+      ),
+    },
+  );
+  if (!editing) {
+    steps.push({
+      id: 'photos',
+      title: q.photos,
+      help: f.photosHelp,
+      optional: true,
+      children: <PendingPhotos files={photos} onChange={setPhotos} />,
+    });
+  }
+
+  return (
+    <Card>
+      <CardContent>
+        <QuestionFlow
+          steps={steps}
+          trigger={checkFields}
+          onSubmit={handleSubmit(onValid)}
+          onCancel={() => router.push(cancelHref)}
+          submitting={isSubmitting}
+          submitLabel={editing ? t.common.saveChanges : f.saveProperty}
+        />
+      </CardContent>
+    </Card>
   );
 }

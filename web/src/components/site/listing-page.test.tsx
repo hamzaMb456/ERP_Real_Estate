@@ -1,13 +1,22 @@
-import { render, screen, within } from '@testing-library/react';
+﻿import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { I18nProvider } from '@/i18n/provider';
 import { setLocale } from '@/i18n/store';
 import { publicImageUrl } from '@/lib/site/image-url';
+import { NO_DETAILS } from '@/lib/site/listing-details';
 import type { PublicListing } from '@/lib/site/listings-queries';
 import { safeTourUrl, telHref } from '@/lib/site/listing-links';
 import { ListingPageContent } from './listing-page-content';
+
+// The request dialog talks to the server through server actions; they are never called while the page is only displayed.
+vi.mock('@/lib/site/request-actions', () => ({
+  submitRentalRequestAction: vi.fn(),
+  submitVisitRequestAction: vi.fn(),
+  takenVisitSlotsAction: vi.fn(async () => []),
+  favoriteListingsAction: vi.fn(async () => []),
+}));
 
 const mapProps = vi.fn();
 vi.mock('@/components/map', () => ({
@@ -16,6 +25,9 @@ vi.mock('@/components/map', () => ({
     return <div role="region" aria-label={props.label} data-testid="listing-map" />;
   },
 }));
+
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/' }));
 
 afterEach(() => {
   setLocale('fr');
@@ -39,6 +51,7 @@ function makeListing(overrides: Partial<PublicListing> = {}): PublicListing {
     furnished: false,
     amenities: [],
     virtualTourUrl: null,
+    ...NO_DETAILS,
     publishedAt: null,
     unitType: 'apartment',
     rooms: 3,
@@ -194,7 +207,7 @@ describe('ListingPageContent: virtual tour', () => {
   });
 });
 
-describe('ListingPageContent: contact card', () => {
+describe('ListingPageContent: booking card', () => {
   it('links the agency phone as tel: (digits and plus only) and the e-mail as mailto:', () => {
     renderPage(makeListing());
     const card = screen.getByRole('complementary');
@@ -206,15 +219,26 @@ describe('ListingPageContent: contact card', () => {
     expect(telHref('+216 (71) 000-000')).toBe('tel:+21671000000');
   });
 
-  it('shows the price (left-to-right, per month for a rent) and the "bientôt" notice instead of the buttons', () => {
+  it('shows the price (left-to-right, per month for a rent) and both requests: rent and visit', () => {
     renderPage(makeListing());
     const card = screen.getByRole('complementary');
     const price = within(card).getByTestId('listing-price');
     expect(price).toHaveAttribute('dir', 'ltr');
     expect(flat(price)).toContain('1 450');
     expect(within(card).getByText('/ mois')).toBeInTheDocument();
-    expect(within(card).getByText('Le dépôt de dossier en ligne arrive bientôt.')).toBeInTheDocument();
-    expect(within(card).queryByRole('button')).not.toBeInTheDocument();
+    // Not signed in: CTAs render as links to the sign-in page, not as buttons.
+    expect(within(card).getByRole('link', { name: 'Demander à louer' })).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: 'Demander une visite' })).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Ajouter aux favoris' })).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: 'Partager' })).toBeInTheDocument();
+  });
+
+  it('offers only a visit request for a unit for sale', () => {
+    renderPage(makeListing({ kind: 'sale', price: 420000 }));
+    const card = screen.getByRole('complementary');
+    expect(within(card).queryByRole('button', { name: 'Demander à louer' })).not.toBeInTheDocument();
+    // Not signed in: visit CTA renders as a link to sign-in.
+    expect(within(card).getByRole('link', { name: 'Demander une visite' })).toBeInTheDocument();
   });
 
   it('shows a sale price without « / mois »', () => {

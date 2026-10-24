@@ -2,7 +2,6 @@
 // One place, so every page words the same failure the same way. Sentences live in src/i18n/messages/*/errors.ts.
 
 import { getMessages } from '@/i18n/store';
-import { listingErrorKey } from '@/lib/listings';
 import { formatDate } from '@/lib/ownership';
 
 type ErrorContext = { unitCode?: string };
@@ -29,8 +28,6 @@ export function toUserMessage(error: unknown, context: ErrorContext = {}): strin
   if (overlap) return t.leaseOverlap(overlap[1]);
   const lease = (Object.keys(t.lease) as (keyof typeof t.lease)[]).find((needle) => message.includes(needle));
   if (lease) return t.lease[lease];
-  const listing = listingErrorKey(message);
-  if (listing) return getMessages().listings.errors[listing];
   const appointment = (Object.keys(t.appointment) as (keyof typeof t.appointment)[]).find((needle) => message.includes(needle));
   if (appointment) return t.appointment[appointment];
   if (NETWORK.test(message)) return t.network;

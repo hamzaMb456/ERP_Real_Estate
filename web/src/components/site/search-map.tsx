@@ -3,7 +3,7 @@
 import { ListingsMap, type ListingMapPoint } from '@/components/map';
 import { MapPinOff } from '@/components/icons';
 import { useT } from '@/i18n/provider';
-import { formatTnd } from '@/lib/format';
+import { formatNumber, formatTnd } from '@/lib/format';
 import type { PublicListing } from '@/lib/site/listings-queries';
 
 /** Listings that have coordinates become pins; the others are simply left off the map. */
@@ -19,6 +19,7 @@ export function toMapPoints(
       lat: listing.latitude,
       lon: listing.longitude,
       title: listing.title,
+      short: formatNumber(listing.price, 0) + ' TND',
       city: listing.city,
       detail: listing.kind === 'rent' ? `${formatTnd(listing.price)} ${copy.perMonth}` : formatTnd(listing.price),
       href: `/logement/${listing.id}`,
@@ -29,7 +30,7 @@ export function toMapPoints(
 }
 
 /** « Carte » view: the listings of the current page on a map, or a short message when none can be placed. */
-export function SearchMap({ listings }: { listings: PublicListing[] }) {
+export function SearchMap({ listings, pricePins = true, className }: { listings: PublicListing[]; pricePins?: boolean; className?: string }) {
   const t = useT().site.search.map;
   const perMonth = useT().site.listingCard.perMonth;
   const points = toMapPoints(listings, { perMonth, linkLabel: t.open });
@@ -42,5 +43,5 @@ export function SearchMap({ listings }: { listings: PublicListing[] }) {
       </p>
     );
   }
-  return <ListingsMap points={points} label={t.label} />;
+  return <ListingsMap points={points} label={t.label} pricePins={pricePins} className={className} />;
 }

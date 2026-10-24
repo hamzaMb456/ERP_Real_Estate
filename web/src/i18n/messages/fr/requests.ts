@@ -1,0 +1,63 @@
+// Requests from visitors of the public site: « Demandes de location » and « Visites » in the ERP.
+
+import { plural } from '../../plural';
+
+export const requests = {
+  all: 'Toutes',
+  search: 'Rechercher',
+  searchPlaceholder: 'Nom, téléphone, unité, bien…',
+  reset: 'Réinitialiser',
+  loading: 'Chargement des demandes',
+  loadError: (message: string | number) => `Impossible de charger les demandes : ${message}`,
+  noMatchTitle: 'Aucune demande ne correspond',
+  noMatchHint: 'Essayez d’élargir la recherche ou de retirer un filtre.',
+  rental: {
+    title: 'Demandes de location',
+    description: (count: number, fresh: number) =>
+      `${plural(count, { one: '# demande', other: '# demandes' })} · ${plural(fresh, { one: '# nouvelle', other: '# nouvelles' })}`,
+    emptyTitle: 'Aucune demande de location pour le moment',
+    emptyBody: 'Les visiteurs du site public envoient leur demande depuis la page d’une unité à louer : elle apparaît ici et vous êtes prévenu.',
+    statuses: { new: 'Nouvelle', contacted: 'Contactée', accepted: 'Acceptée', declined: 'Refusée', closed: 'Clôturée' },
+    startDate: 'Début souhaité',
+    duration: 'Durée',
+    durationMonths: (months: number) => plural(months, { one: '# mois', other: '# mois' }),
+    markContacted: 'Marquer contactée',
+    accept: 'Accepter',
+    decline: 'Refuser',
+    close: 'Clôturer',
+    reopen: 'Rouvrir',
+    createLease: 'Créer un bail',
+    updated: 'Demande mise à jour',
+  },
+  visit: {
+    title: 'Visites',
+    description: (count: number, fresh: number) =>
+      `${plural(count, { one: '# demande', other: '# demandes' })} · ${plural(fresh, { one: '# à confirmer', other: '# à confirmer' })}`,
+    emptyTitle: 'Aucune demande de visite pour le moment',
+    emptyBody: 'Les visiteurs choisissent un jour et une heure sur la page d’une unité : la demande apparaît ici, et la visite confirmée entre dans votre calendrier.',
+    statuses: { new: 'À confirmer', confirmed: 'Confirmée', declined: 'Refusée', done: 'Effectuée', cancelled: 'Annulée' },
+    when: (date: string, time: string) => `${date} à ${time}`,
+    confirm: 'Confirmer la visite',
+    decline: 'Refuser',
+    markDone: 'Marquer effectuée',
+    cancel: 'Annuler la visite',
+    reopen: 'Remettre à confirmer',
+    openCalendar: 'Voir dans le calendrier',
+    appointmentTitle: (unit: string, name: string) => `Visite ${unit} - ${name}`,
+    confirmed: 'Visite confirmée et ajoutée au calendrier',
+    slotTaken: 'Une autre visite est déjà confirmée sur ce créneau pour cette unité.',
+    updated: 'Visite mise à jour',
+  },
+  card: {
+    received: (date: string) => `Reçue le ${date}`,
+    message: 'Message du visiteur',
+    call: (phone: string) => `Appeler ${phone}`,
+    email: (email: string) => `Écrire à ${email}`,
+    viewUnit: 'Voir l’unité',
+    note: 'Note interne',
+    notePlaceholder: 'Ce que vous avez dit, ce qui est convenu…',
+    saveNote: 'Enregistrer la note',
+    noteSaved: 'Note enregistrée',
+    updateFailed: 'Modification impossible',
+  },
+};

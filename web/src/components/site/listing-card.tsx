@@ -2,15 +2,14 @@
 
 import Link from 'next/link';
 import { useState, useSyncExternalStore } from 'react';
-import { BedDouble, Heart, ImageOff, Layers, MapPin, Maximize2 } from '@/components/icons';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { BedDouble, ImageOff, Layers, MapPin, Maximize2, Tag } from '@/components/icons';
 import { useT } from '@/i18n/provider';
 import { todayTunis } from '@/lib/dates';
 import { formatArea, formatNumber, formatTnd } from '@/lib/format';
 import { formatDate } from '@/lib/ownership';
 import { publicImageUrl } from '@/lib/site/image-url';
 import type { PublicListing } from '@/lib/site/listings-queries';
+import { FavoriteButton } from './favorite-button';
 
 const COVER_WIDTH = 640;
 
@@ -40,7 +39,7 @@ function Spec({ icon, children }: { icon: React.ReactNode; children: React.React
 
 /**
  * A listing in a grid: cover photo, availability chip, price, title, city and key figures.
- * The whole card is one link (the title link is stretched over it); the favourite heart is not live yet.
+ * The whole card is one link (the title link is stretched over it); the favourite heart (kept in this browser) floats above the link.
  * Rendered inside `.site-root`; the parent decides how cards are revealed (StaggerItem), the card adds no motion.
  */
 export function ListingCard({ listing }: { listing: PublicListing }) {
@@ -78,25 +77,8 @@ export function ListingCard({ listing }: { listing: PublicListing }) {
           {comesLater && listing.availableFrom ? copy.availableFrom(formatDate(listing.availableFrom)) : copy.available}
         </span>
 
-        {/* A disabled button fires no pointer events: the tooltip hangs on the wrapper. */}
         <span className="absolute end-3 top-3 z-10">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex rounded-full" tabIndex={0}>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  disabled
-                  aria-label={copy.favourite}
-                  className="rounded-full bg-card/90 text-foreground shadow-sm"
-                >
-                  <Heart aria-hidden="true" />
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{copy.soon}</TooltipContent>
-          </Tooltip>
+          <FavoriteButton listingId={listing.id} />
         </span>
       </div>
 
@@ -107,6 +89,13 @@ export function ListingCard({ listing }: { listing: PublicListing }) {
           </span>
           {isRent ? <span className="text-sm text-muted-foreground">{copy.perMonth}</span> : null}
         </p>
+
+        {listing.visitFee !== null && listing.visitFee > 0 ? (
+          <p data-testid="listing-visit-fee" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Tag size={14} className="shrink-0 text-primary" aria-hidden="true" />
+            <span dir="ltr">{copy.visitFee(formatTnd(listing.visitFee))}</span>
+          </p>
+        ) : null}
 
         <h3 className="font-heading-site line-clamp-2 text-base leading-snug font-semibold [overflow-wrap:anywhere]">
           <Link

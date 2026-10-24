@@ -3,9 +3,11 @@ import 'server-only';
 import { cacheLife } from 'next/cache';
 import { siteConfig } from './config';
 import { publicQuery } from './public-api';
+import { DETAIL_FIELDS, toListingDetails, toNumber, type ListingDetails, type ListingDetailsRow, type NumberLike } from './listing-details';
 import type { SearchFilters, SearchMode } from './search-params';
 
-// Reads of the public views (public_listings, public_listing_photos) as the Hasura "public" role. Three rules:
+// Reads of the public views (public_listings, public_listing_photos) as the Hasura "public" role. Since migration 0006
+// a "listing" is a unit that is on the website by itself (its id is the unit id). Three rules:
 // - every query filters on the one organization the site serves, and on offerable units (one shared `where` helper);
 // - user input only ever travels as GraphQL variables, the query texts below are constants;
 // - the exported functions are cached ('use cache', a few minutes) and never throw: a missing backend, role or
@@ -56,9 +58,7 @@ export type PublicListing = {
   photoCount: number;
   /** Only loaded by getListing, in display order. */
   photos?: { storageFileId: string; position: number }[];
-};
-
-type NumberLike = number | string | null | undefined;
+} & ListingDetails;
 
 /** A row of public_listings as Hasura returns it (snake_case, numerics as numbers or strings). */
 export type ListingRow = {
@@ -90,14 +90,7 @@ export type ListingRow = {
   cover_file_id: string | null;
   photo_count: NumberLike;
   photos?: { storage_file_id: string; position: number }[];
-};
-
-/** Hasura sends numeric columns as numbers or as strings depending on its settings. */
-function toNumber(value: NumberLike): number | null {
-  if (value === null || value === undefined || value === '') return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
+} & ListingDetailsRow;
 
 export function toPublicListing(row: ListingRow): PublicListing {
   const listing: PublicListing = {
@@ -128,6 +121,7 @@ export function toPublicListing(row: ListingRow): PublicListing {
     longitude: toNumber(row.longitude),
     coverFileId: row.cover_file_id,
     photoCount: toNumber(row.photo_count) ?? 0,
+    ...toListingDetails(row),
   };
   if (row.photos) {
     listing.photos = row.photos.map((photo) => ({ storageFileId: photo.storage_file_id, position: photo.position }));
@@ -176,6 +170,7 @@ const LISTING_FIELDS = `
   id organization_id unit_id kind title description price charges deposit_months reservation_deposit
   reservation_days available_from furnished amenities virtual_tour_url published_at unit_type rooms surface_m2
   floor unit_status city governorate latitude longitude cover_file_id photo_count
+  ${DETAIL_FIELDS}
 `;
 
 const LATEST_QUERY = `
@@ -204,6 +199,12 @@ const ONE_QUERY = `
       ${LISTING_FIELDS}
       photos(order_by: { position: asc }) { storage_file_id position }
     }
+  }
+`;
+
+const BY_IDS_QUERY = `
+  query PublicListingsByIds($where: public_listings_bool_exp!, $limit: Int!) {
+    listings: public_listings(where: $where, limit: $limit) { ${LISTING_FIELDS} }
   }
 `;
 
@@ -243,7 +244,7 @@ async function safely<T>(name: string, empty: () => T, run: () => Promise<T>): P
   try {
     return await run();
   } catch (err) {
-    console.warn(`[public-listings] ${name} failed (is migration 0005 applied and the public role set up? see the slice 1 handoff)`, err);
+    console.warn(`[public-listings] ${name} failed (is migration 0006 applied and the public role set up? see the slice 1 handoff)`, err);
     return empty();
   }
 }
@@ -299,6 +300,24 @@ export async function getListing(id: string): Promise<PublicListing | null> {
     });
     const row = data.listings[0];
     return row ? toPublicListing(row) : null;
+  });
+}
+
+const MAX_BY_IDS = 100;
+
+/** The published listings behind a list of ids (the visitor's favorites), in the order asked; unpublished ones are left out. */
+export async function getListingsByIds(ids: string[]): Promise<PublicListing[]> {
+  'use cache';
+  cacheLife('minutes');
+  const wanted = [...new Set(ids.filter((id) => UUID_PATTERN.test(id)))].slice(0, MAX_BY_IDS);
+  if (wanted.length === 0) return [];
+  return safely<PublicListing[]>('getListingsByIds', () => [], async () => {
+    const data = await publicQuery<{ listings: ListingRow[] }>(BY_IDS_QUERY, {
+      where: { _and: [{ id: { _in: wanted } }, ...(listingsWhere() as { _and: Where[] })._and] },
+      limit: MAX_BY_IDS,
+    });
+    const byId = new Map(data.listings.map((row) => [row.id, toPublicListing(row)]));
+    return wanted.flatMap((id) => byId.get(id) ?? []);
   });
 }
 

@@ -25,9 +25,12 @@ export default async function HomePage() {
     getPublishedCities(),
   ]);
 
+  // The newest listings' cover photos play behind the search card.
+  const heroPhotos = [...rent, ...sale].flatMap((listing) => (listing.coverFileId ? [listing.coverFileId] : []));
+
   return (
     <>
-      <HomeHero cities={cities} />
+      <HomeHero cities={cities} photos={heroPhotos} />
       <HomeStats total={counts.total} cities={counts.cities} />
       <HomeListingsSection kind="rent" listings={rent} />
       <HomeListingsSection kind="sale" listings={sale} />

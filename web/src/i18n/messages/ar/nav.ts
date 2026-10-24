@@ -15,8 +15,10 @@ export const nav: typeof fr = {
     commonAreas: 'الأجزاء المشتركة',
     incompleteRecords: 'بطاقات غير مكتملة',
     archivedProperties: 'العقارات المؤرشفة',
+    units: 'الوحدات',
     contacts: 'جهات الاتصال',
     calendar: 'التقويم',
+    visits: 'الزيارات',
     rentersAndLeases: 'المستأجرون وعقود الإيجار',
     leases: 'عقود الإيجار',
     rentalRequests: 'طلبات الكراء',
@@ -35,6 +37,7 @@ export const nav: typeof fr = {
     usersAndRoles: 'المستخدمون والأدوار',
     auditLog: 'سجلّ التدقيق',
     appearance: 'المظهر',
+    visitSettings: 'دفع الزيارات',
   },
   crumbs: { new: 'جديد', edit: 'تعديل', record: 'البطاقة' },
 };

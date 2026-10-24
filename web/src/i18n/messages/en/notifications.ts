@@ -15,5 +15,7 @@ export const notifications: typeof fr = {
     registration_due: 'Registration due',
     registration_overdue: 'Registration overdue',
     appointment_reminder: 'Appointment reminder',
+    rental_request: 'Rental request',
+    visit_request: 'Visit request',
   },
 };

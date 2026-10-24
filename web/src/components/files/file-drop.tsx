@@ -25,7 +25,10 @@ export function FileDrop({ kind, disabled = false, onFiles }: { kind: FileKind; 
         if (!disabled) onFiles(Array.from(event.dataTransfer.files));
       }}
       className={cn(
-        'flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50',
+        // `relative` anchors the visually hidden (absolute) input to this label. Without it the input's containing block is
+        // the app shell, which is overflow-hidden: opening the file dialog focuses the input, the browser scrolls the shell
+        // to reveal it and the whole page content slides up, leaving a blank band.
+        'relative flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50',
         over ? 'border-primary bg-accent/50' : 'hover:bg-muted/50',
         disabled && 'pointer-events-none opacity-60',
       )}

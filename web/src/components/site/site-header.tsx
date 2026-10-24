@@ -1,15 +1,14 @@
-'use client';
+﻿'use client';
+import { Suspense } from 'react';
 
 import Link from 'next/link';
-import { Building2, Menu, User, X } from '@/components/icons';
+import { Building2, Menu, X } from '@/components/icons';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useI18n } from '@/i18n/provider';
+import { AccountMenu } from '@/components/site/account-menu';
 import { cn } from '@/lib/utils';
-
-// Slice 2 adds /compte/connexion; until then « Espace client » leads to the contact block.
-const CLIENT_AREA_HREF = '/#contact';
 
 const LINK_CLASS =
   'rounded-md px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -34,7 +33,7 @@ export function SiteLogo({ className }: { className?: string }) {
   );
 }
 
-/** Public site header: logo, main links, « Espace client », language switcher; a sheet menu below `md`. */
+/** Public site header: logo, main links, account menu, language switcher; a sheet menu below `md`. */
 export function SiteHeader() {
   const { t, dir } = useI18n();
   const links = [
@@ -42,6 +41,7 @@ export function SiteHeader() {
     { href: '/acheter', label: t.site.nav.buy },
     { href: '/#comment-ca-marche', label: t.site.nav.howItWorks },
     { href: '/#contact', label: t.site.nav.contact },
+    { href: '/favoris', label: t.site.favourites.navLabel },
   ];
 
   return (
@@ -59,17 +59,7 @@ export function SiteHeader() {
 
         <div className="ms-auto flex items-center gap-2">
           <LanguageSwitcher className="hidden md:inline-flex" contentClassName="site-root" />
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="hidden border-primary/20 bg-white/60 text-primary backdrop-blur hover:bg-white/90 md:inline-flex"
-          >
-            <Link href={CLIENT_AREA_HREF}>
-              <User data-icon="inline-start" />
-              {t.site.nav.clientArea}
-            </Link>
-          </Button>
+          <Suspense><AccountMenu className="hidden gap-2 border-primary/20 bg-white/60 backdrop-blur hover:bg-white/90 md:inline-flex" /></Suspense>
 
           <Sheet>
             <SheetTrigger asChild>
@@ -98,14 +88,7 @@ export function SiteHeader() {
                 ))}
               </nav>
               <div className="mt-auto flex flex-col gap-3 p-4">
-                <SheetClose asChild>
-                  <Button asChild size="lg" className="h-10">
-                    <Link href={CLIENT_AREA_HREF}>
-                      <User data-icon="inline-start" />
-                      {t.site.nav.clientArea}
-                    </Link>
-                  </Button>
-                </SheetClose>
+                <Suspense><AccountMenu className="h-10 w-full justify-center" /></Suspense>
                 <LanguageSwitcher variant="labeled" className="h-10 w-full justify-center" contentClassName="site-root" />
               </div>
             </SheetContent>
@@ -115,3 +98,4 @@ export function SiteHeader() {
     </header>
   );
 }
+

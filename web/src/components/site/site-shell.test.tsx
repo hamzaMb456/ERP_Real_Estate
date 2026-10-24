@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+﻿import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -21,7 +21,7 @@ describe('SiteHeader', () => {
     expect(within(nav).getByRole('link', { name: 'Comment ça marche' })).toHaveAttribute('href', '/#comment-ca-marche');
     expect(within(nav).getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '/#contact');
     expect(screen.getByRole('link', { name: /Emerald Immobilier/ })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: 'Espace client' })).toHaveAttribute('href', '/#contact');
+    expect(screen.getByRole('link', { name: 'Se connecter' })).toHaveAttribute('href', '/compte/connexion');
   });
 
   it('shows the Arabic labels with the ar catalog', () => {

@@ -15,8 +15,10 @@ export const nav: typeof fr = {
     commonAreas: 'Common areas',
     incompleteRecords: 'Incomplete records',
     archivedProperties: 'Archived properties',
+    units: 'Units',
     contacts: 'Contacts',
     calendar: 'Calendar',
+    visits: 'Visits',
     rentersAndLeases: 'Renters and leases',
     leases: 'Leases',
     rentalRequests: 'Rental requests',
@@ -35,6 +37,7 @@ export const nav: typeof fr = {
     usersAndRoles: 'Users and roles',
     auditLog: 'Audit log',
     appearance: 'Appearance',
+    visitSettings: 'Visit payment',
   },
   crumbs: { new: 'New', edit: 'Edit', record: 'Record' },
 };

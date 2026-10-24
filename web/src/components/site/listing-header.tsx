@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { BedDouble, Building2, ChevronRight, Layers, Maximize2, MapPin, Sofa } from '@/components/icons';
+import { BedDouble, Building2, ChevronRight, DoorOpen, Layers, Maximize2, MapPin, Sofa } from '@/components/icons';
 import { useT } from '@/i18n/provider';
 import { formatArea, formatNumber } from '@/lib/format';
 import { formatDate } from '@/lib/ownership';
@@ -57,12 +57,14 @@ export function ListingBreadcrumb({ listing }: { listing: PublicListing }) {
   );
 }
 
-function Fact({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+function Fact({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
   return (
     <li className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg bg-accent/60 p-3 text-center">
-      <span className="text-primary" aria-hidden="true">
-        {icon}
-      </span>
+      {icon ? (
+        <span className="text-primary" aria-hidden="true">
+          {icon}
+        </span>
+      ) : null}
       <span className="font-heading-site text-xs font-semibold [overflow-wrap:anywhere] text-foreground">{children}</span>
     </li>
   );
@@ -85,7 +87,7 @@ export function ListingHeader({ listing }: { listing: PublicListing }) {
   const typeLabel = t.labels.unitTypes[listing.unitType];
 
   return (
-    <header className={CARD}>
+    <header data-scroll-item="" className={CARD} suppressHydrationWarning>
       <p className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
         <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
         {comesLater && listing.availableFrom ? copy.availableFrom(formatDate(listing.availableFrom)) : copy.available}
@@ -102,13 +104,22 @@ export function ListingHeader({ listing }: { listing: PublicListing }) {
 
       <ul
         aria-label={facts.label}
-        className={cn('mt-6 grid grid-cols-2 gap-2.5 border-t border-border pt-6 sm:grid-cols-3', showFurnished ? 'lg:grid-cols-5' : 'lg:grid-cols-4')}
+        className="mt-6 grid grid-cols-2 gap-2.5 border-t border-border pt-6 sm:grid-cols-3 lg:grid-cols-4"
       >
         {typeLabel ? <Fact icon={<Building2 size={20} />}>{typeLabel}</Fact> : null}
         {listing.surfaceM2 !== null ? <Fact icon={<Maximize2 size={20} />}>{formatArea(listing.surfaceM2)}</Fact> : null}
-        {hasRooms ? <Fact icon={<BedDouble size={20} />}>{copy.rooms(listing.rooms as number)}</Fact> : null}
+        {hasRooms ? <Fact icon={<DoorOpen size={20} />}>{copy.rooms(listing.rooms as number)}</Fact> : null}
+        {listing.bedrooms ? <Fact icon={<BedDouble size={20} />}>{facts.bedrooms(listing.bedrooms)}</Fact> : null}
+        {listing.bathrooms ? <Fact>{facts.bathrooms(listing.bathrooms)}</Fact> : null}
+        {listing.parkingSpaces ? <Fact>{facts.parking(listing.parkingSpaces)}</Fact> : null}
         {listing.floor !== null ? (
-          <Fact icon={<Layers size={20} />}>{listing.floor === 0 ? copy.groundFloor : copy.floor(formatNumber(listing.floor, 0))}</Fact>
+          <Fact icon={<Layers size={20} />}>
+            {listing.floor === 0
+              ? copy.groundFloor
+              : listing.floorsCount
+                ? facts.floorOf(formatNumber(listing.floor, 0), formatNumber(listing.floorsCount, 0))
+                : copy.floor(formatNumber(listing.floor, 0))}
+          </Fact>
         ) : null}
         {showFurnished ? <Fact icon={<Sofa size={20} />}>{listing.furnished ? facts.furnished : facts.unfurnished}</Fact> : null}
       </ul>

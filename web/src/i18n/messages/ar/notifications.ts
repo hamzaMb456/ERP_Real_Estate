@@ -23,5 +23,7 @@ export const notifications: typeof fr = {
     registration_due: 'تسجيل يجب القيام به',
     registration_overdue: 'تسجيل متأخر',
     appointment_reminder: 'تذكير بموعد',
+    rental_request: 'طلب كراء',
+    visit_request: 'طلب زيارة',
   },
 };

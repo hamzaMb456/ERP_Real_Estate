@@ -15,6 +15,7 @@ import { activeFilters, removeFilter, SEARCH_PATH, searchHref, switchMode, type 
 import type { SearchFilters, SearchMode, SearchSort } from '@/lib/site/search-params';
 import { cn } from '@/lib/utils';
 import { ListingCard } from './listing-card';
+import { QuickFilters } from './quick-filters';
 import { SearchMap } from './search-map';
 import { SearchPagination } from './search-pagination';
 import { NativeSelect, SEARCH_FORM_ID } from './search-filters';
@@ -228,12 +229,14 @@ export function SearchResults({
   total: number;
   pageSize: number;
 }) {
+  const quick = useT().site.quick;
   return (
     <div className="min-w-0">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <ViewToggle mode={mode} filters={filters} view={view} />
         <SortSelect sort={filters.sort} />
       </div>
+      <QuickFilters mode={mode} filters={filters} view={view} labels={quick} />
       <ActiveChips mode={mode} filters={filters} view={view} />
 
       {items.length === 0 ? (
@@ -241,15 +244,21 @@ export function SearchResults({
       ) : view === 'map' ? (
         <SearchMap listings={items} />
       ) : (
-        <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((listing) => (
-            <li key={listing.id} className="min-w-0">
-              <StaggerItem className="h-full">
-                <ListingCard listing={listing} />
-              </StaggerItem>
-            </li>
-          ))}
-        </ul>
+        // On wide screens the list keeps a map beside it, with the price of each listing on its pin.
+        <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_23rem] xl:items-start xl:gap-6">
+          <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {items.map((listing) => (
+              <li key={listing.id} className="min-w-0">
+                <StaggerItem className="h-full">
+                  <ListingCard listing={listing} />
+                </StaggerItem>
+              </li>
+            ))}
+          </ul>
+          <div className="sticky top-24 hidden h-[calc(100dvh-8rem)] xl:block">
+            <SearchMap listings={items} className="h-full" />
+          </div>
+        </div>
       )}
 
       <SearchPagination mode={mode} filters={filters} view={view} totalPages={Math.ceil(total / pageSize)} />

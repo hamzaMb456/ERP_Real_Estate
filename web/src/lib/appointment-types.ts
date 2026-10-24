@@ -10,7 +10,9 @@ export type NotificationKind =
   | 'lease_expired'
   | 'registration_due'
   | 'registration_overdue'
-  | 'appointment_reminder';
+  | 'appointment_reminder'
+  | 'rental_request'
+  | 'visit_request';
 
 /** Kinds of the all-day lease rows of calendar_feed. */
 export type LeaseEventKind = 'lease_start' | 'lease_end' | 'registration_deadline';

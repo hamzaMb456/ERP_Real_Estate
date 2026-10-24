@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NO_DETAILS_ROW } from './listing-details';
 import type { ListingRow } from './listings-queries';
 import type { SearchFilters } from './search-params';
 
@@ -47,6 +48,7 @@ function row(overrides: Partial<ListingRow> = {}): ListingRow {
     longitude: 10.323,
     cover_file_id: 'file-1',
     photo_count: 2,
+    ...NO_DETAILS_ROW,
     ...overrides,
   };
 }

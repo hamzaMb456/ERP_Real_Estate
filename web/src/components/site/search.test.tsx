@@ -1,10 +1,11 @@
-import { render, screen, within } from '@testing-library/react';
+﻿import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { MESSAGES } from '@/i18n/messages';
 import { I18nProvider } from '@/i18n/provider';
 import { setLocale } from '@/i18n/store';
+import { NO_DETAILS } from '@/lib/site/listing-details';
 import type { PublicListing } from '@/lib/site/listings-queries';
 import { parseSearchParams, type SearchMode } from '@/lib/site/search-params';
 import { SearchFiltersPanel } from './search-filters';
@@ -16,7 +17,7 @@ vi.mock('@/components/map', () => ({
 }));
 
 const push = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/' }));
 
 beforeEach(() => push.mockReset());
 afterEach(() => setLocale('fr'));
@@ -41,6 +42,7 @@ function makeListing(index: number, overrides: Partial<PublicListing> = {}): Pub
     furnished: false,
     amenities: [],
     virtualTourUrl: null,
+    ...NO_DETAILS,
     publishedAt: null,
     unitType: 'apartment',
     rooms: 3,

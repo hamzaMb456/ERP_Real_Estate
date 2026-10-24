@@ -1,6 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+﻿import { fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/' }));
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { I18nProvider } from '@/i18n/provider';
 import { setLocale } from '@/i18n/store';
@@ -143,11 +146,35 @@ describe('ListingCard', () => {
     expect(html).not.toContain('>Disponible<');
   });
 
-  it('has a disabled favourite button outside the link', () => {
+  it('has a live favourite toggle outside the link', () => {
     renderCard(makeListing());
-    const heart = screen.getByRole('button', { name: MESSAGES.fr.site.listingCard.favourite });
-    expect(heart).toBeDisabled();
+    const heart = screen.getByRole('button', { name: MESSAGES.fr.site.booking.favouriteAdd });
+    expect(heart).toHaveAttribute('aria-pressed', 'false');
     expect(heart.closest('a')).toBeNull();
+    // Not signed in: clicking redirects to sign-in instead of toggling.
+    fireEvent.click(heart);
+    expect(push).toHaveBeenCalledWith('/compte/connexion');
+    // Button stays in the « add » state (no toggle without auth).
+    expect(screen.getByRole('button', { name: MESSAGES.fr.site.booking.favouriteAdd })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('shows the visit fee badge only when it is set and positive', () => {
+    const { rerender } = renderCard(makeListing({ visitFee: 50 }));
+    expect(screen.getByTestId('listing-visit-fee')).toHaveTextContent('Visite : 50');
+
+    rerender(
+      <TooltipProvider>
+        <ListingCard listing={makeListing({ visitFee: null })} />
+      </TooltipProvider>,
+    );
+    expect(screen.queryByTestId('listing-visit-fee')).not.toBeInTheDocument();
+
+    rerender(
+      <TooltipProvider>
+        <ListingCard listing={makeListing({ visitFee: 0 })} />
+      </TooltipProvider>,
+    );
+    expect(screen.queryByTestId('listing-visit-fee')).not.toBeInTheDocument();
   });
 
   it('uses the Arabic catalog', () => {
