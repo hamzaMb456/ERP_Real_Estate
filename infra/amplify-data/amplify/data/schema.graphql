@@ -1,0 +1,388 @@
+# ERP data model on DynamoDB (one table per @table type, provisionStrategy DEFAULT).
+# `@table` is expanded in backend.ts to `@model` with no generated CRUD plus custom auth:
+# every read and write goes through Lambda resolvers, which enforce org scoping and the
+# invariants the Postgres constraints/triggers used to hold.
+#
+# Field names stay snake_case so migrated rows and app-side shapes match Postgres 1:1.
+# Money: DynamoDB Number (exact); resolvers do arithmetic in millimes (integers).
+# Relationship design: see the migration plan's relationship map.
+
+# ---------------------------------------------------------------- tenant + places
+
+type Organization @table {
+  id: ID!
+  name: String!
+  visit_payment_method: String
+}
+
+type Branch @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["name"])
+  name: String!
+  city: String
+}
+
+type Property @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["name"])
+  branch_id: ID! @index(name: "byBranch")
+  name: String!
+  type: String
+  address_line: String
+  city: String
+  governorate: String
+  postal_code: String
+  latitude: Float
+  longitude: Float
+  year_built: Int
+  floors_count: Int
+  neighbourhood_description: String
+  current_owners: [OwnerShare]
+  archived_at: AWSDateTime
+}
+
+type Unit @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["code"])
+  property_id: ID! @index(name: "byProperty", sortKeyFields: ["code"])
+  code: String!
+  type: String
+  status: String
+  floor: Int
+  rooms: Int
+  surface_m2: Float
+  rent_amount: Float
+  sale_price: Float
+  charges: Float
+  visit_fee: Float
+  common_share: Int
+  title: String
+  description: String
+  available_from: AWSDate
+  furnished: Boolean
+  amenities: [String]
+  show_on_website: Boolean
+  bedrooms: Int
+  bathrooms: Int
+  parking_spaces: Int
+  property_condition: String
+  deposit_months: Int
+  pets_allowed: Boolean
+  legal_status: String
+  virtual_tour_url: String
+  orientation: [String]
+  outdoor_area_m2: Float
+  energy_class: String
+  min_lease_months: Int
+  charges_included: [String]
+  reservation_deposit: Float
+  reservation_days: Int
+  "Denormalized from current ownerships, written in the same transaction."
+  current_owners: [OwnerShare]
+  archived_at: AWSDateTime
+}
+
+type OwnerShare {
+  contact_id: ID!
+  full_name: String
+  share_percent: Float
+}
+
+type CommonArea @table {
+  id: ID!
+  organization_id: ID!
+  property_id: ID! @index(name: "byProperty", sortKeyFields: ["name"])
+  name: String!
+  kind: String
+  notes: String
+}
+
+# ---------------------------------------------------------------- people
+
+type Contact @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["full_name"])
+  "Replaces the contact_roles junction (owner | renter | buyer)."
+  roles: [String]
+  kind: String
+  full_name: String!
+  email: String
+  phone: String
+  national_id: String
+  address: String
+  notes: String
+  is_organization: Boolean
+  archived_at: AWSDateTime
+}
+
+"n:n unit x contact over time; share cap and no-overlap enforced by the ownership Lambda."
+type Ownership @table {
+  id: ID!
+  organization_id: ID!
+  unit_id: ID! @index(name: "byUnit", sortKeyFields: ["starts_on"])
+  contact_id: ID! @index(name: "byContact", sortKeyFields: ["starts_on"])
+  share_percent: Float!
+  starts_on: AWSDate!
+  ends_on: AWSDate
+  notes: String
+}
+
+"""
+Staff directory (was the staff_members view over auth.users); id = auth user id.
+display_name is required: it is the byOrg sort key, and an item without it is missing from the index
+(fill it with the email when the user has no display name, as the view did).
+"""
+type StaffMember @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["display_name"])
+  display_name: String!
+  email: String
+  role: String!
+}
+
+# ---------------------------------------------------------------- files
+
+"property_files + lease_files; target_key = property#<id> | unit#<id> | lease#<id>."
+type FileLink @table {
+  id: ID!
+  "byOrg: list pages load every file of the organization in one query."
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["target_key"])
+  target_key: String! @index(name: "byTarget", sortKeyFields: ["sort_order"])
+  property_id: ID
+  unit_id: ID
+  lease_id: ID
+  storage_file_id: ID!
+  kind: String!
+  category: String
+  title: String!
+  is_cover: Boolean
+  sort_order: Int!
+}
+
+"Was app_storage_files: bucket + uploader for each S3 object."
+type StorageFile @table {
+  id: ID!
+  bucket: String!
+  uploaded_by_user_id: ID!
+}
+
+# ---------------------------------------------------------------- leases
+
+type Lease @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["number"])
+  number: Int!
+  status: String!
+  start_date: AWSDate!
+  end_date: AWSDate!
+  payment_day: Int
+  deposit_amount: Float
+  signed_at: AWSDate
+  registered_at: AWSDate
+  registration_receipt: String
+  ended_on: AWSDate
+  end_reason: String
+  "Append-only; embedded because they are only ever read with their lease."
+  rents: [LeaseRent]
+  terms: [LeaseTerm]
+  "Denormalized for list views (unit_ids: which units, without a LeaseUnit lookup per unit)."
+  unit_ids: [ID]
+  unit_labels: [String]
+  party_names: [String]
+  archived_at: AWSDateTime
+}
+
+type LeaseRent {
+  id: ID!
+  unit_id: ID!
+  effective_from: AWSDate!
+  rent_amount: Float!
+  charges_amount: Float
+  reason: String
+  created_at: AWSDateTime
+}
+
+type LeaseTerm {
+  id: ID!
+  kind: String!
+  start_date: AWSDate!
+  end_date: AWSDate!
+  recorded_on: AWSDate
+  note: String
+  created_at: AWSDateTime
+}
+
+"Junction lease x unit; reverse lookup (leases of a unit) via byUnit."
+type LeaseUnit @table {
+  lease_id: ID! @primaryKey(sortKeyFields: ["unit_id"])
+  unit_id: ID! @index(name: "byUnit", sortKeyFields: ["lease_id"])
+  organization_id: ID!
+}
+
+"Junction lease x contact; reverse lookup (leases of a contact) via byContact."
+type LeaseParty @table {
+  lease_id: ID! @primaryKey(sortKeyFields: ["contact_id"])
+  contact_id: ID! @index(name: "byContact", sortKeyFields: ["lease_id"])
+  organization_id: ID!
+  role: String!
+}
+
+# ---------------------------------------------------------------- calendar + notifications
+
+type Appointment @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrgStart", sortKeyFields: ["starts_at"])
+  kind: String!
+  title: String!
+  location: String
+  starts_at: AWSDateTime!
+  ends_at: AWSDateTime!
+  status: String
+  assigned_user_id: ID
+  unit_id: ID
+  lease_id: ID
+  notify_by_email: Boolean
+  reminder_sent_at: AWSDateTime
+  notes: String
+}
+
+"Separate (not embedded) because contacts list their appointments via byContact."
+type AppointmentParticipant @table {
+  appointment_id: ID! @primaryKey(sortKeyFields: ["contact_id"])
+  contact_id: ID! @index(name: "byContact", sortKeyFields: ["appointment_id"])
+  organization_id: ID!
+  role: String!
+  email_status: String
+  email_error: String
+}
+
+"id = <user_id>#<dedupe_key> so a conditional put replaces the unique dedupe constraint."
+type Notification @table {
+  id: ID!
+  organization_id: ID!
+  user_id: ID! @index(name: "byUser", sortKeyFields: ["created_at"])
+  kind: String!
+  title: String!
+  body: String
+  link: String
+  lease_id: ID
+  appointment_id: ID
+  dedupe_key: String!
+  read_at: AWSDateTime
+  emailed_at: AWSDateTime
+  email_error: String
+  "DynamoDB TTL (epoch seconds), replaces the 90-day cleanup."
+  expires_at: AWSTimestamp
+  created_at: AWSDateTime
+}
+
+# ---------------------------------------------------------------- public site
+
+type RentalRequest @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["created_at"])
+  client_user_id: ID @index(name: "byClient", sortKeyFields: ["created_at"])
+  unit_id: ID!
+  start_date: AWSDate!
+  duration_months: Int!
+  full_name: String!
+  phone: String!
+  phone_digits: String
+  email: String
+  message: String
+  status: String
+  staff_note: String
+  created_at: AWSDateTime
+}
+
+type VisitRequest @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["created_at"])
+  client_user_id: ID @index(name: "byClient", sortKeyFields: ["created_at"])
+  unit_id: ID! @index(name: "byUnit", sortKeyFields: ["visit_date"])
+  visit_date: AWSDate!
+  visit_time: AWSTime!
+  full_name: String!
+  phone: String!
+  phone_digits: String
+  email: String
+  message: String
+  status: String
+  appointment_id: ID
+  staff_note: String
+  created_at: AWSDateTime
+}
+
+"Read model for the website (was the public_listings view); id = unit id."
+type PublicListing @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["published_at"])
+  unit_id: ID!
+  kind: String
+  title: String
+  description: String
+  price: Float
+  charges: Float
+  deposit_months: Int
+  reservation_deposit: Float
+  reservation_days: Int
+  available_from: AWSDate
+  furnished: Boolean
+  amenities: [String]
+  virtual_tour_url: String
+  published_at: AWSDateTime
+  unit_type: String
+  rooms: Int
+  surface_m2: Float
+  floor: Int
+  unit_status: String
+  city: String
+  governorate: String
+  latitude: Float
+  longitude: Float
+  cover_file_id: ID
+  photo_count: Int
+  photos: [PublicPhoto]
+  bedrooms: Int
+  bathrooms: Int
+  parking_spaces: Int
+  property_condition: String
+  pets_allowed: Boolean
+  legal_status: String
+  orientation: [String]
+  outdoor_area_m2: Float
+  energy_class: String
+  min_lease_months: Int
+  charges_included: [String]
+  year_built: Int
+  floors_count: Int
+  neighbourhood_description: String
+  visit_fee: Float
+  visit_payment_method: String
+}
+
+type PublicPhoto {
+  storage_file_id: ID!
+  position: Int!
+}
+
+# ---------------------------------------------------------------- integrity helpers
+
+"Unique-constraint locks (UNIQ#...) and atomic counters (COUNTER#...)."
+type Lock @table {
+  id: ID!
+  value: Int
+}
+
+# ---------------------------------------------------------------- operations (grow in P4)
+
+# The web sends its existing queries by GraphQL operation name; the api Lambda answers with the
+# same JSON shape Hasura returned (see lambda/api/ops). Role checks happen per operation there.
+type Query {
+  whoami: String @function(name: "api") @auth(rules: [{ allow: custom }])
+  run(op: String!, variables: AWSJSON): AWSJSON @function(name: "api") @auth(rules: [{ allow: custom }])
+}
+
+type Mutation {
+  exec(op: String!, variables: AWSJSON): AWSJSON @function(name: "api") @auth(rules: [{ allow: custom }])
+}

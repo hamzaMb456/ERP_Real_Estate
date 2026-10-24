@@ -1,6 +1,10 @@
+.nhost
+.secrets
 
 # Local agent scratch (plan execution ledgers)
 .superpowers/
 
-# Nhost functions dependencies
+# Dependencies and build output
+/node_modules/
 functions/node_modules/
+functions/dist/

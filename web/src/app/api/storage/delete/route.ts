@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { requireSession, requireWriter, type SessionClaims } from '@/lib/server/auth';
 import { resolveStorageKeyBucket } from '@/lib/server/file-ownership';
-import { hasuraRunSql } from '@/lib/server/hasura-admin';
+import { forgetStorageFile } from '@/lib/server/storage-registry';
 import { s3 } from '@/lib/server/s3-client';
 import { isStorageKey } from '@/lib/storage-buckets';
 
@@ -37,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
 
   // Best-effort: `key` is already uuid-validated above, so this is safe to inline (see hasuraRunSql).
   // Not fatal if it fails — the S3 object is already gone, this just avoids an orphaned tracking row.
-  await hasuraRunSql(`delete from public.app_storage_files where id = '${key}'`).catch((error: unknown) => {
+  await forgetStorageFile(session.token, key).catch((error: unknown) => {
     console.error('[storage/delete] app_storage_files cleanup failed', error);
   });
 

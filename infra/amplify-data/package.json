@@ -1,0 +1,29 @@
+{
+  "name": "erp-amplify-data",
+  "private": true,
+  "type": "module",
+  "description": "DynamoDB + AppSync data layer for the ERP, deployed to self-hosted Floci.",
+  "scripts": {
+    "deploy": "node scripts/deploy.mjs",
+    "seed": "node scripts/seed.mjs",
+    "test": "node --test \"scripts/*.test.mjs\" \"lambda/**/*.test.mjs\" \"lambda/**/*.test.ts\""
+  },
+  "dependencies": {
+    "jose": "^6.2.13"
+  },
+  "devDependencies": {
+    "@aws-amplify/backend": "^1.25.1",
+    "@aws-amplify/graphql-api-construct": "^1.22.3",
+    "@aws-sdk/client-cloudformation": "^3.1156.0",
+    "@aws-sdk/client-dynamodb": "^3.1156.0",
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/lib-dynamodb": "^3.1156.0",
+    "@aws-sdk/util-dynamodb": "^3.996.9",
+    "aws-cdk": "^2.1146.1",
+    "aws-cdk-lib": "^2.274.0",
+    "constructs": "^10.8.1",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

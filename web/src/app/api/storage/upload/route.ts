@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { requireSession, requireWriter, type SessionClaims } from '@/lib/server/auth';
-import { hasuraRunSql } from '@/lib/server/hasura-admin';
+import { registerStorageFile } from '@/lib/server/storage-registry';
 import { s3 } from '@/lib/server/s3-client';
 import { ALLOWED_BUCKETS, isStorageKey } from '@/lib/storage-buckets';
 
@@ -43,9 +43,7 @@ export async function POST(request: Request): Promise<Response> {
   // succeeds but every later link attempt fails. Values are safe to inline: `key` just came from
   // randomUUID(), `bucket` is one of the two ALLOWED_BUCKETS literals, `userId` was regex-checked above.
   try {
-    await hasuraRunSql(
-      `insert into public.app_storage_files (id, bucket, uploaded_by_user_id) values ('${key}', '${bucket}', '${session.userId}')`,
-    );
+    await registerStorageFile(session.token, key, bucket, session.userId);
   } catch (error) {
     console.error('[storage/upload] app_storage_files insert failed', error);
     await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => undefined);
