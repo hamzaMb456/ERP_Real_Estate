@@ -36,7 +36,6 @@ const ROLES = ['public', 'user', 'org_admin', 'manager', 'viewer'];
 const STAFF = ['org_admin', 'manager', 'viewer'];
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const SECRET_KEYS = ['full_name', 'email', 'phone', 'display_name', 'name', 'title', 'address', 'description'];
-const NAMESPACE = 'https://hasura.io/jwt/claims';
 
 const failures = [];
 const counts = {};
@@ -125,9 +124,7 @@ async function roleMatrix(fn, orgId) {
 async function authorizerChecks(fn, orgId) {
   const { privateKey } = await generateKeyPair('RS256');
   const now = Math.floor(Date.now() / 1000);
-  const claims = {
-    [NAMESPACE]: { 'x-hasura-default-role': 'org_admin', 'x-hasura-user-id': randomUUID(), 'x-hasura-org-id': orgId },
-  };
+  const claims = { 'custom:role': 'org_admin', 'custom:org_id': orgId };
   const forged = await new SignJWT(claims).setProtectedHeader({ alg: 'RS256', kid: 'forged' }).setSubject(randomUUID()).setExpirationTime(now + 600).sign(privateKey);
   const expired = await new SignJWT(claims).setProtectedHeader({ alg: 'RS256', kid: 'forged' }).setSubject(randomUUID()).setExpirationTime(now - 600).sign(privateKey);
   const unsigned = `${Buffer.from('{"alg":"none"}').toString('base64url')}.${Buffer.from(JSON.stringify({ ...claims, sub: randomUUID(), exp: now + 600 })).toString('base64url')}.`;
@@ -157,7 +154,7 @@ async function http(token, op, variables) {
 
 async function httpChecks(orgId, fakeOrg) {
   const { privateKey } = await generateKeyPair('RS256');
-  const forged = await new SignJWT({ [NAMESPACE]: { 'x-hasura-default-role': 'org_admin', 'x-hasura-user-id': randomUUID(), 'x-hasura-org-id': orgId } })
+  const forged = await new SignJWT({ 'custom:role': 'org_admin', 'custom:org_id': orgId })
     .setProtectedHeader({ alg: 'RS256', kid: 'forged' }).setSubject(randomUUID()).setExpirationTime(Math.floor(Date.now() / 1000) + 600).sign(privateKey);
   for (const [label, token] of [['no Authorization header', undefined], ['garbage token', 'garbage'], ['forged JWT', forged]]) {
     const r = await http(token, 'Contacts', {});

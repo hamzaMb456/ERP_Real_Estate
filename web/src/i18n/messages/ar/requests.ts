@@ -34,6 +34,7 @@ export const requests: typeof fr = {
     emptyBody: 'يختار الزوار يومًا وساعة في صفحة الوحدة: يظهر الطلب هنا، وتدخل الزيارة المؤكدة في تقويمك.',
     statuses: { new: 'في انتظار التأكيد', confirmed: 'مؤكدة', declined: 'مرفوضة', done: 'تمت', cancelled: 'ملغاة' },
     when: (date, time) => `${date} على الساعة ${time}`,
+    fee: (amount) => `رسوم الزيارة : ${amount}`,
     confirm: 'تأكيد الزيارة',
     decline: 'رفض',
     markDone: 'تحديد كمنجزة',

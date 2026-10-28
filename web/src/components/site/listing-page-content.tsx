@@ -31,7 +31,8 @@ export function ListingPageContent({ listing, similar }: { listing: PublicListin
             <ListingHeader listing={listing} />
           </div>
           <div className="min-w-0 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1 lg:self-stretch">
-            <ListingBookingCard listing={listing} />
+            {/* key resets the card's state (dialog, the "already requested" flags) when navigating between listings client-side. */}
+            <ListingBookingCard key={listing.id} listing={listing} />
           </div>
           <div className="min-w-0 space-y-8 lg:col-span-8">
             <ListingDescription listing={listing} />

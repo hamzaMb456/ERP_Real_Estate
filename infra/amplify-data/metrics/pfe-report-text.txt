@@ -1,0 +1,2004 @@
+
+===== PAGE 1 =====
+End-of-Studies Internship Report
+Design and Implementation of an Asset Management and Predictive
+Maintenance Platform for Industrial Equipment (EAM)
+Prepared by:Hamza Mbarki
+Host company: SagemCom, Software Engineering and Innovation
+Department
+Company supervisor: Mr. Anis Mdaini
+Academic supervisor: Mr. Taoufik Chaouachi
+Academic year: 2025 – 2026
+===== PAGE 2 =====
+Acknowledgements
+I would like to thank all those who contributed, directly or indirectly, to the successful
+completion of this end-of-studies project.
+I would like to express my sincere gratitude to my company supervisor at SagemCom, Mr.
+Anis Mdaini, for his guidance, availability, and valuable advice throughout the internship.
+I would also like to thank my academic supervisor at ESPRIT, Mr. Taoufik Chaouachi,
+for his regular follow-up and constructive recommendations, which contributed significantly
+to the quality of this work.
+My thanks also go to the entire Software Engineering and Innovation Department team
+at SagemCom for their warm welcome and collaborative spirit throughout the internship.
+Finally, I would like to thank my family and those close to me for their continuous support
+and encouragement throughout my studies.
+i
+===== PAGE 3 =====
+Contents
+Acknowledgements i
+General Introduction 1
+1 General Project Context 2
+1.1 Presentation of the host company . . . . . . . . . . . . . . . . . . . . . . . . 2
+1.1.1 Presentation of the host department . . . . . . . . . . . . . . . . . . 2
+1.2 Project context . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+1.3 Problem statement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+1.4 Internship objectives . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.5 Working methodology . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+1.5.1 Sprint-based development . . . . . . . . . . . . . . . . . . . . . . . . 4
+1.5.2 Internship lifecycle . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+1.5.3 Traceability and documentation . . . . . . . . . . . . . . . . . . . . . 5
+1.6 Internship schedule . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+2 Requirements Analysis and Specification 8
+2.1 Identification of actors . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.1.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.2 Functional requirements . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.2.1 Authentication and access management . . . . . . . . . . . . . . . . . 8
+2.2.2 User and role management . . . . . . . . . . . . . . . . . . . . . . . . 9
+2.2.3 Machine asset management . . . . . . . . . . . . . . . . . . . . . . . 10
+2.2.4 Machine labeling . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+2.2.5 Work order management . . . . . . . . . . . . . . . . . . . . . . . . . 11
+2.2.6 Intervention order management . . . . . . . . . . . . . . . . . . . . . 12
+2.2.7 Intervention scheduling . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+2.2.8 Telemetry data collection and monitoring . . . . . . . . . . . . . . . . 13
+2.2.9 Machine learning predictions . . . . . . . . . . . . . . . . . . . . . . . 14
+2.2.10 Alerts and notifications . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+2.2.11 Spare parts coordination . . . . . . . . . . . . . . . . . . . . . . . . . 16
+ii
+===== PAGE 4 =====
+Contents
+2.2.12 Knowledge base and conversational assistant . . . . . . . . . . . . . . 17
+2.2.13 Dashboards and reports . . . . . . . . . . . . . . . . . . . . . . . . . 17
+2.2.14 Archiving and traceability . . . . . . . . . . . . . . . . . . . . . . . . 18
+2.2.15 Application security . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+2.2.16 DevSecOps pipeline . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+2.2.17 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+2.3 Non-functional requirements . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+2.3.1 Docker Compose stacks . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+2.3.2 Performance . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+2.3.3 Availability and resilience . . . . . . . . . . . . . . . . . . . . . . . . 26
+2.3.4 Maintainability and extensibility . . . . . . . . . . . . . . . . . . . . 26
+2.3.5 Portability and deployment . . . . . . . . . . . . . . . . . . . . . . . 26
+2.3.6 Ergonomics and usability . . . . . . . . . . . . . . . . . . . . . . . . . 27
+2.3.7 Data integrity and confidentiality . . . . . . . . . . . . . . . . . . . . 27
+2.3.8 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+3 Design 28
+3.1 General architecture . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28
+3.1.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+3.2 Global business process flow . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+3.3 Data model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30
+3.3.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+3.4 Use Case Diagram . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+3.4.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+3.5 Machine Learning pipeline architecture . . . . . . . . . . . . . . . . . . . . . 34
+3.5.1 Problem framing and maintenance strategy . . . . . . . . . . . . . . . 34
+3.5.2 Training data: the AI4I 2020 dataset . . . . . . . . . . . . . . . . . . 35
+3.5.3 Data quality and validation methodology . . . . . . . . . . . . . . . . 35
+3.5.4 The six initial problem definitions . . . . . . . . . . . . . . . . . . . . 36
+3.5.5 Eight-step model development pipeline . . . . . . . . . . . . . . . . . 39
+3.5.6 The seven prediction models . . . . . . . . . . . . . . . . . . . . . . . 40
+3.5.7 Wave 2 signal processing models . . . . . . . . . . . . . . . . . . . . . 41
+3.5.8 Dempster-Shafer evidence fusion . . . . . . . . . . . . . . . . . . . . . 42
+3.5.9 Live inference request flow . . . . . . . . . . . . . . . . . . . . . . . . 45
+3.5.10 Downstream processing: readiness, alerts, and procurement . . . . . . 46
+3.5.11 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47
+3.6 RAG service and ML bridge architecture . . . . . . . . . . . . . . . . . . . . 47
+3.6.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 47
+3.7 Document ingestion pipeline . . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+iii
+===== PAGE 5 =====
+Contents
+3.7.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+3.8 End-to-end request flow . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+3.9 Technology choices . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 50
+4 Implementation 51
+4.1 Backend implementation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 51
+4.1.1 Maintenance planning workflow . . . . . . . . . . . . . . . . . . . . . 51
+4.1.2 Intervention request workflow . . . . . . . . . . . . . . . . . . . . . . 53
+4.1.3 Work order lifecycle . . . . . . . . . . . . . . . . . . . . . . . . . . . . 55
+4.1.4 Inventory reservation system . . . . . . . . . . . . . . . . . . . . . . . 56
+4.1.5 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 58
+4.2 Frontend implementation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 58
+4.2.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 62
+4.3 Machine Learning pipeline implementation . . . . . . . . . . . . . . . . . . . 62
+4.3.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 64
+4.4 RAG service and conversational bridge implementation . . . . . . . . . . . . 65
+4.4.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 66
+4.5 Pilot rollout plan (PDCA) . . . . . . . . . . . . . . . . . . . . . . . . . . . . 66
+4.6 Production deployment . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 67
+4.7 Technical difficulties encountered . . . . . . . . . . . . . . . . . . . . . . . . 71
+5 Testing and Results 72
+5.1 Test strategy . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 72
+5.2 Machine Learning model evaluation . . . . . . . . . . . . . . . . . . . . . . . 72
+5.2.1 Validation methodology . . . . . . . . . . . . . . . . . . . . . . . . . 72
+5.2.2 Label quality and validation status . . . . . . . . . . . . . . . . . . . 72
+5.2.3 Validated model metrics . . . . . . . . . . . . . . . . . . . . . . . . . 73
+5.2.4 Retraining strategy . . . . . . . . . . . . . . . . . . . . . . . . . . . . 74
+5.2.5 What real data would unlock . . . . . . . . . . . . . . . . . . . . . . 74
+5.2.6 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 75
+5.3 Use case demonstrations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 75
+5.3.1 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 77
+5.4 Difficulties encountered during testing . . . . . . . . . . . . . . . . . . . . . . 78
+General Conclusion 79
+Bibliography / Web References 79
+6 List of Abbreviations and Acronyms 81
+iv
+===== PAGE 6 =====
+Contents
+A Appendices 83
+A.1 Selected code excerpts and diagrams . . . . . . . . . . . . . . . . . . . . . . 83
+A.2 Complete metrics table . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 84
+v
+===== PAGE 7 =====
+List of Figures
+1.1 End-of-studies internship schedule . . . . . . . . . . . . . . . . . . . . . . . . 7
+2.1 Login screen: access rejected pending administrator approval . . . . . . . . . 9
+2.2 User and role management screen . . . . . . . . . . . . . . . . . . . . . . . . 9
+2.3 User and role management screen: role assignment detail . . . . . . . . . . . 10
+2.4 Machine asset management screen . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.5 Machine labeling screen . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+2.6 Work order management screen . . . . . . . . . . . . . . . . . . . . . . . . . 12
+2.7 Intervention order management screen . . . . . . . . . . . . . . . . . . . . . 12
+2.8 Intervention scheduling screen . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+2.9 Telemetry data collection and monitoring screen . . . . . . . . . . . . . . . . 14
+2.10 Telemetry data collection and monitoring screen: sensor history detail . . . . 14
+2.11 Alerts and notifications screen . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+2.12 Alerts and notifications screen: alert detail . . . . . . . . . . . . . . . . . . . 16
+2.13 Spare parts coordination screen . . . . . . . . . . . . . . . . . . . . . . . . . 16
+2.14 Dashboards and reports: Administrator view . . . . . . . . . . . . . . . . . . 17
+2.15 Dashboards and reports: Head Technician view . . . . . . . . . . . . . . . . 18
+2.16 Dashboards and reports: Technician view . . . . . . . . . . . . . . . . . . . . 18
+2.17 Archiving and traceability screen . . . . . . . . . . . . . . . . . . . . . . . . 19
+2.18 GitLab CI/CD pipeline: overview of all stages . . . . . . . . . . . . . . . . . 19
+2.19 Secret scanning pipeline (Gitleaks) . . . . . . . . . . . . . . . . . . . . . . . 20
+2.20 GitLab CI job: scan-secrets (Gitleaks) . . . . . . . . . . . . . . . . . . . . 20
+2.21 Software composition analysis pipeline (pip-audit / pnpm audit) . . . . . . . 21
+2.22 Static application security testing pipeline (SonarQube) . . . . . . . . . . . . 21
+2.23 SonarQube issues list: code smells and maintainability findings . . . . . . . . 22
+2.24 Docker image and infrastructure analysis pipeline (Trivy) . . . . . . . . . . . 22
+2.25 Container security dashboard (Trivy): vulnerabilities by severity, Grafana . . 23
+2.26 Dynamic application security testing pipeline (OWASP ZAP) . . . . . . . . 23
+2.27 DAST dashboard (OWASP ZAP): alerts by severity, Grafana . . . . . . . . . 24
+2.28 SonarQube quality gate: project dashboard . . . . . . . . . . . . . . . . . . . 25
+vi
+===== PAGE 8 =====
+List of Figures
+3.1 General architecture of the platform . . . . . . . . . . . . . . . . . . . . . . . 28
+3.2 Global flow of an intervention request . . . . . . . . . . . . . . . . . . . . . . 30
+3.3 Simplified data model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+3.4 Class diagram . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+3.5 Use case diagram of the EAM platform . . . . . . . . . . . . . . . . . . . . . 33
+3.6 P1–P7 prediction models feeding the DST fusion layer . . . . . . . . . . . . 40
+3.7 Wave 2 signal fusion into the DST health score . . . . . . . . . . . . . . . . 43
+3.8 Wave 2 signals, benchmark, and fusion outcome . . . . . . . . . . . . . . . . 44
+3.9 From ML outputs to readiness, alerts, and purchase drafts . . . . . . . . . . 46
+3.10 RAG service and ML bridge . . . . . . . . . . . . . . . . . . . . . . . . . . . 47
+3.11 End-to-end request flow . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+4.1 Maintenance planning workflow . . . . . . . . . . . . . . . . . . . . . . . . . 52
+4.2 Planning screen (Administrator) . . . . . . . . . . . . . . . . . . . . . . . . . 53
+4.3 Planning screen: per-machine task breakdown . . . . . . . . . . . . . . . . . 53
+4.4 Intervention request workflow . . . . . . . . . . . . . . . . . . . . . . . . . . 54
+4.5 Intervention orders screen . . . . . . . . . . . . . . . . . . . . . . . . . . . . 55
+4.6 Work order lifecycle . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 55
+4.7 Work order management screen . . . . . . . . . . . . . . . . . . . . . . . . . 56
+4.8 Work order close-out form (Technician) . . . . . . . . . . . . . . . . . . . . . 56
+4.9 Inventory reservation data flow . . . . . . . . . . . . . . . . . . . . . . . . . 57
+4.10 Spare parts inventory screen . . . . . . . . . . . . . . . . . . . . . . . . . . . 58
+4.11 Login screen . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 59
+4.12 Administrator dashboard . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 59
+4.13 User approval screen (Administrator) . . . . . . . . . . . . . . . . . . . . . . 60
+4.14 Intervention approval screen (Head Technician/administrator) . . . . . . . . 60
+4.15 Head Technician dashboard . . . . . . . . . . . . . . . . . . . . . . . . . . . 61
+4.16 Technician dashboard . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 61
+4.17 Machine detail and health screen . . . . . . . . . . . . . . . . . . . . . . . . 62
+4.18 ML predictions screen . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 63
+4.19 Predictive alerts screen . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 63
+4.20 Guided procurement screen . . . . . . . . . . . . . . . . . . . . . . . . . . . 64
+4.21 Prediction explainability panel . . . . . . . . . . . . . . . . . . . . . . . . . . 64
+4.22 Knowledge base document management screen . . . . . . . . . . . . . . . . . 65
+4.23 Conversational assistant screen . . . . . . . . . . . . . . . . . . . . . . . . . 65
+4.24 Pilot rollout dashboard (PDCA tracking) . . . . . . . . . . . . . . . . . . . . 67
+4.25 Production deployment pipeline, from infrastructure to public access . . . . 68
+4.26 Production Kubernetes cluster (Azure Portal) . . . . . . . . . . . . . . . . . 69
+4.27 Terraform-managed infrastructure (HCP Terraform workspace) . . . . . . . . 70
+vii
+===== PAGE 9 =====
+List of Figures
+4.28 Helm releases across the cluster: staging and production side by side . . . . . 71
+5.1 Step 1: technician submits the intervention request . . . . . . . . . . . . . . 76
+5.2 Step 2: Head Technician approves the request . . . . . . . . . . . . . . . . . 76
+5.3 Step 3: technician closes the work order . . . . . . . . . . . . . . . . . . . . . 77
+5.4 End-to-end: stock shortage alert . . . . . . . . . . . . . . . . . . . . . . . . . 77
+viii
+===== PAGE 10 =====
+List of Tables
+3.1 Use cases by actor . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+3.2 Sensor features used as model inputs . . . . . . . . . . . . . . . . . . . . . . 35
+3.3 Problem 1 pipeline walkthrough . . . . . . . . . . . . . . . . . . . . . . . . . 37
+3.4 Summary of the six initial ML problems . . . . . . . . . . . . . . . . . . . . 38
+3.5 Document ingestion pipeline stages . . . . . . . . . . . . . . . . . . . . . . . 48
+5.1 Validation status and production gate per model . . . . . . . . . . . . . . . . 73
+5.2 Summary of model evaluation metrics (validated models only) . . . . . . . . 74
+A.1 Summary of the Machine Learning pipeline models . . . . . . . . . . . . . . 84
+ix
+===== PAGE 11 =====
+General Introduction
+Une ligne de production n’annonce pas d’ordinaire une défaillance à l’avance. Elle fonctionne,
+se dégrade silencieusement, puis s’arrête, et le coût n’est alors plus seulement la réparation
+: c’est le temps d’arrêt (downtime), les contrôles qualité manqués, et dans les pires cas
+l’exposition des personnes se trouvant à proximité de la machine au moment de l’événement.
+Les systèmes de gestion d’actifs industriels (Enterprise Asset Management, EAM) construits
+autour de réparations correctives ou d’un calendrier préventif fixe n’ont jamais été conçus
+pour lire les données de fonctionnement propres de la machine avant ce point, ce qui constitue
+exactement la lacune que ce projet se propose de combler.
+Cette lacune est celle autour de laquelle le stage chez SagemCom s’est construit : une
+plateforme EAM qui intègre la prédiction de défaillances basée sur l’apprentissage automa-
+tique (Machine Learning, ML), l’assistance des techniciens sur le terrain, et un assistant
+conversationnel capable de s’appuyer sur la documentation technique, le tout dans un seul
+et même système.
+The question this report answers, concretely, is: can a single platform carry both the
+operational core of industrial asset management, users, machines, work orders, intervention
+orders, and a predictive layer capable of anticipating failures and guiding maintenance teams
+toward them, without the two halves working against each other?
+Chapter 1 lays out the internship context, the host company, and that problem statement
+in full. Chapter 2 turns it into requirements. Chapter 3 designs the system that meets them.
+Chapter 4 walks through what was actually built. Chapter 5 tests it and reports what held
+up and what did not. The general conclusion returns to the question above and states plainly
+how much of it got answered.
+1
+===== PAGE 12 =====
+1 General Project Context
+1.1 Presentation of the host company
+SagemCom is an industrial group specializing in the design and manufacturing of high-value
+communication equipment (set-top boxes, internet boxes, smart meters). The company oper-
+ates automated production lines combining electronic component assembly (SMT), functional
+testing, and quality control, spread across several production areas.
+1.1.1 Presentation of the host department
+The internship took place within the Software Engineering and Innovation Department,
+whose main mission is to develop internal digital tools aimed at modernizing the management
+and maintenance of production equipment, drawing on the industrial data generated by the
+manufacturing lines.
+1.2 Project context
+The management of industrial assets (production machines, assembly lines, test benches)
+traditionally relies on preventive maintenance cycles planned at fixed intervals, regardless of
+the actual condition of the equipment. This approach leads either to unnecessary interven-
+tions on machines still in good condition, or to unanticipated failures on machines degrading
+faster than expected.
+The rise of industrial sensors and machine learning techniques now makes it possible to
+consider predictive maintenance: estimating the probability of failure, the likely failure type,
+the remaining useful life (RUL) and detecting abnormal machine behavior from its operating
+data.
+1.3 Problem statement
+Industrial production lines rely on maintenance strategies that are either purely reactive (in-
+tervening only after a breakdown has occurred) or strictly calendar-based, where preventive
+tasks are performed at fixed intervals regardless of the actual condition of the equipment.
+2
+===== PAGE 13 =====
+Chapter 1: General Project Context
+Reactive maintenance leads to unplanned downtime, emergency part procurement at pre-
+mium cost, and potential safety hazards for nearby operators. Calendar-based preventive
+maintenance, while reducing the frequency of catastrophic failures, generates unnecessary
+interventions on machines still in good condition and fails to catch machines degrading faster
+than the planned cycle.
+The core problem this internship addresses is therefore threefold:
+1. Absence of condition-based visibility.Without continuous analysis of sensor data
+(temperature, rotational speed, torque, tool wear), maintenance teams have no objec-
+tive basis for deciding when a specific machine actually needs attention, leading to
+either over-maintenance or surprise failures.
+2. Fragmented tooling. Enterprise Asset Management (EAM) systems, when they
+exist, typically handle only the administrative workflow (work orders, intervention
+scheduling, spare-parts inventory) and offer no integration with predictive analytics
+or field-level decision support. Machine Learning models, when developed separately,
+remain disconnected from the operational cycle and are never used by the technicians
+who need them.
+3. Lack of contextualized field support.Technicians in the field must currently con-
+sult separate paper manuals, internal wikis, or call the head office to interpret an alert
+or decide on a corrective action. There is no single interface that combines the ma-
+chine’s real-time health status, its maintenance history, and the relevant documentation
+into a single, actionable answer.
+Bridging these three gaps (condition-based visibility, integrated predictive analytics, and
+contextualized field support) within a single, cohesive platform is the problem this project
+set out to solve.
+1.4 Internship objectives
+The main objective of this internship is to design and implement a single, integrated platform
+that combines the following capabilities:
+• EAM operational management:management of users, machines, work orders, in-
+tervention orders, and maintenance scheduling.
+• Predictive maintenance:design and integration of machine learning models (P1 to
+P7) covering failure probability prediction, failure type classification, remaining useful
+life estimation, anomaly detection, intervention prioritization and scheduling, and spare
+parts coordination.
+3
+===== PAGE 14 =====
+Chapter 1: General Project Context
+• Intelligentsupportforfieldteams: implementationofcontextualizedalerts, predic-
+tion explainability to answer “why this alert?”, and a conversational assistant capable
+of answering technicians’ questions using maintenance documentation and the real-time
+health status of machines.
+To achieve these objectives, the platform development will focus on:
+• Backend and frontend developmentof the EAM platform.
+• Design and training of the P1 to P7 predictive maintenance models.
+• Integration of a Retrieval-Augmented Generation (RAG) servicefor docu-
+mentary assistance, connected to real-time machine learning predictions.
+• Validation of the complete solutionthrough functional testing and performance
+evaluation of the developed models.
+1.5 Working methodology
+The internship followed an iterative, sprint-based methodology inspired by Scrum, adapted
+to the constraints of a solo-developer end-of-studies project within an industrial environment.
+Each feature was the subject of a written specification (requirements document), followed
+by a detailed implementation plan, before being built and verified. This methodology made
+it possible to maintain full traceability of design decisions throughout the six months of the
+internship.
+1.5.1 Sprint-based development
+Work was organised into two-week sprints, each ending with a demonstrable milestone. A
+typical sprint followed four phases:
+1. Sprint planning:the objectives for the coming two weeks were defined, broken down
+into concrete tasks with estimated effort, and prioritised against the project roadmap.
+2. Developmentandintegration: featureswereimplemented, testedlocally, andmerged
+into the working branch. Dependencies between frontend, backend, and ML compo-
+nents were resolved incrementally.
+3. Sprint review:the results were demonstrated to the internship supervisor and, when
+relevant, to the company’s technical stakeholders (Head Technician, Administrator).
+Feedback was recorded and fed into the next planning cycle.
+4. Sprint retrospective: what worked well and what needed adjustment in the pro-
+cess was identified, leading to concrete improvements for the next iteration (tooling,
+documentation practices, testing strategy).
+4
+===== PAGE 15 =====
+Chapter 1: General Project Context
+1.5.2 Internship lifecycle
+The six-month internship was structured into five sequential phases, each building on the
+previous one. Figure 1.1 provides a visual timeline.
+Phase 1: Analysis and architecture (month 1).The existing EAM system at Sagem-
+Com was studied in depth: business processes, data model, user roles, and pain points.
+The four-component architecture (frontend, backend, ML microservice, RAG service) was
+designed during this phase, along with the initial data model and API contracts.
+Phase 2: Core platform development (months 1–2). The backend services (user
+management, machineregistry, workorders, interventionorders)andthefrontenddashboards
+for the three roles (Administrator, Head Technician, Technician) were built incrementally.
+Each feature followed the same loop: specification, implementation plan, build, verification.
+Phase 3: Machine Learning integration (months 2–4).The ML microservice was de-
+veloped progressively, starting with the six initially scoped prediction problems (P1–P6) and
+expanding to the Wave 2 signal-fusion layer and the spare-parts demand forecasting module
+(P7). Each model followed an eight-step pipeline (define, collect, prepare, split, choose, train,
+evaluate, tune) applied identically across all problems. This phase also included the RAG
+service for document ingestion and the ML–RAG bridge for conversational assistance.
+Phase 4: Explainability, alerts, and production readiness (months 4–5).Explain-
+ability panels, role-aware alert routing, and the readiness score were added. The system was
+deployed on a Kubernetes cluster (Azure AKS) with Terraform-managed infrastructure and
+Helm-based release management.
+Phase 5: Testing and validation (month 6).Comprehensive testing was carried out:
+unit tests for business logic, integration tests for API endpoints, and end-to-end valida-
+tion of the ML pipeline against known failure scenarios. The label-leakage and validation-
+methodology issues identified during this phase led to significant revisions in the model
+training approach (Chapter 5).
+1.5.3 Traceability and documentation
+Every design decision was recorded in a structured format: the problem being solved, the
+alternatives considered, the choice made, and the justification. This documentation served
+two purposes: it made it possible to revisit early assumptions when later evidence contra-
+dicted them (as happened with the label-leakage issue), and it provided the foundation for
+5
+===== PAGE 16 =====
+Chapter 1: General Project Context
+this report. The internship schedule shown in Figure 1.1 compresses this six-month process
+into a single Gantt chart, with overlapping bars reflecting the parallel nature of the work.
+1.6 Internship schedule
+6
+===== PAGE 17 =====
+Chapter 1: General Project Context
+Internship schedule (months)
+1 2 3 4 5 6 7
+Analysis & architecture
+Backend (users/machines)
+Backend
+(work/interv. orders)
+Frontend (dashboards)
+ML P1 to P3
+ML P4 to P6
+DST fusion (Wave 2)
+RAG (ingestion/S3)
+ML-RAG bridge
+P7 (spare parts)
+Explainability & alerts
+Phase 4 (model redesign)
+Testing & fixes
+Report writing
+Figure 1.1: End-of-studies internship schedule
+7
+===== PAGE 18 =====
+2 Requirements Analysis and Specification
+2.1 Identification of actors
+The EAM platform distinguishes four main roles:
+• Administrator (Admin): manages users, machines, documents in the knowledge
+base, and has an overall view of the platform;
+• Operations Manager (ChefOp): consultation and overview of labels and statuses;
+• Head Technician (ChefTech): plans interventions, oversees work orders, arbitrates
+priorities, and reviews reliability dashboards;
+• Technician (Thech): executes intervention orders, views the health status of the
+machines assigned to them, and interacts with the conversational assistant to get help
+in the field.
+The detailed use case diagram, showing the interactions between the four roles and the
+complete set of system features, is presented in Chapter 3 (Section 3.4), alongside the rest of
+the system design.
+2.1.1 Summary
+The platform serves four roles (Administrator, Operations Manager, Head Technician, Tech-
+nician), each scoped to a distinct slice of the system, from global user and document manage-
+ment down to field execution and the conversational assistant. The use case diagram, detailed
+in Chapter 3, formalizes these boundaries, tying every feature to the role(s) authorized to
+use it and routing all of them through a shared authentication gate.
+2.2 Functional requirements
+2.2.1 Authentication and access management
+The system must require authentication with a username and password before granting any
+access to the platform. Each user is assigned a single role (Administrator, Operations Man-
+ager, Head Technician, Technician) that determines the full set of accessible features and
+8
+===== PAGE 19 =====
+Chapter 2: Requirements Analysis and Specification
+data. Any attempt to access an unauthorized resource must be rejected by the server, inde-
+pendently of any interface-side control.
+Figure 2.1: Login screen: access rejected pending administrator approval
+2.2.2 User and role management
+The administrator must be able to create, edit, deactivate, and delete user accounts, and
+assign them a role. The system must guarantee that a deactivated account can no longer
+authenticate, without deleting its associated action history.
+Figure 2.2: User and role management screen
+9
+===== PAGE 20 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.3: User and role management screen: role assignment detail
+2.2.3 Machine asset management
+The system must allow machines to be registered with their technical characteristics (identi-
+fier, category, location, commissioning date). Each machine has a detailed, viewable record
+combining its current health status, maintenance history, active alerts, and ongoing predic-
+tions. The administrator can add, edit, or archive a machine without affecting the existing
+work orders attached to it.
+Figure 2.4: Machine asset management screen
+10
+===== PAGE 21 =====
+Chapter 2: Requirements Analysis and Specification
+2.2.4 Machine labeling
+The Operations Manager must be able to attach descriptive labels to each machine to fa-
+cilitate classification and search. The system must support creating, editing, and deleting
+labels, as well as assigning them to several machines at once.
+Figure 2.5: Machine labeling screen
+2.2.5 Work order management
+The system must support creating a work order (OT) by specifying the machine concerned,
+the nature of the intervention, the priority, and the desired date. A work order follows a
+defined lifecycle: pending, assigned, in progress, completed, or cancelled. Every transition
+must be logged with the identity of the user and a timestamp. The Head Technician can view
+all work orders, filter them by status or priority, and reassign them in the event a technician
+is unavailable.
+11
+===== PAGE 22 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.6: Work order management screen
+2.2.6 Intervention order management
+An intervention order (BT) is created from a work order and assigned to a specific technician
+with a time slot. The technician must be able to view their assigned intervention orders,
+record the actions performed and the parts replaced, and close the intervention. When an
+intervention is closed, the system must automatically trigger an update of the machine’s
+health score and a retroactive evaluation of earlier predictions.
+Figure 2.7: Intervention order management screen
+12
+===== PAGE 23 =====
+Chapter 2: Requirements Analysis and Specification
+2.2.7 Intervention scheduling
+The system must provide a calendar view of planned interventions, navigable by day, week,
+and month. The Head Technician must be able to schedule a new intervention, modify an
+existing time slot, and check technician availability before any assignment. The schedule
+must visually flag assignment conflicts (a technician already booked for the same time slot).
+Figure 2.8: Intervention scheduling screen
+2.2.8 Telemetry data collection and monitoring
+The system must record sensor readings for each machine: air temperature, process tem-
+perature, rotational speed, torque, and tool wear. This data constitutes the primary source
+for the prediction models and must be viewable as a timestamped history per machine. In
+the absence of real telemetry data for a machine, the system must explicitly report the
+unavailability of predictions rather than substituting default values.
+13
+===== PAGE 24 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.9: Telemetry data collection and monitoring screen
+Figure 2.10: Telemetry data collection and monitoring screen: sensor history detail
+2.2.9 Machine learning predictions
+For each machine with telemetry data available, the system must expose six predictive indi-
+cators computed by machine learning models:
+• Failure probability (P1): estimate of short-term failure risk;
+14
+===== PAGE 25 =====
+Chapter 2: Requirements Analysis and Specification
+• Likely failure type (P2): classification among known failure modes;
+• Remaining useful life (RUL, P3): estimate in days until the next required inter-
+vention, together with a confidence interval;
+• Behavioral anomaly score (P4): detection of abnormal sensor behavior via an
+ensemble of four methods (Isolation Forest, Z-score, cluster deviation, autoencoder);
+• Processing priority (P5): recommended priority level for the associated work order;
+• Maintenance schedule (P6): proposed optimal date for the next preventive inter-
+vention.
+Each prediction must be accompanied by a plain-language explanation, free of technical
+jargon, accessible to a non-specialist user.
+2.2.10 Alerts and notifications
+The system must automatically generate alerts when a model detects a high failure risk, a
+behavioral anomaly, or a foreseeable parts shortage. Alerts must be classified by criticality
+level and viewable by the Head Technician, with filtering by priority. An alert that has
+already been handled (linked to a closed work order) must be automatically archived and no
+longer appear in the active list.
+Figure 2.11: Alerts and notifications screen
+15
+===== PAGE 26 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.12: Alerts and notifications screen: alert detail
+2.2.11 Spare parts coordination
+Based on failure predictions, the system must estimate future spare parts needs per machine
+and generate provisioning proposals. These proposals take the form of draft purchase orders
+subject to explicit human validation: no order can be issued automatically without approval
+from the Head Technician. The system also exposes an operational readiness score per
+machine, combining health status, stock level, and proximity to the next intervention.
+Figure 2.13: Spare parts coordination screen
+16
+===== PAGE 27 =====
+Chapter 2: Requirements Analysis and Specification
+2.2.12 Knowledge base and conversational assistant
+The administrator must be able to import maintenance documents (manuals, technical data
+sheets, procedures) into the platform’s knowledge base. The system must allow any authen-
+ticated user to query this knowledge base in natural language via a conversational assistant.
+The assistant’s responses must combine information extracted from relevant documents with
+the real-time health status of the machine in question, in order to provide contextualized
+advice to the technician in the field.
+2.2.13 Dashboards and reports
+Each role has a personalized dashboard: a fleet-wide overview for the Administrator and the
+Operations Manager, an intervention and alert monitoring view for the Head Technician,
+and an assigned-tasks view for the Technician. The system must support viewing summary
+reports on maintenance activity, machine performance, and the evolution of predictive indi-
+cators.
+Figure 2.14: Dashboards and reports: Administrator view
+17
+===== PAGE 28 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.15: Dashboards and reports: Head Technician view
+Figure 2.16: Dashboards and reports: Technician view
+2.2.14 Archiving and traceability
+Every action performed on a work order, an intervention order, or an alert must be logged in
+an audit trail with the identity of the author, the date, and the nature of the action. Closed
+interventions and handled alerts must be preserved in a viewable, non-modifiable history,
+serving as the basis for the continuous evaluation of the predictive models.
+18
+===== PAGE 29 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.17: Archiving and traceability screen
+2.2.15 Application security
+Access to the platform must be protected by token-based authentication (JSON Web Token,
+JWT), renewed at each session. Authorization control must be enforced server-side on every
+API endpoint, independently of the user interface: no sensitive data must be accessible
+through simple manipulation of the URL or the HTTP request. Passwords must be stored
+in hashed form; application secrets (API keys, connection parameters) must be isolated in
+environment variables and must never appear in the source code. Every significant action
+(creating, editing, or closing a work order or intervention order, validating an alert) must be
+logged in a non-modifiable audit trail.
+2.2.16 DevSecOps pipeline
+Security must be built into the development process through a dedicated GitLab CI/CD
+(Continuous Integration / Continuous Deployment) pipeline, covering the entire software
+supply chain. The pipeline includes five stages, run automatically on every code push, each
+illustrated below.
+Figure 2.18: GitLab CI/CD pipeline: overview of all stages
+19
+===== PAGE 30 =====
+Chapter 2: Requirements Analysis and Specification
+Secret scanning (Gitleaks). Every commit is scanned for accidentally hard-coded cre-
+dentials, API keys, tokens, passwords, and certificates, wherever they appear: the current
+tree or past Git history.
+Source code
++ Git history
+Gitleaks
+regex + entropy scan
+API keys & tokens
+Passwords
+Certificates & keys
+Security
+report
+Figure 2.19: Secret scanning pipeline (Gitleaks)
+Figure 2.20: GitLab CI job: scan-secrets (Gitleaks)
+Software composition analysis (SCA), via pip-audit / pnpm audit.Two scanners
+walk the dependency tree on every build,pip-audit for the Python backend and ML services,
+pnpm auditfor the frontend, cross-referencing each package version against known Common
+Vulnerabilities and Exposures (CVE) and flagging any license incompatible with the project.
+20
+===== PAGE 31 =====
+Chapter 2: Requirements Analysis and Specification
+requirements.txt
+(Python deps)
+package.json
+(JS deps)
+SCA scanners
+pip-audit + pnpm audit
+CVE report
++ license
+compliance
+Figure 2.21: Software composition analysis pipeline (pip-audit / pnpm audit)
+Static application security testing (SAST), via SonarQube. A self-hosted Sonar-
+Qube Community Edition instance re-reads the full backend and frontend tree on every
+push, flagging four recurring risk categories: injection-prone query construction, swallowed
+or overly broad exception handling, weak cryptographic primitives, and endpoints that could
+return more data than the calling role should see.
+Backend +
+frontend
+source code
+SonarQube CE
+self-hosted
+static analysis
+Injection flaws
+Error handling
+Cryptographic quality
+Data exposure
+Quality
+gate
+Figure 2.22: Static application security testing pipeline (SonarQube)
+21
+===== PAGE 32 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.23: SonarQube issues list: code smells and maintainability findings
+Docker image and infrastructure analysis (Trivy).The five Docker images produced
+by the build, plus the Compose files themselves, are checked for two different risk classes:
+known CVEs baked into the OS layers, and misconfiguration in the Compose definitions.
+The infrastructure-as-code (Infrastructure as Code, IaC) part of this scan (trivy config )
+inspectstheComposefilesthemselves, nottheapplicationcode, forconfigurationriskssuchas
+missing resource limits, containers running as root, absent health checks, or ports exposed be-
+yondwhatisrequired; itcurrentlycovers docker-compose.yml, docker-compose.sonarqube.yml,
+and docker-compose.notebooks.yml, each producing a JSON/SARIF/HTML report as a
+pipeline artifact.
+Frontend image
+Backend image
+ML microservice image
+RAG service image
+Celery worker image
++ Compose files
+Trivy scanner
+OS layers + IaC config
+CVEs in
+system layers
+Infrastructure
+misconfigurations
+Figure 2.24: Docker image and infrastructure analysis pipeline (Trivy)
+22
+===== PAGE 33 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.25: Container security dashboard (Trivy): vulnerabilities by severity, Grafana
+Dynamicapplicationsecuritytesting(DAST),viaOWASPZAP. TheOpenWorld-
+wideApplicationSecurityProject(OWASP)ZAP(ZedAttackProxy)automationframework
+drives the running stack directly: it logs in as each of the four roles in turn (Administra-
+tor, Head Technician, Operations Manager, Technician) to probe authenticated routes, then
+separately probes the three services that sit outside any login wall (ML microservice, RAG
+service, frontend), hunting in both cases for the OWASP Top 10 categories most relevant
+here, SQL injection, Cross-Site Scripting (XSS), missing or misconfigured security headers,
+and authentication bypass.
+Running
+application
+OWASP ZAP
+automation
+framework
+Auth: Administrator
+Auth: Head Technician
+Auth: Operations Manager
+Auth: Technician
+Unauth: ML microservice
+Unauth: RAG service
+Unauth: Frontend
+OWASP Top 10
+findings
+SQLi, XSS, headers,
+auth flaws
+Figure 2.26: Dynamic application security testing pipeline (OWASP ZAP)
+23
+===== PAGE 34 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.27: DAST dashboard (OWASP ZAP): alerts by severity, Grafana
+Theresultsofeachscannerareconsolidatedbyacentralizedreportingscript( security_report.py)
+that produces a structured terminal report on every pipeline run. All security stages are con-
+figuredinnon-blockingmode( allow_failure: true), providingimmediatevisibilityintoresults
+without blocking delivery, while keeping the findings in a report available for review after
+every run.
+As of the latest scan, the SonarQube quality gate is fully green on all four of its conditions:
+zero new violations, 100% of new security hotspots reviewed, 2.6% code duplication on new
+code (down from an initial 10.3%), and 74.8% coverage of new code by automated tests, above
+the required 70% threshold. Duplication was brought down by extracting logic that had been
+copy-pasted across several files into shared, reusable modules, rather than by excluding the
+duplicated code from analysis; for example, one shared module now backs all four data-
+seeding scripts, and one shared form component replaced three near-identical copies in the
+frontend.
+24
+===== PAGE 35 =====
+Chapter 2: Requirements Analysis and Specification
+Figure 2.28: SonarQube quality gate: project dashboard
+2.2.17 Summary
+Fourteen requirement areas were specified, spanning classic EAM operations (users, ma-
+chines, work orders, interventions, scheduling), the ML-driven layer built on top of them
+(six predictive indicators, alerts, spare-parts coordination, the conversational assistant), and
+the security posture of the platform itself (application-level protections and the DevSecOps
+pipeline that enforces them on every push). Two constraints recur across nearly all of them:
+every prediction must ship with a plain-language explanation, and the system must degrade
+honestly, reporting missing telemetry rather than fabricating a plausible-looking answer.
+2.3 Non-functional requirements
+2.3.1 Docker Compose stacks
+The project is split into four independent Docker Compose stacks, each covering a distinct
+concern and startable on its own:
+• docker-compose.yml, the core application stack: Postgres, RabbitMQ, MinIO, the
+backend API, the Celery worker and scheduler, the RAG service, the ML microservice,
+the frontend, and pgAdmin.
+• docker-compose.sonarqube.yml, theself-hostedSonarQubeCommunityEditionserver
+and its database, used by the SAST stage of the pipeline.
+25
+===== PAGE 36 =====
+Chapter 2: Requirements Analysis and Specification
+• docker-compose.monitoring.yml, Prometheus, Grafana, and a Pushgateway, used to
+collect and visualize pipeline and security-scan metrics over time.
+• docker-compose.notebooks.yml, the Jupyter research environment used to train and
+evaluate the Machine Learning models offline.
+Keeping these four stacks separate means the SonarQube server, the monitoring stack,
+or the research notebooks can each be started, stopped, or rebuilt independently, without
+affecting the running application.
+2.3.2 Performance
+The response time for common operations (viewing a machine record, listing work orders,
+updating a status) must remain under two seconds under normal usage conditions. Machine
+learning model inference, which involves several computation pipelines, must complete in
+under five seconds for all six indicators of a machine. The interface must remain responsive
+during asynchronous calls to the ML microservice, displaying a loading indicator rather than
+blocking the user.
+2.3.3 Availability and resilience
+Classic management features (work orders, intervention orders, scheduling) must remain fully
+operational even if the Machine Learning microservice is unavailable. Should a machine have
+no telemetry on record, the platform must say so outright and fall back to a health score built
+from maintenance history alone, never inventing sensor values to keep the pipeline running.
+The platform’s various services (backend, ML microservice, RAG service, object storage)
+must be deployed as independent containers, allowing any one of them to be restarted or
+updated without interrupting the others.
+2.3.4 Maintainability and extensibility
+The architecture must clearly separate responsibilities between the presentation, business
+logic, and data access layers, to facilitate adding new predictive models or new roles without
+a full overhaul. Database migrations must be versioned and applied incrementally through
+a dedicated tool (Alembic), ensuring traceability of schema evolution. The ML model code
+must be organized so that an individual model can be replaced or updated without affecting
+the other prediction pipelines.
+2.3.5 Portability and deployment
+The entire platform must be able to run on any environment with Docker and Docker
+Compose, without any manual dependency installation. Environment-specific configuration
+26
+===== PAGE 37 =====
+Chapter 2: Requirements Analysis and Specification
+(URLs, keys, connection parameters) must be centralized in a single.env file, kept separate
+from the source code.
+2.3.6 Ergonomics and usability
+The interface must adapt its menus, dashboards, and available actions to the role of the
+logged-in user, without exposing features beyond their scope. Information derived from the
+predictive models must be presented in business language (failure probability, remaining
+useful life, parts needed) without algorithmic terminology (model names, raw statistical
+metrics). The interface must be usable from a desktop workstation as well as from a tablet
+used in the field, with a layout adapted to each screen format.
+2.3.7 Data integrity and confidentiality
+Data for each machine must be accessible only to users whose role explicitly authorizes it;
+a technician must not be able to view data for a machine that is not assigned to them.
+The history of interventions, alerts, and predictions must be preserved with integrity: no
+retroactive modification is allowed once an order or an alert has been closed.
+2.3.8 Summary
+Beyond features, the platform is bound by explicit quality constraints: sub-two-second re-
+sponse times, graceful degradation of both ML and telemetry-dependent features when a
+dependency is unavailable, and a strict separation of concerns that keeps every service inde-
+pendently deployable. These constraints, not just the functional list, shaped several imple-
+mentation decisions described in Chapter 4 (independent containers, non-blocking security
+gates, the health-score fallback path).
+27
+===== PAGE 38 =====
+3 Design
+3.1 General architecture
+The platform is organized into four main components, communicating over HTTP APIs:
+• a frontend built with Next.js, offering three distinct spaces depending on the role
+(Administrator, Head Technician, Technician);
+• a backend built with FastAPI, responsible for business logic, data persistence (Post-
+greSQL), and security (authentication, access control);
+• a Machine Learning microservicebuilt with Flask, in charge of serving the predic-
+tive models (P1 to P7);
+• a RAG service, in charge of document ingestion and generating conversational re-
+sponses enriched with real-time ML context.
+The whole system is orchestrated by Docker, with object storage (MinIO) for documents
+and attachments.
+Frontend
+Next.js
+Backend
+FastAPI
+ML Microservice
+Flask RAG Service
+PostgreSQL / MinIO
+Figure 3.1: General architecture of the platform
+28
+===== PAGE 39 =====
+Chapter 3: Design
+3.1.1 Summary
+The platform is a four-component system (Next.js frontend, FastAPI backend, Flask ML
+microservice, RAG service) communicating over HTTP, with PostgreSQL and MinIO as
+shared storage and Docker as the deployment substrate. The backend sits at the center,
+acting as the sole point of contact for the frontend and fanning out to the two specialist
+services as needed.
+3.2 Global business process flow
+Beyond the component-level architecture above, it is useful to see how a single business event
+travels through the whole system. An intervention request follows one validation gate before
+becoming a work order, while machine telemetry is analyzed continuously by the ML engine,
+whose predictions feed directly into that same validation step as supporting evidence for the
+Head Technician.
+29
+===== PAGE 40 =====
+Chapter 3: Design
+Figure 3.2: Global flow of an intervention request
+Rejecting a request (dashed box in Figure 3.2) automatically releases any parts reservation
+already made for it; approving one creates a linked work order and moves execution forward
+until a second, final validation closes the diagnostic loop before an Administrator can close
+the order.
+3.3 Data model
+The data model is built around four central entities, identified as the most strongly connected
+during the domain analysis:
+• User: carries the role (Administrator, ChefTech, Technician) and access rights;
+30
+===== PAGE 41 =====
+Chapter 3: Design
+• Machine: represents a piece of production equipment, with its characteristics and
+history;
+• WorkOrder: a work request associated with one or more machines;
+• InterventionOrder: a concrete intervention carried out by a technician on a machine,
+linked to a work order.
+An Alert entity connects these objects to the ML microservice’s predictions.
+User Machine
+WorkOrder InterventionOrder
+Alert
+Figure 3.3: Simplified data model
+Figure 3.4 details this model at the class level, with the full set of attributes, methods,
+enumerations, and cardinalities.
+31
+===== PAGE 42 =====
+Chapter 3: Design
+Figure 3.4: Class diagram
+3.3.1 Summary
+Four entities (User, Machine, WorkOrder, InterventionOrder) anchor the relational schema,
+with Alert bridging that operational core to the ML microservice’s predictions. The full class
+diagram (Figure 3.4) expands this into the complete set of attributes, methods, enumerations,
+and cardinalities actually implemented.
+3.4 Use Case Diagram
+Figure 3.5 presents the detailed use case diagram, showing the interactions between the four
+roles identified in Chapter 2 and the complete set of system features.
+32
+===== PAGE 43 =====
+Chapter 3: Design
+EAM APP
+Chefop
+Thech
+ChefTech
+Admin
+manage
+labels
+view machine
+status
+manage
+intervention
+orders
+view
+schedule
+by day by week by month
+view
+reports
+manage archive
+manage
+work order tasks
+manage
+alerts
+by priority
+manage
+schedule
+manage
+roles/users
+authentication
+«extends»
+«extends»
+«extends»
+«extends»
+«includes»
+Figure 3.5: Use case diagram of the EAM platform
+Table 3.1 summarizes the main use cases handled by each actor.
+33
+===== PAGE 44 =====
+Chapter 3: Design
+Actor Main use cases
+Administrator Manage users, manage machines, manage the knowledge base, view
+global statistics
+Head Technician Plan interventions, oversee work orders, arbitrate priorities, review re-
+liability dashboards, validate provisioning proposals
+Technician View assigned intervention orders, close an intervention, view a ma-
+chine’s health status, query the conversational assistant
+Table 3.1:Use cases by actor
+3.4.1 Summary
+The use case diagram and its accompanying table translate the role boundaries introduced in
+Chapter 2 into a single visual and tabular reference: every feature is tied to the role(s) autho-
+rized to use it, and every path to a protected feature routes through the shared authentication
+gate.
+3.5 Machine Learning pipeline architecture
+3.5.1 Problem framing and maintenance strategy
+Every machine on the line degrades before it breaks, and that degradation is, in most cases,
+visible in the sensor data well ahead of the actual stoppage, which is the premise this ML
+pipeline is built on. The platform is designed against the two maintenance modes it replaces.
+Left purely reactive, a line only gets attention once it has already stopped: technicians
+scramble, parts get ordered on emergency terms, and the line sits idle in the meantime,
+the most expensive mode measured in total cost, not just repair cost. A fixed preventive
+calendar avoids the worst of that but trades it for its own waste: a part gets swapped on
+schedule whether it needed it or not, and a machine degrading faster than the calendar
+assumes still fails between two scheduled visits. What this platform does instead is read the
+machine’s own signals, temperature, torque, tool wear, rotational speed, continuously, and
+use that to answer three questions before a failure happens: is this machine about to fail,
+what kind of failure is developing, and which parts will the technician need on hand. Timing
+the intervention off the machine’s actual condition rather than off a clock is the point of the
+seven-model pipeline described in the rest of this section.
+The core question every component of the ML service is designed to answer is:given a
+machine’s current sensor readings and history, how healthy is it right now, how long before
+it needs intervention, and what should the team prepare?
+34
+===== PAGE 45 =====
+Chapter 3: Design
+3.5.2 Training data: the AI4I 2020 dataset
+All predictive models are initially trained on the AI4I 2020 Predictive Maintenance Dataset,
+a publicly available UCI benchmark that simulates CNC machine operations. The dataset
+contains 10000 machine cycle records across 100 simulated machines, with a failure rate
+of 3.4% (339 confirmed failure events distributed across five failure types). It provides the
+supervised signal needed to train classification and regression models before any real machine-
+specific history is available.
+Each cycle is described by five sensor readings and two derived features:
+Feature Typical range Physical meaning
+Air temperature ≈ 300 K Ambient air around the ma-
+chine
+Process temperature ≈ 310 K Heat generated by the ma-
+chining process
+Rotational speed ≈ 1,500 rpm Spindle rotation speed
+Torque ≈ 40 Nm Mechanical load applied to
+the tool
+Tool wear 0–250 min Cumulative machining time
+on current tool
+Temperature delta derived Process temp minus air
+temp
+RPM× Torque derived Power proxy
+Table 3.2:Sensor features used as model inputs
+Five of these seven features are read directly from machine sensors; the other two are
+derived at inference time by the feature pipeline before any model sees the data.
+3.5.3 Data quality and validation methodology
+Before any model is trained, four data quality constraints are enforced.
+Syntheticdataquarantine. Everyseededorgeneratedtelemetryrowisflagged is_synthetic
+= true at write time. The ML service filters these rows out by default in production
+(ML_ALLOW_SYNTHETIC_TELEMETRY = false ), so models only consume readings that come
+from real sensors. Synthetic data remains available only for local pipeline testing through an
+explicit environment flag.
+35
+===== PAGE 46 =====
+Chapter 3: Design
+Null telemetry handling. If a machine has no real telemetry on record, the system does
+not substitute placeholder sensor values. Calling an ML model on fabricated inputs would
+produce a prediction that looks valid but is entirely meaningless. Instead, the service returns
+telemetry_available: false , skips the microservice call, and falls back to a simpler rule-
+based health estimate derived from maintenance history alone.
+Label leakage detection. The most significant data quality issue found during develop-
+ment wastarget leakage: the training labels for P1, P2, and P5 were generated by determin-
+istic formulas of tool_wear, the same feature the models read as input. A model trained
+on such data learns to reproduce the formula, not to predict real failures. These models
+report near-perfect accuracy figures in validation (∼99% AUC-ROC) but the number mea-
+sures arithmetic reproduction, not predictive power. They are taggedvalidation_status:
+"leaked" in the model registry, and their accuracy figures are suppressed in the dashboard.
+Fixing this requires replacing the formula-derived labels with real, technician-confirmed fail-
+ure records.
+Group-holdout validation. For time-series machine data, a random 80/20 row split is
+unsound: both sets contain readings from the same machines, which means the model sees
+data from a machine’s own degradation trajectory in both training and test. This inflates
+test scores by memorisation rather than generalisation. The correct procedure is to hold out
+entire machines during training (for example, withholding machines with IDs 70–79 entirely)
+so that evaluation is always performed on machines the model has never encountered. This
+is the methodology used for P3, and it is the reason its validation metrics are considered
+reliable while the others’ are not.
+3.5.4 The six initial problem definitions
+This subsection reproduces the six problem definitions exactly as originally specified for the
+project, before any implementation work began.
+Problem 1: Predictive Maintenance. "Will this machine fail soon?"
+Type: Binary Classification (0 = Healthy, 1 = Failed)
+Problem 2: Failure Type Classification. "What TYPE of failure is likely?"
+Type: Multi-label Classification
+The dataset includes 5 failure sub-labels:
+• TWF: Tool Wear Failure
+• HDF: Heat Dissipation Failure (57% correlationwith failure, the strongest predictor)
+36
+===== PAGE 47 =====
+Chapter 3: Design
+Pipeline Step What We Do
+Define the problem Predict if a machine will fail based on sensor telemetry
+Collect data ai4i2020.csv: 10,000 rows (Kaggle AI4I 2020 dataset)
+Prepare & clean Select5features: AirTemp, ProcessTemp, RPM,Torque, ToolWear
+Split data 80/20 train-test split withstratify=y
+Choose a model RandomForestClassifier (handles non-linear sensor data)
+Train the model ml_train_basic.py with suréchantillonnage SMOTE ( Synthetic
+Minority Over-sampling Technique) + GridSearchCV tuning
+Evaluate Confusion matrix: 98% accuracy, 63% recall on failures
+Tune & improve class_weight=’balanced’, SMOTE, GridSearchCV (done)
+Save the model basic_machine_model.pkl
+Deploy GET /api/v1/ml/machines/{id}/prediction → displayed in
+PredictivePanel.tsx
+Table 3.3:Problem 1 pipeline walkthrough
+• PWF: Power Failure
+• OSF: Overstrain Failure
+• RNF: Random Failure
+Benefit for EAM:Auto-suggest work order type (mechanical, electrical, thermal) so the
+ChefTech assigns the right technician.
+Problem 3: Remaining Useful Life (RUL) Estimation."How many days before this
+machine needs maintenance?"
+Type: Regression (RandomForestRegressor or XGBoost)
+• Input: Tool wear progression over time + intervention history
+• Output: rul_days← already displayed inPredictivePanel.tsx
+• Data source: Real operational data from the PostgreSQLinterventions table
+Problem 4: Anomaly Detection. "Is this machine behaving abnormally right now?"
+Type: Unsupervised Learning (no labels needed)
+• Model: Isolation Forest or Autoencoder
+37
+===== PAGE 48 =====
+Chapter 3: Design
+• Input: Real-time telemetry (temperature, RPM, torque)
+• Benefit for EAM:Trigger SSE alerts viacore/notifications.py when anomaly is
+detected, even before a failure is predicted
+Problem 5: Work Order Priority Prediction. "How urgent should this work order
+be?"
+Type: Multi-class Classification
+• Classes: LOW, MEDIUM, HIGH, CRITICAL
+• Features: Machine age, time since last maintenance, number of previous interventions,
+machine zone
+• Data source: PostgreSQL work_orders and interventions tables
+Problem 6: Maintenance Schedule Optimization."When is the BEST time to sched-
+ule maintenance for all machines?"
+Type: Time-series forecasting (ARIMA, Prophet, or LSTM)
+• Input: Historical planning data + failure rates per machine
+• Benefit for EAM:Fewer unexpected breakdowns, better technician allocation across
+zones
+# Problem ML Type Priority Data Source
+1 Binary failure pre-
+diction
+Classification Done ai4i2020.csv
+2 Failure type
+(TWF/HDF/PWF...)
+Multi-label High ai4i2020.csv
+3 RUL estimation Regression High PostgreSQL DB +
+Kaggle
+4 Anomaly detection Unsupervised Medium Sensor telemetry
+5 Work order priority Classification Medium PostgreSQL DB
+6 Maintenance
+scheduling
+Time-series Advanced Planning history
+Table 3.4:Summary of the six initial ML problems
+Summary.
+38
+===== PAGE 49 =====
+Chapter 3: Design
+3.5.5 Eight-step model development pipeline
+Every feature followed the same disciplined loop: written specification, implementation plan,
+build, thenverification. ForthesixoriginallyscopedMLproblems, thislooptooktheconcrete
+shape of an eight-step pipeline: Step 1: define, Step 2: collect, Step 3: prepare, Step 4: split,
+Step 5: choose, Step 6: train, Step 7: evaluate, and Step 8: tune. This pipeline was applied
+identically to each one; two of the choices made at this early stage (a random train/test split
+and features that were later found to leak the label) were revised once productionisation
+surfaced the issue in Chapter 5. Parts-demand forecasting (P7) came later, folded in only
+once the data model underneath the platform could actually support a seventh prediction
+target.
+Each of the six initial problems (binary failure prediction, failure-type classification, re-
+maining useful-life estimation, anomaly detection, work-order priority, and maintenance
+scheduling) was carried through the same eight stages, summarized in Table??.
+Step 1: Define and Step 2: Collect.Each problem was first defined according to its
+prediction objective, followed by the collection of the data required for its development.
+Step 3: Prepare. At the data-preparation stage, a first, self-imposed warning was
+already recorded for the failure-prediction problem: the five failure sub-labels (TWF, HDF,
+PWF, OSF, RNF) are deterministic sub-causes of the overall failure flag and must not be
+used as input features, on pain of artificially inflating accuracy. This is the same class of issue
+(input features encoding the target) that the later, systematic label-leakage audit formally
+confirmed and tagged asvalidation_status: "leaked" in production (Section 5.2.2); it
+had already been anticipated qualitatively at this earlier stage of the project, but not yet
+proven or acted upon.
+Step 4: Split.Because the failure class represents only 3.39% of the benchmark dataset,
+step 4 applied stratified splitting together with SMOTE oversampling (synthetic minority
+over-sampling, applied strictly after the split to avoid leaking test information into the syn-
+thetic samples) for the classification problems, while the maintenance-scheduling problem
+(being a time series) was split chronologically, since a random shuffle would let the model
+train on data from after the point it is tested on.
+Step 5: Choose. Table?? summarizes the model initially selected for each problem at
+step 5, and the evaluation target fixed for it at step 7.
+Step 6: Train and Step 7: Evaluate.The selected models were trained and evaluated
+according to the predefined evaluation targets for each problem.
+Step 8: Tune and improve. Step 8 defined, for every problem, a concrete lever
+to close the gap between the measured and the target metric: hyperparameter search via
+GridSearchCV, classification-threshold adjustment to trade precision for recall, alternative
+resampling strategies (SMOTE, ADASYN, or undersampling), targeted feature engineering
+(for instance, a temperature-delta feature to strengthen the heat-dissipation-failure signal),
+39
+===== PAGE 50 =====
+Chapter 3: Design
+class-weightingofrareprioritylevels, andearlystoppingtopreventoverfittingontheboosted-
+tree models.
+Severaloftheseinitialchoiceswererevisedduringproductionisation, oncethelabel-leakage
+and validation-methodology issues described in Chapter 5 were identified: Random Forest
+gave way to XGBoost with group-holdout validation for P1, and the scheduling problem was
+reworked away from a pure Prophet time-series forecast towards the classifier-based approach
+and the broader Wave 2 signal-fusion layer presented in this chapter. A seventh problem,
+spare-parts demand forecasting (P7), was added beyond this original six-problem scope once
+the platform’s data model matured enough to support it.
+3.5.6 The seven prediction models
+The prediction pipeline is structured into seven independent specialists, each answering one
+question about the machine. They are trained separately and never consume one another’s
+output: each reads the same shared telemetry feature set from Table 3.2 and returns its own
+field in the unified API response.
+P1: Failure Probability
+P2: Failure Type
+P3: RUL Estimate
+P4: Anomaly Detection
+P5: Work Order Priority
+P6: Maintenance Schedule
+P7: Parts Demand
+Feature
+Pipeline
+5 Sensor
+Inputs
+DST
+Fusion
+Health
+Score
+0–100
+Figure 3.6: P1–P7 prediction models feeding the DST fusion layer
+P1: Failure Probability. An XGBoost binary classifier that outputs a 0–100% proba-
+bility of failure within the next cycle. Its primary role is to rank machines by urgency so
+that planners inspect the highest-risk ones first. As discussed in Section 5.2.2, this model’s
+accuracy figure is not a reliable measure of real predictive power due to label leakage.
+P2: Failure Type Classification. A multi-output XGBoost classifier that predicts which
+failure mode is developing among five possibilities: tool wear failure (TWF), heat dissipation
+failure (HDF), power failure (PWF), overstrain failure (OSF), and random failure (RNF).
+Its output allows maintenance teams to pre-stage the correct spare parts and skill set before
+a technician arrives, reducing intervention duration.
+40
+===== PAGE 51 =====
+Chapter 3: Design
+P3: Remaining Useful Life Estimation. An XGBoost regressor that estimates how
+many operational cycles remain before the machine requires intervention. It is the only
+model in the pipeline with a validated, non-leaked signal: after switching from a random row
+split to group-holdout validation (machines 70–79 withheld entirely from training), the model
+achieves a mean absolute error of 14.95 cycles and a concordance index of 0.620. A quantile
+regression head trained alongside the point estimator provides a calibrated prediction interval
+(P10 to P90), so the dashboard displays a range rather than a single number, reflecting the
+true uncertainty in the estimate.
+P4: Behavioral Anomaly Detection. A four-method ensemble that detects abnormal
+sensor behaviour. An Isolation Forest (IF)contributes 30% of the combined score,Z-
+Score normalization 20%, cluster deviation 10%, and a trained neuralautoencoder (AE)
+40%. The ensemble score is normalized to[0, 1]; a score above 0.5 is classified as an anomaly.
+Using TensorFlow CPU, the autoencoder was trained exclusively on failure-free machine
+cycles and a separate.keras artifact is loaded at startup alongside the classical methods.
+P5: Work Order Priority. An XGBoost classifier that assigns a priority level (LOW,
+MEDIUM, HIGH, CRITICAL) to a predicted failure, allowing the maintenance scheduler
+to sequence the work queue. Like P1, its labels in the current training set are derived from
+the same sensor features, making its accuracy figure unreliable until real priority judgements
+from technicians are accumulated.
+P6: Maintenance Scheduling. An XGBoost classifier that recommends the appropriate
+scheduling window: immediate, within the week, or planned. It enables the platform to
+distinguish between a machine that needs intervention today and one that can be included
+in the next scheduled maintenance cycle without risk.
+P7: Parts Demand Forecasting. A statistical forecasting module that predicts which
+sparepartswillbeneededandwhen. Itpairstwoforecastinglogicsfortwodifferentquestions:
+a survival model estimates the odds that a given machine will need a given part within an
+upcoming window, while Croston’s method, built for demand arriving in occasional bursts
+rather than a steady trickle, which is how spare parts actually get consumed here, estimates
+how much of that part will be needed when it is. When forecast demand exceeds current
+stock, a shortage alert is raised and a draft procurement request is generated for human
+approval.
+3.5.7 Wave 2 signal processing models
+A second, parallel pipeline (referred to as Wave 2) processes each machine’s telemetryhistory
+rather than a single snapshot. Four signal-processing models run concurrently:
+41
+===== PAGE 52 =====
+Chapter 3: Design
+• a Physics-Informed Neural Network (PINN)that encodes degradation physics
+as soft constraints in the loss function, preventing the model from producing physically
+impossible RUL estimates;
+• a Cox Proportional Hazards (Cox PH) survival modelthat estimates the prob-
+ability of failure over a future time window while explicitly handling right-censored
+machines (those still running at the observation cutoff, whose future fate is unknown);
+• a Mahalanobis Health Indexthat measures how far current sensor readings deviate
+from that specific machine’s own healthy baseline, excluding the tool-wear reset event
+from computation to avoid false alarms immediately after a tool replacement;
+• a CUSUM (Cumulative Sum) anomaly detectorsmoothed by aKalman filter
+to detect slow cumulative drift that point-in-time snapshots miss.
+3.5.8 Dempster-Shafer evidence fusion
+Rather than letting one of the four Wave 2 signals silently override the others, their outputs
+are reconciled with Dempster-Shafer evidence theory (DST): each signal casts a vote across
+the same four possible machine states,Θ ={Healthy, Degrading, Critical, Unknown}, and
+the combination rule is what lets four independently trained models, none of them aware of
+the others, still produce one defensible answer even when two of them disagree.
+Each model converts its output into aBasic Probability Assignment(BPA) overΘ using
+piecewise-linear membership functions. A model with high confidence contributes most of
+its mass to one of the three substantive hypotheses; a model that is unavailable or disagrees
+strongly with the others contributes its mass toUnknown rather than distorting the combined
+estimate. The combination rule switches between Dempster’s rule (when conflictK≤ 0.8)
+andthemoreconservativeYager’srule(when K > 0.8), sothatgenuinedisagreementbetween
+sources is reported as uncertainty rather than silently overridden.
+This mechanism is important for the platform’s credibility. A system that always produces
+a confident-sounding answer, even when its own inputs contradict one another, will eventually
+be confidently wrong. The DST layer is designed to say “not sure yet” explicitly, rather than
+forcing a false consensus. The fused BPA yields the singleunified health score(0–100) and
+an overall verdict that downstream readiness and alerting logic consumes.
+42
+===== PAGE 53 =====
+Chapter 3: Design
+Figure 3.7: Wave 2 signal fusion into the DST health score
+For a non-specialist reader, Figure 3.8 restates the same mechanism in plain language:
+what each of the four Wave 2 signals contributes, whether adding a censoring-aware survival
+model over a naive regression is actually worth it (it is: Table 5.2’s C-index figures, repeated
+here as a bar chart), and what the fusion layer outputs depending on whether its four inputs
+agree or conflict.
+43
+===== PAGE 54 =====
+Chapter 3: Design
+Figure 3.8: Wave 2 signals, benchmark, and fusion outcome
+44
+===== PAGE 55 =====
+Chapter 3: Design
+In everyday terms, the four boxes at the top of Figure 3.8 can be read as follows.
+Drift watchkeeps an eye on whether a machine’s readings are slowly creeping away from
+normal, cycle after cycle. A single unusual reading is not a concern; a small change that
+keeps growing, day after day, is. This is the one signal built specifically to catch that kind
+of slow, easy-to-miss decline before it turns into a sudden breakdown.
+Distance from normalcompares a machine’s current readings against its own personal
+baseline: what "normal" looks like for that specific machine, not for machines in general. The
+further today’s reading sits from that baseline, the more it stands out. A recent tool change
+is deliberately ignored for a short while after it happens, so that a routine part swap is never
+mistaken for a warning sign.
+Survival oddsasks a different question: given everything known about similar machines,
+how long do machines like this one typically keep running before needing attention? Impor-
+tantly, it does not only look at machines that have already broken down; it also learns from
+every machine that is still healthy and running today, which is what makes its estimate of
+"how long is left" meaningfully more honest.
+Physics check acts as a common-sense filter on top of the other estimates. It knows
+the basic physical rules a machine has to obey (for instance, that remaining lifetime cannot
+suddenly jump up for no reason) and it rejects any estimate that breaks those rules, even if
+a purely statistical model would have accepted it.
+Together, these four signals are combined by the fusion step: when they broadly agree,
+the platform reports a confident health score; when they clearly disagree with each other, it
+says so honestly instead of picking a number at random, as illustrated in the bottom half of
+Figure 3.8.
+3.5.9 Live inference request flow
+When a user opens a machine detail page, the following sequence executes:
+1. The frontend requestsGET /api/v1/ml/machines/{id}/unified-health .
+2. The backend queries PostgreSQL for the latest real sensor readings, filtering out syn-
+thetic rows. If none exist, it returnstelemetry_available: false and stops here.
+3. The backend posts the sensor snapshot to the ML microservice, which runs P1–P7 in
+parallel(modelsareheldinmemoryviaanLRUcacheafterfirstloadtoavoidre-reading
+disk on every request).
+4. The Wave 2 models process the telemetry history concurrently.
+5. The DST fusion layer combines all available signals into the health score and verdict.
+6. The complete prediction record is written toml_prediction_logs for audit and future
+retraining.
+45
+===== PAGE 56 =====
+Chapter 3: Design
+7. The response is returned to the frontend, which renders the ML Intelligence panel.
+3.5.10 Downstream processing: readiness, alerts, and procurement
+The readiness score blends the unified health score (40%) with inventory coverage (30%),
+procurement risk (20%), and maintenance recency (10%). Alerts aggregate signals from
+both pipelines (an anomaly flag from P4, a parts shortage from P7, or a model-disagreement
+flag from the fusion step itself) and a detected parts shortage triggers the purchase draft, as
+shown in Figure 3.9.
+Figure 3.9: From ML outputs to readiness, alerts, and purchase drafts
+P7 acts as a smart shopping list rather than an automated buyer. Every spare part is
+consumed at its own pace (some wear steadily, others are only replaced in occasional bursts)
+and P7 learns that pace per part, per machine, then combines it with how likely each machine
+is to need work soon. From this it estimates how many units of a given part will be needed
+within the coming weeks, and compares that estimate against what is actually available in
+the warehouse. When the numbers do not add up, a shortage alert is raised well before a
+technician is left waiting for a part in the middle of a repair. The system never places an
+order autonomously; it only prepares the suggestion, and a human must review and approve
+it.
+46
+===== PAGE 57 =====
+Chapter 3: Design
+3.5.11 Summary
+Seven independent models (P1–P7) each answer one question from a shared telemetry snap-
+shot, feedingasecond, history-awarepipeline(Wave2: PINN,CoxPH,Mahalanobis, CUSUM/Kalman)
+whose outputs are reconciled through Dempster-Shafer evidence fusion into a single health
+score and verdict, reporting genuine uncertainty rather than a false consensus when sources
+disagree. Three data-quality safeguards run ahead of every prediction (synthetic-data quar-
+antine, null-telemetry handling, group-holdout validation), and the resulting health score,
+together with parts-demand forecasting, drives the readiness, alerting, and procurement logic
+described at the end of this section.
+3.6 RAG service and ML bridge architecture
+The RAG service ingests technical documentation (maintenance manuals, safety procedures,
+machine data sheets) and splits it into indexed fragments for semantic search. When a
+technician asks a question about a specific machine, the backend queries the RAG service
+(documentation) and the ML microservice (the machine’s real-time health status) in parallel,
+then merges the two contexts before passing them to the language model to generate a
+response, as shown in Figure 3.10. This mechanism ensures the assistant always responds,
+even if one of the two services is unavailable.
+Documents
+(manuals, procedures), stored in MinIO
+RAG ingestion
+chunks + embeddings
+Real-time ML snapshot
+health, alerts, parts for the machine
+Question from technician / CHEFTECH
+both sources fetched in parallel
+Contextualized answer
+works even if ML is offline
+Figure 3.10: RAG service and ML bridge
+3.6.1 Summary
+Documentation retrieval and real-time machine health are fetched in parallel and merged
+before reaching the language model, so a technician’s question is always answered from both
+47
+===== PAGE 58 =====
+Chapter 3: Design
+sources at once rather than one after the other. Because the two fetches are independent, the
+assistant keeps responding, from documentation alone, even if the ML microservice is down.
+3.7 Document ingestion pipeline
+Every document submitted to the RAG service (PDF, scanned image, Word document,
+spreadsheet, or web page) goes through the same six-stage pipeline before it becomes search-
+able. Table 3.5 summarizes the stages.
+Stage Name Description
+1 Format detection Twelve extensions accepted (PDF, TXT,
+images, DOCX, XLSX, HTML); other files
+rejected up front, 50 MB max.
+2 Text extraction with OCR fallback Native PDF text layer read first; sparse
+pages fall back to Tesseract OCR
+(French/English) on a 3 × zoomed ren-
+der; scans and images go straight to OCR.
+3 Duplicate detection SHA-256 hash of the file checked against
+prior uploads before extraction; an exact re-
+peatreturnstheexistingdocument’sid with
+a conflict status.
+4 Sentence-aware chunking Text split on sentence boundaries into
+≤200-word chunks with a 20-word over-
+lap between consecutive chunks; sub-20-
+character fragments discarded.
+5 Batch embedding Chunks embedded with BAAI/bge-m3
+(1024 dimensions, normalized) in batches of
+32, via a thread-pool executor.
+6 pgvector storage Each chunk stored with its vector and meta-
+data (page, filename, type, machine id);
+chunk count updated and retrieval cache in-
+validated.
+Table 3.5:Document ingestion pipeline stages
+3.7.1 Summary
+Every uploaded document passes through the same six deterministic stages (format check,
+text extraction with OCR fallback, SHA-256 deduplication, sentence-aware chunking, batch
+embedding, and pgvector storage) before it becomes searchable. OCR and deduplication in
+48
+===== PAGE 59 =====
+Chapter 3: Design
+particular close two failure modes that existed in earlier iterations of the service: scanned
+PDFs producing zero chunks, and duplicate uploads being re-processed from scratch.
+3.8 End-to-end request flow
+Figure 3.1 shows the components involved; the sequence below walks through a single request,
+from the user’s action to the answer returned, in order:
+1. User to Backend: a technician asks a question in the chat, or an administrator
+uploads a document. Either way, the request first lands on the FastAPI backend.
+2. Backend to RAG Service: the backend forwards the request to the RAG microser-
+vice: an upload becomes an ingest call, a question becomes a retrieve call.
+3. RAG Service to PostgreSQL: the RAG microservice performs its ingest/embed or
+retrieve/rerank work directly against PostgreSQL with pgvector, writing new chunks
+and vectors on ingest, reading and ranking them on retrieve.
+4. RAG Service to MinIO: in parallel, the RAG microservice stores the original up-
+loaded file in MinIO, or reads it back for a download.
+5. Backend to Groq LLM: for a question, the backend takes the retrieved context back
+from the RAG service and hands it to the Groq-hosted language model.
+6. Groq LLM to User: the language model generates the answer from that context,
+and the backend returns it to the user.
+Figure 3.11: End-to-end request flow
+49
+===== PAGE 60 =====
+Chapter 3: Design
+3.9 Technology choices
+• Next.js: hybrid rendering, mature React ecosystem, well suited to rich, role-based
+interfaces;
+• FastAPI: high performance, native schema validation, automatically generated API
+documentation;
+• Flask: lightweight, well suited to a model-serving microservice;
+• PostgreSQL:transactionalrobustness, relationalquerieswellsuitedtothedatamodel;
+• Docker: isolation and reproducibility of development and deployment environments;
+• MinIO: S3-compatible, self-hostable object storage.
+50
+===== PAGE 61 =====
+4 Implementation
+4.1 Backend implementation
+The backend is organized into modules by business domain (users, machines, work orders,
+intervention orders, alerts, scheduling, Machine Learning). Each module exposes its API
+routes, validation schemas, and business services separately, which facilitates maintenance
+and future changes. Role-based access control is applied centrally on every route. The four
+workflows below (maintenance planning, intervention requests, work orders, and inventory
+reservations) illustrate this modular organization at the business-logic level.
+4.1.1 Maintenance planning workflow
+An Administrator opens a planning window indraft status; the Head Technician then breaks
+it down into per-machine diagnostic or correction tasks and submits it for approval. Only
+once an Administrator approves the planning are the assigned technicians notified, by both
+an in-app alert and an email.
+51
+===== PAGE 62 =====
+Chapter 4: Implementation
+Figure 4.1: Maintenance planning workflow
+52
+===== PAGE 63 =====
+Chapter 4: Implementation
+Figure 4.2: Planning screen (Administrator)
+Figure 4.3: Planning screen: per-machine task breakdown
+4.1.2 Intervention request workflow
+A field technician’s request passes through a single Head Technician validation gate with
+two distinct outcomes: approval requires an associated machine and automatically creates a
+linked work order, while rejection requires a reason and releases any parts reservation already
+made. Closingthelooplater, oncetheworkisdone, stillrequiresaroot-causediagnosisbefore
+the intervention can be marked validated.
+53
+===== PAGE 64 =====
+Chapter 4: Implementation
+Figure 4.4: Intervention request workflow
+54
+===== PAGE 65 =====
+Chapter 4: Implementation
+Figure 4.5: Intervention orders screen
+4.1.3 Work order lifecycle
+A work order moves through a sequential ten-state lifecycle. It can be rejected at the approval
+step, releasing any linked stock reservation, and it can only be closed by an Administrator
+once it has reached thevalidated state.
+Figure 4.6: Work order lifecycle
+55
+===== PAGE 66 =====
+Chapter 4: Implementation
+Figure 4.7: Work order management screen
+Figure 4.8: Work order close-out form (Technician)
+4.1.4 Inventory reservation system
+Asingleserviceownseverymutationofstockquantitiesfortheintervention/work-orderwork-
+flow. Four independent triggers (approval, rejection, a daily scheduled task, and technician
+completion) each invoke a dedicated process, all reading and writing the same reservation
+records; approval handlers never touch stock tables directly.
+56
+===== PAGE 67 =====
+Chapter 4: Implementation
+Figure 4.9: Inventory reservation data flow
+57
+===== PAGE 68 =====
+Chapter 4: Implementation
+Figure 4.10: Spare parts inventory screen
+4.1.5 Summary
+The four core workflows (planning, intervention requests, work orders, inventory reservations)
+are each owned by a single dedicated service, keeping stock mutations, approval logic, and
+state transitions from leaking into unrelated modules. This domain-by-domain split is what
+lets a rule change in one workflow (for example, how stock is reserved) ship without touching
+the others.
+4.2 Frontend implementation
+The frontend offers three distinct application spaces, each tailored to the needs of the corre-
+sponding role: an Administrator space for global management, a Head Technician space for
+oversight and scheduling, and a Technician space for carrying out interventions in the field. A
+consistent design system (color palette, reusable components) ensures a uniform experience
+across the three spaces.
+58
+===== PAGE 69 =====
+Chapter 4: Implementation
+Figure 4.11: Login screen
+Figure 4.12: Administrator dashboard
+59
+===== PAGE 70 =====
+Chapter 4: Implementation
+Figure 4.13: User approval screen (Administrator)
+Figure 4.14: Intervention approval screen (Head Technician/administrator)
+60
+===== PAGE 71 =====
+Chapter 4: Implementation
+Figure 4.15: Head Technician dashboard
+Figure 4.16: Technician dashboard
+61
+===== PAGE 72 =====
+Chapter 4: Implementation
+Figure 4.17: Machine detail and health screen
+4.2.1 Summary
+Three role-scoped spaces (Administrator, Head Technician, Technician) share one design
+system, from the shared login screen through to each role’s dashboard, approval queues, and
+machine-detail views. Keeping the UI role-aware at the routing level, not just visually, is
+what enforces the access boundaries defined in Chapter 2 on the client side, on top of the
+server-side checks.
+4.3 Machine Learning pipeline implementation
+Each predictive model (P1 to P6) was trained and then integrated into the model-serving
+microservice, with lazy, cached loading to limit response times. An explainability layer
+(“Why?”) was added across the board: every prediction, alert, or recommendation can be
+expanded into a plain-language explanation, free of Machine Learning terminology, so it
+remains understandable to field technicians.
+62
+===== PAGE 73 =====
+Chapter 4: Implementation
+Figure 4.18: ML predictions screen
+Figure 4.19: Predictive alerts screen
+The P7 spare parts coordination module was built in six progressive steps: a demand
+forecasting engine, stock shortage alert routing, role-based interface adaptation, guided order
+preparation (never automatic), an operational readiness score with an event timeline, and a
+feedback loop comparing predictions against parts actually consumed.
+63
+===== PAGE 74 =====
+Chapter 4: Implementation
+Figure 4.20: Guided procurement screen
+Figure 4.21: Prediction explainability panel
+4.3.1 Summary
+P1–P6 are served through a lazily loaded, cached model registry, with every prediction,
+alert, and recommendation expandable into a plain-language “Why?” explanation so field
+technicians never have to interpret raw model output. P7’s guided procurement flow is the
+clearest expression of the platform’s human-in-the-loop principle: the system forecasts and
+proposes, but never places an order on its own.
+64
+===== PAGE 75 =====
+Chapter 4: Implementation
+4.4 RAG service and conversational bridge implementation
+The RAG service supports importing technical documents (manuals, procedures) with ver-
+sion management and cascading deletion. The bridge between the RAG service and the
+ML microservice was designed to never let a conversation fail: if the ML microservice is
+unavailable, a fallback estimate based on simple rules is used instead, transparently to the
+user.
+Figure 4.22: Knowledge base document management screen
+Figure 4.23: Conversational assistant screen
+65
+===== PAGE 76 =====
+Chapter 4: Implementation
+4.4.1 Summary
+Document management (versioning, cascading deletion) and the ML bridge were built to-
+gether so the two failure modes stay independent: a bad document upload never breaks
+predictions, and a down ML microservice never breaks the chat, since the bridge falls back
+to a rule-based estimate instead of failing the conversation.
+4.5 Pilot rollout plan (PDCA)
+Deploying six new predictive models directly to every machine in the plant, with no feedback
+loop, would risk both poor predictions and loss of user trust. The rollout was therefore
+planned as a Plan-Do-Check-Act (PDCA) cycle: a controlled, measurable pilot covering the
+Plan and Do phases below, before any decision to generalize.
+Plan. The pilot targeted a single functional zone (surface-mount technology, a production
+bottleneck with high-frequency, reliable sensor data) for eight weeks, split into three weeks
+of shadow mode(predictions computed and logged, but not shown to users) followed by five
+weeks of active mode, where the dashboard is revealed to two maintenance managers and
+four senior technicians. Four quantitative success criteria were fixed in advance: at least
+15% reduction in unexpected downtime against a three-month historical baseline; at least
+80% of machines flaggedcritical by the failure-probability model confirmed as a real issue on
+inspection; atleast75%agreementbetweenthepredictedandthetechnician-confirmedfailure
+type; and no more than 250ms of additional backend latency introduced by the inference
+calls.
+Do. During shadow mode, every prediction was written to a dedicated log table and com-
+pared, at the end of the three weeks, against the intervention orders that managers actually
+created: a first check of whether the models would have caught what really happened. Dur-
+ing active mode, managers were required to open an intervention order for every machine
+flagged critical, and technicians were required, when closing a work order, to record the ac-
+tual failure type observed. This technician-confirmed label capture is the direct precursor of
+the production feedback loop described in Chapter 5: real, technician-confirmed outcomes
+compared against past predictions, closing the loop between the field and the model.
+66
+===== PAGE 77 =====
+Chapter 4: Implementation
+Figure 4.24: Pilot rollout dashboard (PDCA tracking)
+4.6 Production deployment
+Development up to this point ran entirely on Docker Compose. To validate the platform
+under conditions closer to a real operating environment (container orchestration, a managed
+database, centralized secret management, and public network access), the full stack was
+additionally deployed to a managed Kubernetes cluster on Microsoft Azure, provisioned as
+Infrastructure as Code. Figure 4.25 summarizes the resulting pipeline, from infrastructure
+provisioning down to the public web address; each step is explained below in plain terms.
+67
+===== PAGE 78 =====
+Chapter 4: Implementation
+Figure 4.25: Production deployment pipeline, from infrastructure to public access
+Terraform. Every cloud resource this platform runs on is declared in Terraform’s HCL
+syntax rather than clicked together in the Azure Portal, so the whole infrastructure can be
+rebuilt from the same text files already under version control: no undocumented manual step,
+and every change goes through the same plan/apply review a code change would.
+Azure resources. Three resources come out of that Terraform configuration: theAzure
+Kubernetes Service (AKS) cluster the application runs on, the managed PostgreSQL
+Flexible Server behind it, and a Key Vault holding the database password and other secrets
+away from both the application code and the Helm values files.
+Helm chart. The seven application components, backend, frontend, ML microservice,
+RAG service, Celery worker, Celery beat, RabbitMQ, are packaged into a single Helm chart,
+so a full environment comes up from one install command instead of applying seven sets of
+Kubernetes manifests by hand and keeping them in sync manually.
+68
+===== PAGE 79 =====
+Chapter 4: Implementation
+Staging vs. production. The same package is installed twice, into two separate, isolated
+environments. eam-staging is loaded with realistic demonstration data and used for testing
+and screenshots. eam-prod starts instead from a clean, empty database, with no demonstra-
+tion data mixed in, so it reflects a genuine first-run deployment.
+Public access. Public exposure is deliberately scoped to production only. Inside that
+cluster, a lightweight tunnel agent keeps an outbound-only connection alive to a relay service;
+that outbound link is what lets an outside visitor reach the app over HTTPS at a fixed
+address, without ever opening an inbound port on the cluster itself.
+Figure 4.26: Production Kubernetes cluster (Azure Portal)
+The cluster, the managed PostgreSQL server (with the pgvector extension enabled for the
+RAG service), and a Key Vault for secret storage were all provisioned with Terraform, with
+remote state kept onHashiCorp Cloud Platform (HCP)Terraform for visibility into
+every planned and applied change.
+69
+===== PAGE 80 =====
+Chapter 4: Implementation
+Figure 4.27: Terraform-managed infrastructure (HCP Terraform workspace)
+That same bundle, backend, frontend, ML microservice, RAG service, the two Celery pro-
+cesses, and RabbitMQ, together with MinIO for object storage, was deployed twice from one
+chart with different value files: once into a staging namespace seeded with realistic demon-
+stration data, and once into a separate, clean production namespace with its own database
+and no demonstration data. Pods authenticate to Key Vault through Azure Workload Iden-
+tity, via the Secrets Store CSI Driver, so no credential is ever stored in the chart’s values or
+in a Kubernetes Secret checked into version control.
+70
+===== PAGE 81 =====
+Chapter 4: Implementation
+Figure 4.28: Helm releases across the cluster: staging and production side by side
+Public HTTPS access is provided by a lightweight tunnel agent running inside the clus-
+ter, which exposes the production environment on a stable public address. The production
+environment is reachable publicly over HTTPS through this route.
+4.7 Technical difficulties encountered
+Several difficulties were encountered during implementation. Synchronizing trained models
+between the research environment (notebooks) and the production environment (microser-
+vice) required setting up a strict procedure for copying and verifying the number of features
+expected by each model, in order to avoid loading a stale model incompatible with the data
+format sent in production.
+Partial component availability was also a point of attention: since certain deep learning
+librarieswerenotinstalledin theproductionenvironment, theanomalymodule’sautoencoder
+was made optional, with automatic renormalization of the detection ensemble’s weights when
+this component is absent. Likewise, the ML-RAG bridge was designed to fall back to a simple
+rule-based estimate if the ML microservice is unavailable, ensuring a response is always
+provided to the user.
+Finally, the consistency of large-scale test data (several thousand simulated records) re-
+quired systematic verification of the representativeness of the generated failure scenarios, so
+that evaluation metrics would reflect realistic cases.
+71
+===== PAGE 82 =====
+5 Testing and Results
+5.1 Test strategy
+System validation relies on two levels of testing: unit tests verifying the isolated behavior
+of each business service, and integration tests verifying the end-to-end behavior of the main
+user journeys (creating a work order, raising an alert, the conversational assistant’s response).
+The test suite covers 99 tests in total (46 unit and core tests, 53 backend integration tests),
+all passing against the live Docker stack.
+5.2 Machine Learning model evaluation
+5.2.1 Validation methodology
+Chapter 3 already ruled out a random row split for this data, and the testing phase is where
+that design choice gets to prove itself. A model graded on a random 80/20 split would have
+been evaluated on machines it had already partly watched degrade, since both halves of a
+random split draw from the same fleet; any resulting score would measure memorisation of
+that fleet’s specific trajectories rather than genuine ability to generalise to a machine never
+encountered before.
+P3 is the model actually held to that standard in this chapter: machines 70–79 were with-
+held entirely before training began, so every figure reported for it below reflects performance
+on machines it never saw. It is, as a result, the only model here whose numbers can be read
+at face value; the rest stay gated on the label-quality issue covered next, independently of
+how their data was split.
+5.2.2 Label quality and validation status
+The risk was flagged early, in Chapter 1: the five failure sub-labels were never meant to
+double as predictors of the very flag they are computed from. What this testing phase did
+was turn that early caution into a confirmed finding, one Chapter 3 already treats as the
+platform’s most significant data-quality issue: P1, P2, and P5 all read tool_wear as an
+input while their own training labels are computed as a deterministic function of that same
+column, textbook target leakage. No amount of extra data, feature engineering, or algorithm
+72
+===== PAGE 83 =====
+Chapter 5: Testing and Results
+swapping fixes a problem that lives in the label source rather than the model, so none was
+attempted.
+What that confirmed leak does to the reported numbers is worth stating plainly: the
+∼99% AUC-ROC these three models post under group-holdout measures how faithfully each
+one reproduces an arithmetic identity it was never supposed to see stated so directly, not
+how well it predicts a real failure. Publishing that figure as a performance metric would
+hand stakeholders false confidence, which is why the model registry marks every model’s
+validation_status explicitly, and why the dashboard hides accuracy numbers for anything
+tagged "leaked" instead of showing a misleadingly high score.
+Table 5.1 summarizes the validation status and production gate for each model.
+Model Algorithm Production gate Status
+P1: Failure Proba-
+bility
+XGBClassifier AUC-ROC≥ 0.85 Leaked
+P2: Failure Type MultiOutputClassifier Macro-F1≥ 0.70 Leaked (partial)
+P3: RUL Estimate XGBRegressor R2 ≥ 0.40, C-index
+≥ 0.62
+Group-holdout vali-
+dated
+P4: Anomaly Detec-
+tion
+Ensemble
+(IF+Z+AE)
+Precision on WO
+outcomes
+Unverified
+P5: Work Order Pri-
+ority
+XGBClassifier F1≥ 0.70 Leaked
+P6: Maintenance
+Schedule
+XGBClassifier F1≥ 0.70 Unverified
+P7: Parts Demand Survival + Croston vs. naive baseline Unverified
+Table 5.1:Validation status and production gate per model
+5.2.3 Validated model metrics
+For models with a reliable evaluation, Table 5.2 reports the measured metrics against the
+production gate.
+The Cox and Weibull results in the last two rows come from a research prototype that ap-
+plies censoring-aware survival modeling to the same held-out machine set as P3, and demon-
+strate that explicit handling of right-censored machines (those still running at the observation
+cutoff) produces a genuine improvement over the naive regression baseline (C-index 0.644).
+These results support the roadmap decision to migrate P3 toward a survival-model architec-
+ture once real run-to-failure data is available.
+73
+===== PAGE 84 =====
+Chapter 5: Testing and Results
+Model Metric Result Gate
+P3: Remaining Use-
+ful Life
+Mean Absolute Er-
+ror (MAE)
+14.95 cycles ≤ 16.25× 1.15
+P3: Remaining Use-
+ful Life
+Concordance index
+(C-index)
+0.620 ≥ 0.62
+P4: Anomaly Detec-
+tion
+ROC-AUC (base-
+line)
+0.83 > naive baseline
+P3: Prototype (Cox
+PH)
+C-index (research
+prototype)
+0.712 reference only
+P3: Prototype
+(Weibull AFT)
+C-index (research
+prototype)
+0.714 reference only
+Table 5.2:Summary of model evaluation metrics (validated models only)
+5.2.4 Retraining strategy
+A production gate is enforced on every retrain: a new model artifact is only written to disk
+if it meets or exceeds the minimum threshold for its metric. This prevents a bad retrain from
+silently overwriting a good model.
+The trigger strategy varies by model and depends on its validation status:
+• P1andP5 arefrozenuntilrealtechnician-confirmedfailurerecordsreplacetheformula-
+derived labels. Retraining on more synthetic data would only reinforce the tautology.
+• P2 is retrained on a manual trigger when a meaningful batch of new technician-
+confirmedfailure-typelabelsaccumulates, usingarepeatedgroup-holdoutcross-validation
+pass to report mean and standard deviation of macro-F1 across folds.
+• P3 is the only model scheduled for a regular cadence: monthly batch retraining, or
+triggered whenever a full machine lifecycle newly closes out and becomes available as
+a training sample. It is first in line for new regressor accuracy gating because it is the
+most trustworthy model in the pipeline.
+• P4, P6, and P7are retrained on an event-driven basis when sufficient real outcome
+data (confirmed anomaly flags, intervention outcomes, actual parts consumption) has
+accumulated to constitute a meaningful update signal.
+5.2.5 What real data would unlock
+The current platform is built on a solid architecture but is limited by the quality of available
+training data. Three concrete investments would change the situation significantly.
+74
+===== PAGE 85 =====
+Chapter 5: Testing and Results
+First, technician-confirmed failure records: when a technician closes a work order
+and records the root cause (TWF, HDF, PWF, OSF, or RNF), that observation is a label
+P1 and P2 can genuinely learn from. Accumulating 1000 or more confirmed events over six
+to twelve months is the minimum threshold for meaningful retraining.
+Second, real run-to-failure sequences for P3: tracking fifteen to twenty machines
+continuously from healthy state to confirmed failure (or documented decommission) would
+provide P3 with real censored sequences, enabling a migration to Cox Proportional Hazards
+or Weibull AFT as the production model.
+Third,vibration and motor current sensors: the five sensor inputs currently available
+cannot capture bearing degradation, the most common industrial failure mode. Vibration
+Root Mean Square (RMS) and kurtosis, together with motor current draw, are the
+signals that would make P1, P3, and P4 substantively more powerful, because they provide
+information that is genuinely independent of tool wear.
+5.2.6 Summary
+Of the seven models, only P3 (RUL) has evaluation figures that can be trusted: it is the
+one model trained and tested with proper group-holdout validation, achieving an MAE of
+14.95 cycles and a C-index of 0.620 against its production gate. P1, P2, and P5 are formally
+flagged "leaked" because their labels are deterministic functions of an input feature, and
+the retraining strategy for every model is explicitly gated on accumulating real, technician-
+confirmed outcomes rather than more synthetic data.
+5.3 Use case demonstrations
+Three scenarios illustrate the end-to-end operation of the platform:
+• Creatingandtrackinganinterventionorder : atechnicianreceivesanintervention
+order assigned by the Head Technician, views it from their space, and then closes it
+once completed, which updates the history of the machine concerned;
+• Receiving a stock shortage alert: when the P7 module detects that a part needed
+for a planned intervention will soon be unavailable, an alert is automatically generated
+and presented to the Head Technician along with an order proposal for validation;
+• Querying the conversational assistant: a technician asks the assistant about the
+troubleshooting procedure for a specific machine; the response combines the technical
+documentation with the machine’s real-time health status.
+75
+===== PAGE 86 =====
+Chapter 5: Testing and Results
+Figure 5.1: Step 1: technician submits the intervention request
+Figure 5.2: Step 2: Head Technician approves the request
+76
+===== PAGE 87 =====
+Chapter 5: Testing and Results
+Figure 5.3: Step 3: technician closes the work order
+Figure 5.4: End-to-end: stock shortage alert
+5.3.1 Summary
+The intervention lifecycle (request, approval, closure), the stock-shortage-alert flow, and a
+conversational-assistantquerywerewalkedthroughend-to-endontheliveplatform: arequest
+submitted by a technician reaches the Head Technician’s queue with a linked work order, a
+projected shortage surfaces as an alert with a linked draft order, and a technician’s question is
+answered using both documentation and the machine’s real-time health, exactly as specified
+77
+===== PAGE 88 =====
+Chapter 5: Testing and Results
+in Chapter 2.
+5.4 Difficulties encountered during testing
+The testing phase highlighted the importance of training data representativeness: the models
+were validated on a historical dataset simulating several dozen complete maintenance cycles,
+in order to cover a sufficient diversity of failure scenarios. The computation time of cer-
+tain models (in particular the hybrid remaining-useful-life model) required optimizing model
+loading, which is cached in memory to avoid reloading from disk on every request.
+A subtler difficulty involved the interaction between synthetic telemetry and real-time
+inference. When the platform was seeded with generated readings flagged is_synthetic
+= true , every machine displayed identical sensor values and ML outputs, because the ML
+servicewassilentlysubstitutingfixedplaceholdervalueswhennorealreadingspassedthesyn-
+theticfilter. Thefixreplacedsilentplaceholderdefaultswithanexplicit telemetry_available:
+false flag, stopping the model call entirely when no real data exists and making the absence
+of data visible to the user rather than hidden behind a plausible-looking number.
+78
+===== PAGE 89 =====
+General Conclusion
+The introduction asked whether a single system could hold the operational plumbing of
+industrial asset management (users, machines, work orders, interventions) together with a
+genuine predictive layer, without one dragging the other down. It held: the seven ML
+modules(P1toP7)sitinsidethesamework-orderandintervention-orderlifecycleatechnician
+already uses, not bolted alongside it, and every one of their outputs ships with a plain-
+language explanation rather than a raw model score, which was the condition for the platform
+being trusted enough to actually use. Getting there followed a deliberately unglamorous
+path, requirements first, then a modular architecture, then implementation in slices, then
+testing against what the requirements actually demanded, rather than jumping straight to
+the models. That order is what kept the ML layer from becoming a demo bolted onto a
+working EAM system instead of a genuine part of it.
+Technically, the internship forced a real reckoning with microservices boundaries, with
+applying ML to problems that do not resemble a textbook dataset (survival-based regression,
+anomaly detection, reconciling several disagreeing evidence sources), and with building a
+Retrieval-Augmented Generation pipeline end to end rather than wiring up an existing one.
+Less technically, it meant owning a six-month scope alone: deciding what to build next,
+writing down why, and refusing to call a component done until it had actually been checked
+against real behaviour rather than assumed to work. What is left undone says as much as
+what shipped: the RAG service should read more formats, the models need real technician-
+confirmed outcomes, and the spare-parts automation should stay exactly as human-gated as
+it is now, or more so, not less, as it matures.
+Bibliography / Web References
+79
+===== PAGE 90 =====
+Bibliography
+[1] FastAPI,FastAPI documentation. https://fastapi.tiangolo.com/ (accessed 2026).
+[2] Vercel,Next.js documentation. https://nextjs.org/docs (accessed 2026).
+[3] Pedregosa, F.et al.,Scikit-learn: ML in Python . JMLR, 2011.https://www.jmlr.org/papers/
+v12/pedregosa11a.html (accessed 2026).
+[4] Shafer, G.,A Mathematical Theory of Evidence. Princeton University Press, 1976.https://doi.
+org/10.1515/9780691214696 (accessed 2026).
+[5] Chen, T. & Guestrin, C.,XGBoost: A Scalable Tree Boosting System . KDD, 2016. https://
+doi.org/10.1145/2939672.2939785 (accessed 2026).
+[6] Croston, J.D.,Forecasting and stock control for intermittent demands . Operational Research
+Quarterly, 1972.https://doi.org/10.1057/jors.1972.50 (accessed 2026).
+[7] Reimers, N. & Gurevych, I., Sentence-BERT: Sentence Embeddings using Siamese BERT-
+Networks. https://www.sbert.net/ (accessed 2026).
+[8] Matzka, S., AI4I 2020 Predictive Maintenance Dataset . UCI ML Repository, 2020. https:
+//archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset (ac-
+cessed 2026).
+[9] Docker Inc.,Docker documentation. https://docs.docker.com/ (accessed 2026).
+[10] The Kubernetes Authors, Kubernetes documentation . https://kubernetes.io/docs/ (ac-
+cessed 2026).
+[11] The Helm Authors,Helm documentation. https://helm.sh/docs/ (accessed 2026).
+[12] OWASP Foundation,OW ASP Top 10. https://owasp.org/Top10/ (accessed 2026).
+[13] SonarSource,SonarQube Community Edition documentation . https://docs.sonarsource.
+com/ (accessed 2026).
+[14] Aqua Security,Trivy documentation. https://trivy.dev/ (accessed 2026).
+[15] Rice, Z.,Gitleaks: SAST tool for detecting secrets . https://github.com/gitleaks/gitleaks
+(accessed 2026).
+[16] Cox, D.R.,Regression Models and Life-Tables . JRSS B, 1972.https://doi.org/10.1111/j.
+2517-6161.1972.tb00899.x (accessed 2026).
+[17] Kalman, R.E.,A New Approach to Linear Filtering and Prediction Problems . J. Basic Engi-
+neering, 1960. https://doi.org/10.1115/1.3662552 (accessed 2026).
+80
+===== PAGE 91 =====
+6 List of Abbreviations and Acronyms
+Acronym Definition
+Machine Learning and Data Science
+ML Machine Learning, Systems learning from data.
+RUL Remaining Useful Life, Time until equipment failure.
+RAG Retrieval-Augmented Generation, Document search +
+language models.
+PINN Physics-Informed Neural Network, Neural network with
+physical constraints.
+Cox PH Cox Proportional Hazards, Survival model.
+XGBoost Extreme Gradient Boosting, Gradient boosting algo-
+rithm.
+LSTM Long Short-Term Memory, Recurrent neural network.
+AUC-ROC Area Under ROC Curve, Classification metric.
+MAE Mean Absolute Error, Average prediction error.
+RMS Root Mean Square, Square root of mean squared devia-
+tions.
+SMOTE Synthetic Minority Over-sampling, Minority class over-
+sampling.
+IF Isolation Forest, Anomaly detection algorithm.
+BPA Basic Probability Assignment, Dempster-Shafer compo-
+nent.
+DST Dempster-Shafer Theory, Uncertain information fusion.
+ROC Receiver Operating Characteristic, Classifier perfor-
+mance plot.
+R2 R-squared, Regression quality coefficient.
+Failure Types
+TWF Tool Wear Failure, Tool wear.
+HDF Heat Dissipation Failure, Thermal dissipation issues.
+PWF Power Failure, Electrical power supply.
+OSF Overstrain Failure, Mechanical overload.
+Continued on next page. . .
+81
+===== PAGE 92 =====
+Chapter 6: List of Abbreviations and Acronyms
+Acronym Definition
+RNF Random Failure, No identifiable cause.
+Software Engineering and Security
+EAM Enterprise Asset Management, Industrial asset manage-
+ment system.
+JWT JSON Web Token, Web authentication standard.
+CI/CD Continuous Integration / Continuous Deployment, Auto-
+mated build and deployment pipeline.
+IaC Infrastructure as Code, Infrastructure defined and man-
+aged through code.
+OWASP Open Worldwide Application Security Project, Global
+application security project.
+CVE Common Vulnerabilities and Exposures, Shared reposi-
+tory of security vulnerabilities.
+XSS Cross-Site Scripting, Injection of malicious code into web
+pages.
+Cloud and Infrastructure
+AKS Azure Kubernetes Service, Managed Kubernetes service
+by Microsoft Azure.
+HCP HashiCorp Cloud Platform, HashiCorp cloud platform
+for infrastructure management.
+T1 Standard LATEX font encoding for Western characters.
+Predictive Analysis Models
+P1 Failure probability model (7 sensors).
+P2 Failure type classification model.
+P3 Remaining useful life prediction model.
+P4 Behavioral anomaly detection model (4-method ensem-
+ble).
+P5 Work order prioritization model.
+P6 Maintenance scheduling model.
+P7 Predictive spare parts coordination system.
+82
+===== PAGE 93 =====
+A Appendices
+A.1 Selected code excerpts and diagrams
+P4 – Score fusion with weight renormalization:
+def fuse_anomaly_scores(scores: dict, weights: dict) -> float:
+available = {k: v for k, v in scores.items() if v is not None}
+total_weight = sum(weights[k] for k in available)
+if total_weight == 0:
+return 0.0
+return sum(scores[k] * weights[k] for k in available) / total_weight
+P7 – Operational readiness score:
+def compute_readiness_score(health, inventory, shortage, recency):
+return (
+0.40 * health
++ 0.30 * inventory
+- 0.20 * shortage
++ 0.10 * recency
+)
+The complete class diagram and the sequence diagram of the ML-RAG bridge (parallel invocation
+of the RAG service and the ML microservice, context fusion before generating the response) are
+available in the project’s technical specifications.
+83
+===== PAGE 94 =====
+Chapter A: Appendices
+A.2 Complete metrics table
+Model Description
+P1 Failure probability (binary classification)
+P2 Failure type classification
+P3 Remaining useful life estimation (MAE = 14.95 cycles, C-index = 0.620)
+P4 Behavioral anomaly detection (baseline ROC-AUC = 0.83)
+P5 Work order prioritization
+P6 Maintenance scheduling
+P7 Spare parts coordination (demand forecasting, alerts, guided provisioning)
+Table A.1:Summary of the Machine Learning pipeline models
+84

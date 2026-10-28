@@ -1,0 +1,838 @@
+{
+  "meta": {
+    "collectedAt": "2026-10-27T22:36:48.718Z",
+    "endpoint": "http://localhost:4566",
+    "region": "us-east-1",
+    "durationMs": 421,
+    "source": "AWS SDK v3 against AWS-API-compatible local emulator (Floci)"
+  },
+  "cloudformation": [
+    {
+      "name": "CDKToolkit",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:18:06.977Z",
+      "resources": 11,
+      "byType": {
+        "AWS::S3::Bucket": 1,
+        "AWS::ECR::Repository": 1,
+        "AWS::IAM::Role": 5,
+        "AWS::SSM::Parameter": 1,
+        "AWS::S3::BucketPolicy": 1,
+        "AWS::IAM::Policy": 2
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b",
+      "status": "UPDATE_COMPLETE",
+      "createdAt": "2026-10-25T08:18:48.119Z",
+      "resources": 59,
+      "byType": {
+        "AWS::IAM::Role": 7,
+        "AWS::S3::Bucket": 1,
+        "AWS::Lambda::LayerVersion": 1,
+        "AWS::CDK::Metadata": 1,
+        "AWS::Lambda::Function": 6,
+        "AWS::S3::BucketPolicy": 1,
+        "AWS::IAM::Policy": 5,
+        "AWS::Lambda::Permission": 1,
+        "AWS::AppSync::GraphQLApi": 1,
+        "Custom::S3AutoDeleteObjects": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::GraphQLSchema": 1,
+        "AWS::CloudFormation::Stack": 21,
+        "Custom::CDKBucketDeployment": 1,
+        "AWS::IAM::ManagedPolicy": 6,
+        "AWS::Lambda::EventSourceMapping": 3,
+        "AWS::Scheduler::Schedule": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiLockFA29B9EA",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:19:50.747Z",
+      "resources": 4,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiOrganization4D84ECD0",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:19:51.127Z",
+      "resources": 4,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiStorageFileB53EE072",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:19:51.445Z",
+      "resources": 4,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiProperty5530F73C",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:14.075Z",
+      "resources": 12,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 6,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 2
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiUnit44434EE2",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:14.386Z",
+      "resources": 12,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 6,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 2
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiStaffMemberE653B42B",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:14.818Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiNotificationB6172A05",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:15.089Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiLeaseUnit39441A27",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:15.331Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiAppointmentParticipant837FFE35",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:15.606Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiLeasePartyB6E0A94E",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:15.987Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiBranch7AF5C8AA",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:16.244Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiCommonAreaC2B25637",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:16.479Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiVisitRequestB0FC4109",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:16.733Z",
+      "resources": 16,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 9,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 3
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiFileLink5549FE39",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:17.587Z",
+      "resources": 12,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 6,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 2
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiOwnershipAFC497CF",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:18.211Z",
+      "resources": 12,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 6,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 2
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiAppointmentEC833206",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:18.502Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiContact7E5FDE79",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:18.779Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiLease7977E144",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:19.155Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiPublicListing5956B4BB",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:19.428Z",
+      "resources": 8,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 3,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 1
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiRentalRequest35392B5C",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:19.834Z",
+      "resources": 12,
+      "byType": {
+        "AWS::DynamoDB::Table": 1,
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 6,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::AppSync::Resolver": 2
+      }
+    },
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiFunctionDirectiveStackDBE097A6",
+      "status": "CREATE_COMPLETE",
+      "createdAt": "2026-10-25T08:20:20.874Z",
+      "resources": 11,
+      "byType": {
+        "AWS::IAM::Role": 1,
+        "AWS::AppSync::FunctionConfiguration": 4,
+        "AWS::CDK::Metadata": 1,
+        "AWS::AppSync::DataSource": 1,
+        "AWS::IAM::Policy": 1,
+        "AWS::AppSync::Resolver": 3
+      }
+    }
+  ],
+  "dynamodb": {
+    "count": 20,
+    "totalItems": 702,
+    "tables": [
+      {
+        "name": "Lock-861df1f5118d47acb3576c3db2-NONE",
+        "items": 156,
+        "gsis": 0,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Lock-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Unit-861df1f5118d47acb3576c3db2-NONE",
+        "items": 74,
+        "gsis": 2,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Unit-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "StorageFile-861df1f5118d47acb3576c3db2-NONE",
+        "items": 58,
+        "gsis": 0,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/StorageFile-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Notification-861df1f5118d47acb3576c3db2-NONE",
+        "items": 52,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Notification-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Contact-861df1f5118d47acb3576c3db2-NONE",
+        "items": 44,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Contact-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "FileLink-861df1f5118d47acb3576c3db2-NONE",
+        "items": 42,
+        "gsis": 2,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/FileLink-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Property-861df1f5118d47acb3576c3db2-NONE",
+        "items": 42,
+        "gsis": 2,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Property-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Ownership-861df1f5118d47acb3576c3db2-NONE",
+        "items": 35,
+        "gsis": 2,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Ownership-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "LeaseParty-861df1f5118d47acb3576c3db2-NONE",
+        "items": 34,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/LeaseParty-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "LeaseUnit-861df1f5118d47acb3576c3db2-NONE",
+        "items": 33,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/LeaseUnit-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Lease-861df1f5118d47acb3576c3db2-NONE",
+        "items": 31,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Lease-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "StaffMember-861df1f5118d47acb3576c3db2-NONE",
+        "items": 22,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/StaffMember-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Appointment-861df1f5118d47acb3576c3db2-NONE",
+        "items": 18,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Appointment-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "VisitRequest-861df1f5118d47acb3576c3db2-NONE",
+        "items": 17,
+        "gsis": 3,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/VisitRequest-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "AppointmentParticipant-861df1f5118d47acb3576c3db2-NONE",
+        "items": 15,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/AppointmentParticipant-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "RentalRequest-861df1f5118d47acb3576c3db2-NONE",
+        "items": 11,
+        "gsis": 2,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/RentalRequest-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Organization-861df1f5118d47acb3576c3db2-NONE",
+        "items": 7,
+        "gsis": 0,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Organization-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "Branch-861df1f5118d47acb3576c3db2-NONE",
+        "items": 5,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/Branch-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "CommonArea-861df1f5118d47acb3576c3db2-NONE",
+        "items": 3,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/CommonArea-861df1f5118d47acb3576c3db2-NONE"
+      },
+      {
+        "name": "PublicListing-861df1f5118d47acb3576c3db2-NONE",
+        "items": 3,
+        "gsis": 1,
+        "streams": true,
+        "billing": "PROVISIONED",
+        "bytes": 0,
+        "arn": "arn:aws:dynamodb:us-east-1:000000000000:table/PublicListing-861df1f5118d47acb3576c3db2-NONE"
+      }
+    ]
+  },
+  "lambda": {
+    "count": 9,
+    "functions": [
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-ApiF70053CD-cbbda600c44c",
+        "runtime": "nodejs20.x",
+        "memory": 128,
+        "timeout": 15,
+        "codeSize": 33071
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-Mailer30915986-af01971a2a9a",
+        "runtime": "nodejs20.x",
+        "memory": 128,
+        "timeout": 60,
+        "codeSize": 87991
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-CustomS3AutoDel-96ec61d5762d",
+        "runtime": "nodejs24.x",
+        "memory": 128,
+        "timeout": 900,
+        "codeSize": 2169,
+        "description": "Lambda function for auto-deleting objects in amplify-erp-main-sandbox-0a9d62828b-erpapiamplifyc-fa4072dd69ef S3 bucket."
+      },
+      {
+        "name": "send-appointment-email",
+        "runtime": "nodejs20.x",
+        "memory": 128,
+        "timeout": 3,
+        "codeSize": 85876
+      },
+      {
+        "name": "send-notification-email",
+        "runtime": "nodejs20.x",
+        "memory": 128,
+        "timeout": 3,
+        "codeSize": 85004
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-DailyF2158A89-f8888d37f270",
+        "runtime": "nodejs20.x",
+        "memory": 128,
+        "timeout": 300,
+        "codeSize": 6816
+      },
+      {
+        "name": "lease-daily",
+        "runtime": "nodejs20.x",
+        "memory": 128,
+        "timeout": 3,
+        "codeSize": 2088
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-CustomCDKBucket-a66ed849c284",
+        "runtime": "python3.13",
+        "memory": 1536,
+        "timeout": 900,
+        "codeSize": 6163
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-AuthorizerBD825-fad6590d9df2",
+        "runtime": "nodejs20.x",
+        "memory": 128,
+        "timeout": 15,
+        "codeSize": 10215
+      }
+    ]
+  },
+  "appsync": [
+    {
+      "name": "ErpApi",
+      "apiId": "861df1f5118d47acb3576c3db2",
+      "auth": "AWS_LAMBDA",
+      "typeCount": 0,
+      "resolverCount": 0,
+      "pipelineFunctionCount": 76,
+      "apiKeyCount": 0,
+      "uris": null
+    }
+  ],
+  "s3": [
+    {
+      "name": "amplify-erp-main-sandbox-0a9d62828b-erpapiamplifyc-fa4072dd69ef",
+      "objects": 1,
+      "bytes": 13825
+    },
+    {
+      "name": "lease-files",
+      "objects": 0,
+      "bytes": 0
+    },
+    {
+      "name": "cdk-hnb659fds-assets-000000000000-us-east-1",
+      "objects": 90,
+      "bytes": 25040694
+    },
+    {
+      "name": "property-files",
+      "objects": 36,
+      "bytes": 2077260
+    },
+    {
+      "name": "awslambda-us-east-1-tasks",
+      "objects": 10,
+      "bytes": 22323561
+    }
+  ],
+  "secrets": {
+    "count": 1,
+    "secrets": [
+      {
+        "name": "erp-functions-config",
+        "description": null
+      }
+    ]
+  },
+  "cloudwatchLogs": {
+    "count": 11,
+    "groups": [
+      {
+        "name": "/aws/ecr/registry",
+        "storedBytes": 3265,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-ApiF70053CD-cbbda600c44c",
+        "storedBytes": 974553,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-AuthorizerBD825-fad6590d9df2",
+        "storedBytes": 4849,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-CustomCDKBucket-a66ed849c284",
+        "storedBytes": 10689,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-CustomS3AutoDel-96ec61d5762d",
+        "storedBytes": 1931,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-DailyF2158A89-f8888d37f270",
+        "storedBytes": 972,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-Mailer30915986-af01971a2a9a",
+        "storedBytes": 11472,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/lease-daily",
+        "storedBytes": 576,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/send-appointment-email",
+        "storedBytes": 0,
+        "retention": null
+      },
+      {
+        "name": "/aws/lambda/send-notification-email",
+        "storedBytes": 0,
+        "retention": null
+      },
+      {
+        "name": "/floci/ui",
+        "storedBytes": 216113,
+        "retention": null
+      }
+    ]
+  },
+  "iam": {
+    "count": 33,
+    "roles": [
+      {
+        "name": "AppointmentIAMRole92524a-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "AppointmentParticipaa10edb-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "BranchIAMRole88fa69-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "CommonAreaIAMRole9e7772-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "ContactIAMRole09bdb2-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "FileLinkIAMRoled493c5-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "LeaseIAMRole8dd668-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "LeasePartyIAMRole5961fc-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "LeaseUnitIAMRolef5a4f5-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "LockIAMRole392082-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "NotificationIAMRole8cd65c-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "OrganizationIAMRole6a9290-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "OwnershipIAMRole819a93-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "PropertyIAMRolee58e2f-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "PublicListingIAMRole281d8e-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "RentalRequestIAMRole26bb6d-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "StaffMemberIAMRolee8433b-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "StorageFileIAMRolee1d77e-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "UnitIAMRole421389-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "VisitRequestIAMRole5ccd67-861df1f5118d47acb3576c3db2-NONE",
+        "path": "/"
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-ApiServiceRole1-f7d001e8a9d8",
+        "path": "/"
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-AuthorizerServi-8a79ad48cb03",
+        "path": "/"
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-CustomCDKBucket-fd66b5492478",
+        "path": "/"
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-CustomS3AutoDel-8dd87ab80a6f",
+        "path": "/"
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-DailySchedulerR-5fc1145dda8b",
+        "path": "/"
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-DailyServiceRol-ad2c346cd252",
+        "path": "/"
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-ErpApiFunctionD-84c9ad2b37d8",
+        "path": "/"
+      },
+      {
+        "name": "amplify-erp-main-sandbox-0a9d62828b-MailerServiceRo-ac8f1fe4797e",
+        "path": "/"
+      },
+      {
+        "name": "cdk-hnb659fds-cfn-exec-role-000000000000-us-east-1",
+        "path": "/"
+      },
+      {
+        "name": "cdk-hnb659fds-deploy-role-000000000000-us-east-1",
+        "path": "/"
+      },
+      {
+        "name": "cdk-hnb659fds-file-publishing-role-000000000000-us-east-1",
+        "path": "/"
+      },
+      {
+        "name": "cdk-hnb659fds-image-publishing-role-000000000000-us-east-1",
+        "path": "/"
+      },
+      {
+        "name": "cdk-hnb659fds-lookup-role-000000000000-us-east-1",
+        "path": "/"
+      }
+    ]
+  }
+}

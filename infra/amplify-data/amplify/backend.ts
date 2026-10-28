@@ -9,8 +9,11 @@ import { defineBackend } from '@aws-amplify/backend';
 import { AmplifyGraphqlApi, AmplifyGraphqlDefinition } from '@aws-amplify/graphql-api-construct';
 
 const ROOT = process.cwd();
-const JWKS_URL = process.env.NHOST_JWKS_URL
-  ?? 'https://rxcugiymqkyghsuixmhi.auth.eu-central-1.nhost.run/v1/.well-known/jwks.json';
+// Cognito user pool on Floci. Floci issues tokens with the internal host in `iss`, and the authorizer
+// runs inside Floci, so both the JWKS URL and the issuer use the floci hostname.
+const COGNITO_POOL_ID = process.env.ERP_COGNITO_POOL_ID ?? 'us-east-1_dadf1b949';
+const JWT_ISSUER = `https://floci:4566/${COGNITO_POOL_ID}`;
+const JWKS_URL = `http://floci:4566/${COGNITO_POOL_ID}/.well-known/jwks.json`;
 // SMTP + APP_URL, shared with the functions/ Lambdas (Floci Secrets Manager).
 const SECRET_NAME = process.env.ERP_SECRET_NAME ?? 'erp-functions-config';
 // 05:00 UTC = 06:00 Tunis (Tunisia has no daylight saving time).
@@ -37,7 +40,7 @@ const lambdaFn = (id: string, dir: string, environment: Record<string, string> =
     depsLockFilePath: path.join(ROOT, 'package-lock.json'),
   });
 
-const authorizer = lambdaFn('Authorizer', 'authorizer', { JWKS_URL });
+const authorizer = lambdaFn('Authorizer', 'authorizer', { JWKS_URL, JWT_ISSUER });
 const apiFn = lambdaFn('Api', 'api');
 
 const api = new AmplifyGraphqlApi(stack, 'ErpApi', {

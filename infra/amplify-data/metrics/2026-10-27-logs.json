@@ -1,0 +1,180 @@
+{
+  "collectedAt": "2026-10-27T22:43:39.826Z",
+  "endpoint": "http://localhost:4566",
+  "region": "us-east-1",
+  "durationMs": 164,
+  "groups": [
+    {
+      "logGroup": "/aws/ecr/registry",
+      "storedBytes": 3265,
+      "events": 12,
+      "levels": {
+        "ERROR": 1,
+        "INFO": 6,
+        "LOG": 5
+      },
+      "firstEvent": "2026-10-25T08:18:08.182Z",
+      "lastEvent": "2026-10-25T08:21:56.861Z",
+      "spanHours": 0.1,
+      "topErrors": [
+        {
+          "error": "time=\"2026-10-25T08:18:08.083587691Z\" level=warning msg=\"No HTTP secret provided",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "logGroup": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-ApiF70053CD-cbbda600c44c",
+      "storedBytes": 974553,
+      "events": 2000,
+      "levels": {
+        "ERROR": 1964,
+        "LOG": 18,
+        "INFO": 18
+      },
+      "firstEvent": "2026-10-25T08:21:03.341Z",
+      "lastEvent": "2026-10-25T08:26:36.857Z",
+      "spanHours": 0.1,
+      "topErrors": [
+        {
+          "error": "DomainError: permission_denied",
+          "count": 785
+        },
+        {
+          "error": "unexpected error in api resolver: SyntaxError: Expected property name or '}' in ",
+          "count": 479
+        },
+        {
+          "error": "InternalError: internal_error",
+          "count": 475
+        },
+        {
+          "error": "DomainError: file_target_required",
+          "count": 128
+        },
+        {
+          "error": "DomainError: public_org_required",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "logGroup": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-AuthorizerBD825-fad6590d9df2",
+      "storedBytes": 4849,
+      "events": 31,
+      "levels": {
+        "WARN": 29,
+        "LOG": 1,
+        "INFO": 1
+      },
+      "firstEvent": "2026-10-25T08:21:08.179Z",
+      "lastEvent": "2026-10-25T18:42:49.091Z",
+      "spanHours": 10.4,
+      "topErrors": []
+    },
+    {
+      "logGroup": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-CustomCDKBucket-a66ed849c284",
+      "storedBytes": 10689,
+      "events": 32,
+      "levels": {
+        "LOG": 32
+      },
+      "firstEvent": "2026-10-25T08:20:12.430Z",
+      "lastEvent": "2026-10-25T18:06:41.877Z",
+      "spanHours": 9.8,
+      "topErrors": []
+    },
+    {
+      "logGroup": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-CustomS3AutoDel-96ec61d5762d",
+      "storedBytes": 1931,
+      "events": 3,
+      "levels": {
+        "INFO": 2,
+        "ERROR": 1
+      },
+      "firstEvent": "2026-10-25T08:19:49.767Z",
+      "lastEvent": "2026-10-25T08:19:49.801Z",
+      "spanHours": 0,
+      "topErrors": [
+        {
+          "error": "(node:1) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardize",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "logGroup": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-DailyF2158A89-f8888d37f270",
+      "storedBytes": 972,
+      "events": 4,
+      "levels": {
+        "INFO": 4
+      },
+      "firstEvent": "2026-10-26T08:45:47.344Z",
+      "lastEvent": "2026-10-27T22:06:09.007Z",
+      "spanHours": 37.3,
+      "topErrors": []
+    },
+    {
+      "logGroup": "/aws/lambda/amplify-erp-main-sandbox-0a9d62828b-Mailer30915986-af01971a2a9a",
+      "storedBytes": 11472,
+      "events": 8,
+      "levels": {
+        "ERROR": 8
+      },
+      "firstEvent": "2026-10-25T08:20:41.720Z",
+      "lastEvent": "2026-10-25T08:20:47.971Z",
+      "spanHours": 0,
+      "topErrors": [
+        {
+          "error": "ResourceNotFoundException: Secrets Manager can't find the specified secret.",
+          "count": 8
+        }
+      ]
+    },
+    {
+      "logGroup": "/aws/lambda/lease-daily",
+      "storedBytes": 576,
+      "events": 4,
+      "levels": {
+        "LOG": 2,
+        "INFO": 2
+      },
+      "firstEvent": "2026-10-25T08:25:33.043Z",
+      "lastEvent": "2026-10-25T09:02:20.937Z",
+      "spanHours": 0.6,
+      "topErrors": []
+    },
+    {
+      "logGroup": "/aws/lambda/send-appointment-email",
+      "storedBytes": 0,
+      "events": 0,
+      "levels": {},
+      "firstEvent": null,
+      "lastEvent": null,
+      "spanHours": null,
+      "topErrors": []
+    },
+    {
+      "logGroup": "/aws/lambda/send-notification-email",
+      "storedBytes": 0,
+      "events": 0,
+      "levels": {},
+      "firstEvent": null,
+      "lastEvent": null,
+      "spanHours": null,
+      "topErrors": []
+    },
+    {
+      "logGroup": "/floci/ui",
+      "storedBytes": 216113,
+      "events": 2000,
+      "levels": {
+        "LOG": 2000
+      },
+      "firstEvent": "2026-10-25T08:22:35.801Z",
+      "lastEvent": "2026-10-25T11:49:02.604Z",
+      "spanHours": 3.4,
+      "topErrors": []
+    }
+  ]
+}

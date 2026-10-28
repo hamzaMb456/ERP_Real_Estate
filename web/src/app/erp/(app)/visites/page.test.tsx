@@ -9,11 +9,13 @@ vi.mock('@/lib/graphql', () => ({ graphql }));
 vi.mock('@/lib/use-can-edit', () => ({ useCanEdit: () => true }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
-const UNIT = { id: 'u1', code: 'B-102', title: null, property: { id: 'p1', name: 'Les Jardins de Carthage', city: 'Carthage' } };
+const UNIT = { id: 'u1', code: 'B-102', title: null, visit_fee: 30, property: { id: 'p1', name: 'Les Jardins de Carthage', city: 'Carthage' } };
+const FREE_UNIT = { ...UNIT, id: 'u2', code: 'B-103', visit_fee: null };
 const base = { phone: '71 000 111', email: null, message: null, staff_note: null, unit: UNIT, visit_date: '2026-11-02', visit_time: '10:30:00' };
 const REQUESTS = [
   { ...base, id: 'v1', full_name: 'Amine Ben Salah', created_at: '2026-10-22T10:00:00Z', status: 'new', appointment_id: null },
   { ...base, id: 'v2', full_name: 'Sana Gharbi', created_at: '2026-10-20T10:00:00Z', status: 'confirmed', appointment_id: 'a2' },
+  { ...base, id: 'v3', unit: FREE_UNIT, full_name: 'Leila Trabelsi', created_at: '2026-10-19T10:00:00Z', status: 'done', appointment_id: 'a3' },
 ];
 
 describe('/erp/visites', () => {
@@ -26,7 +28,14 @@ describe('/erp/visites', () => {
   it('shows the slot of each visit', async () => {
     render(<VisitsPage />);
     await screen.findByText('Amine Ben Salah');
-    expect(screen.getAllByText('02/11/2026 à 10:30')).toHaveLength(2);
+    expect(screen.getAllByText('02/11/2026 à 10:30')).toHaveLength(3);
+  });
+
+  it('shows the visit fee only for a unit that has one', async () => {
+    render(<VisitsPage />);
+    await screen.findByText('Leila Trabelsi');
+    // Two of the three visits are on a unit with a fee; the free unit's card has no fee line.
+    expect(screen.getAllByText(/Frais de visite/)).toHaveLength(2);
   });
 
   it('confirms a visit by booking a half-hour viewing in Tunisia time and marking the request, in one request', async () => {

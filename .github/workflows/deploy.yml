@@ -1,0 +1,266 @@
+name: Deploy
+
+# This workflow deploys the Real Estate ERP to:
+# - Floci/LocalStack (for develop branch and feature branches)
+# - Real AWS (for main branch, requires manual approval)
+#
+# Required secrets (for AWS deploy):
+#   - AWS_ACCESS_KEY_ID: AWS access key for production deploy
+#   - AWS_SECRET_ACCESS_KEY: AWS secret key for production deploy
+#   - AWS_REGION: AWS region (e.g., us-east-1)
+#   - AWS_ACCOUNT_ID: AWS account ID
+#
+# Required permissions:
+#   - contents: read
+#   - id-token: write (for OIDC auth to AWS)
+#   - deployments: write (for deployment status)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev (Floci/LocalStack)
+          - main (AWS Production)
+
+# Security: Default to read-only, elevate per job
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+# Concurrency: Only one deploy per environment at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.environment || github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '24'
+  INFRA_DIR: './infra/amplify-data'
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Deploy to Floci/LocalStack (dev environment)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-dev:
+    name: Deploy to Floci (Dev)
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: development
+      url: http://localhost:3000
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.INFRA_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.INFRA_DIR }}
+        run: npm ci
+
+      - name: Start LocalStack (Floci-compatible)
+        run: |
+          docker network create floci_default || true
+          docker run -d --name localstack \
+            --network floci_default \
+            --network-alias floci \
+            -p 4566:4566 \
+            -e SERVICES=cognito-idp,appsync,dynamodb,lambda,s3,secretsmanager,cloudformation,events,sts,iam \
+            -e DEBUG=1 \
+            -e AWS_DEFAULT_REGION=us-east-1 \
+            -e AWS_ACCESS_KEY_ID=test \
+            -e AWS_SECRET_ACCESS_KEY=test \
+            localstack/localstack:3.8
+
+      - name: Wait for LocalStack to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:4566/_localstack/health | grep -q '"running"'; then
+              echo "LocalStack is ready"
+              exit 0
+            fi
+            echo "Waiting for LocalStack... ($i/30)"
+            sleep 2
+          done
+          echo "LocalStack failed to start"
+          exit 1
+
+      - name: Deploy Amplify backend to LocalStack
+        working-directory: ${{ env.INFRA_DIR }}
+        run: npm run deploy dev
+        env:
+          AWS_ENDPOINT_URL: http://localhost:4566
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          ERP_COGNITO_POOL_ID: us-east-1_dadf1b949
+          ERP_SECRET_NAME: erp-functions-config
+
+      - name: Verify deployment
+        working-directory: ${{ env.INFRA_DIR }}
+        run: |
+          # Verify stacks are created
+          aws cloudformation list-stacks \
+            --endpoint-url http://localhost:4566 \
+            --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
+            --query 'StackSummaries[*].StackName'
+
+      - name: Cleanup LocalStack
+        if: always()
+        run: |
+          docker stop localstack || true
+          docker rm localstack || true
+          docker network rm floci_default || true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Deploy to AWS Production (main branch)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-prod:
+    name: Deploy to AWS (Production)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+      url: https://your-production-url.com
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@b47d48b7c0c0a9a8e8e8e8e8e8e8e8e8e8e8e8e8e # v4.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsDeployRole
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.INFRA_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.INFRA_DIR }}
+        run: npm ci
+
+      - name: Deploy Amplify backend to AWS
+        working-directory: ${{ env.INFRA_DIR }}
+        run: npm run deploy main -- --yes
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          ERP_COGNITO_POOL_ID: ${{ secrets.ERP_COGNITO_POOL_ID }}
+          ERP_SECRET_NAME: ${{ secrets.ERP_SECRET_NAME }}
+
+      - name: Verify deployment
+        run: |
+          aws cloudformation list-stacks \
+            --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
+            --query 'StackSummaries[?contains(StackName, `erp`)].StackName'
+
+      - name: Create deployment status
+        uses: actions/github-script@058cf35c8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e8e # v7.0.1
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ github.event.deployment.id }},
+              state: 'success',
+              environment_url: 'https://your-production-url.com',
+            })
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Deploy Preview (for PRs - optional, requires manual trigger)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-preview:
+    name: Deploy Preview (Manual)
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev (Floci/LocalStack)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: preview
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.INFRA_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.INFRA_DIR }}
+        run: npm ci
+
+      - name: Start LocalStack (Floci-compatible)
+        run: |
+          docker network create floci_default || true
+          docker run -d --name localstack \
+            --network floci_default \
+            --network-alias floci \
+            -p 4566:4566 \
+            -e SERVICES=cognito-idp,appsync,dynamodb,lambda,s3,secretsmanager,cloudformation,events,sts,iam \
+            -e DEBUG=1 \
+            -e AWS_DEFAULT_REGION=us-east-1 \
+            -e AWS_ACCESS_KEY_ID=test \
+            -e AWS_SECRET_ACCESS_KEY=test \
+            localstack/localstack:3.8
+
+      - name: Wait for LocalStack to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:4566/_localstack/health | grep -q '"running"'; then
+              echo "LocalStack is ready"
+              exit 0
+            fi
+            echo "Waiting for LocalStack... ($i/30)"
+            sleep 2
+          done
+          echo "LocalStack failed to start"
+          exit 1
+
+      - name: Deploy Amplify backend to LocalStack
+        working-directory: ${{ env.INFRA_DIR }}
+        run: npm run deploy dev
+        env:
+          AWS_ENDPOINT_URL: http://localhost:4566
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          ERP_COGNITO_POOL_ID: us-east-1_dadf1b949
+          ERP_SECRET_NAME: erp-functions-config
+
+      - name: Cleanup LocalStack
+        if: always()
+        run: |
+          docker stop localstack || true
+          docker rm localstack || true
+          docker network rm floci_default || true

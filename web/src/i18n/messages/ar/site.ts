@@ -1,4 +1,4 @@
-﻿import { plural } from '../../plural';
+import { plural } from '../../plural';
 
 export const site = {
   meta: {
@@ -300,6 +300,8 @@ export const site = {
     reassure: 'دون التزام · ترد عليك الوكالة خلال 24 ساعة',
     favouriteAdd: 'إضافة إلى المفضلة',
     favouriteRemove: 'إزالة من المفضلة',
+    alreadyRequestedRent: 'لقد أرسلت بالفعل طلب كراء لهذا العقار.',
+    alreadyRequestedVisit: 'لقد أرسلت بالفعل طلب زيارة لهذا العقار.',
   },
   request: {
     rentTitle: 'طلب كراء',
@@ -379,7 +381,9 @@ export const site = {
     goSignUp: 'إنشاء حساب',
     goSignIn: 'تسجيل الدخول',
     checkEmailTitle: 'تحقق من بريدك',
-    checkEmailBody: 'أرسلنا لك رابط تأكيد. اضغط عليه ثم سجّل الدخول.',
+    checkEmailBody: 'أرسلنا لك رمزًا من 6 أرقام عبر البريد الإلكتروني. أدخله أدناه.',
+    codeLabel: 'رمز التأكيد',
+    codeSubmit: 'تأكيد وتسجيل الدخول',
     logout: 'تسجيل الخروج',
     myAccount: 'حسابي',
     needLoginTitle: 'تسجيل الدخول مطلوب',
@@ -404,6 +408,8 @@ export const site = {
     statuses: { new: 'قيد الانتظار', confirmed: 'مؤكدة', declined: 'مرفوضة', done: 'تمت', cancelled: 'ملغاة' },
     when: (date: string, time: string) => `${date} عند ${time}`,
     listingFallback: 'عقار',
-    paymentMethod: { virtual: 'الدفع: عن بُعد', manual: 'الدفع: يدوي' },
+    fee: (amount: string) => `رسوم الزيارة : ${amount}`,
+    payManual: 'ادفع الرسوم نقدًا مباشرة للوكيل خلال الزيارة.',
+    payVirtualLabel: 'كيفية الدفع :',
   },
 };

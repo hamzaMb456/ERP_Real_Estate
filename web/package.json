@@ -23,7 +23,6 @@
     "@fullcalendar/timegrid": "^6.1.22",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^5.9.1",
-    "@nhost/nhost-js": "^4.9.0",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.4.0",

@@ -10,16 +10,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useT } from '@/i18n/provider';
 import { canMatchMedia, gsap, MOTION_QUERIES, useGSAP } from '@/lib/gsap';
-import { accountHref, safeSiteNext, SIGN_IN_PATH, SIGN_UP_PATH, validateAccount, type AccountErrors } from '@/lib/site/account';
+import { accountHref, FORGOT_PASSWORD_PATH, safeSiteNext, SIGN_IN_PATH, SIGN_UP_PATH, validateAccount, type AccountErrors } from '@/lib/site/account';
 
 /** Sign-in and sign-up form of the public site's clients. After success the visitor returns to the page they came from. */
 export function AccountForm({ mode }: { mode: 'signin' | 'signup' }) {
-  const t = useT().site.account;
-  const { session, ready, signIn, signUp } = useAuth();
+  const messages = useT();
+  const t = messages.site.account;
+  const resetText = messages.shell.resetPassword;
+  const { session, ready, signIn, signUp, confirmSignUp } = useAuth();
   const router = useRouter();
-  const next = safeSiteNext(useSearchParams().get('next'));
+  const params = useSearchParams();
+  const next = safeSiteNext(params.get('next'));
+  const passwordWasReset = params.get('reset') === '1';
   const root = useRef<HTMLDivElement>(null);
-  const ids = { name: useId(), email: useId(), password: useId() };
+  const ids = { name: useId(), email: useId(), password: useId(), code: useId() };
   const isSignUp = mode === 'signup';
 
   const [values, setValues] = useState({ name: '', email: '', password: '' });
@@ -28,6 +32,7 @@ export function AccountForm({ mode }: { mode: 'signin' | 'signup' }) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [verify, setVerify] = useState(false);
+  const [code, setCode] = useState('');
 
   useEffect(() => {
     if (ready && session) router.replace(next);
@@ -70,6 +75,21 @@ export function AccountForm({ mode }: { mode: 'signin' | 'signup' }) {
     }
   }
 
+  async function handleConfirm(event: FormEvent) {
+    event.preventDefault();
+    setServerError(null);
+    setSubmitting(true);
+    try {
+      await confirmSignUp(values.email.trim(), code.trim());
+      await signIn(values.email.trim(), values.password);
+      router.replace(next);
+    } catch (caught) {
+      setServerError(caught instanceof Error ? caught.message : t.errors.other);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const problem = (field: keyof AccountErrors) =>
     errors[field] ? (
       <p id={`${ids[field]}-problem`} role="alert" className="mt-1 text-xs font-medium text-destructive">
@@ -91,9 +111,29 @@ export function AccountForm({ mode }: { mode: 'signin' | 'signup' }) {
           <p data-account-item="" className="mt-2 text-sm text-muted-foreground">
             {t.checkEmailBody}
           </p>
-          <Button asChild className="mt-6">
-            <Link href={accountHref(SIGN_IN_PATH, next)}>{t.goSignIn}</Link>
-          </Button>
+          <form onSubmit={handleConfirm} noValidate className="mt-6 space-y-4">
+            <div data-account-item="">
+              <Label htmlFor={ids.code}>{t.codeLabel}</Label>
+              <Input
+                id={ids.code}
+                dir="ltr"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+            {serverError ? (
+              <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
+                {serverError}
+              </p>
+            ) : null}
+            <Button data-account-item="" type="submit" size="lg" className="h-11 w-full" disabled={submitting}>
+              {submitting ? t.sending : t.codeSubmit}
+            </Button>
+          </form>
         </div>
       </div>
     );
@@ -108,6 +148,12 @@ export function AccountForm({ mode }: { mode: 'signin' | 'signup' }) {
         <p data-account-item="" className="mt-2 text-sm text-muted-foreground">
           {isSignUp ? t.signUpIntro : t.signInIntro}
         </p>
+
+        {passwordWasReset && !isSignUp ? (
+          <p data-account-item="" role="status" className="mt-4 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm font-medium text-success">
+            {resetText.done}
+          </p>
+        ) : null}
 
         <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-4">
           {isSignUp ? (
@@ -157,6 +203,11 @@ export function AccountForm({ mode }: { mode: 'signin' | 'signup' }) {
             </div>
             {isSignUp && !errors.password ? <p className="mt-1 text-xs text-muted-foreground">{t.passwordHint}</p> : null}
             {problem('password')}
+            {!isSignUp ? (
+              <Link href={FORGOT_PASSWORD_PATH} className="mt-2 inline-block text-sm font-medium text-primary hover:underline">
+                {resetText.link}
+              </Link>
+            ) : null}
           </div>
 
           {serverError ? (

@@ -28,6 +28,13 @@ services:
         required: true
     environment:
       NEXT_WATCH_POLL_MS: "1000"
+      # Floci runs in its own Docker network, reached by its service name.
+      AUTH_COGNITO_URL: http://floci:4566/
+      AUTH_JWKS_URL: http://floci:4566/us-east-1_dadf1b949/.well-known/jwks.json
+      APPSYNC_URL: http://floci:4566/v1/apis/861df1f5118d47acb3576c3db2/graphql
+    networks:
+      - default
+      - floci
     volumes: *web-volumes
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/erp/connexion').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
@@ -72,6 +79,11 @@ services:
     volumes:
       - ./web:/app
       - e2e-node-modules:/app/node_modules
+
+networks:
+  floci:
+    name: floci_default
+    external: true
 
 volumes:
   web-node-modules:

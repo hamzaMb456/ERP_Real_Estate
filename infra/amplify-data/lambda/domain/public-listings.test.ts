@@ -20,6 +20,15 @@ test('listed when on the website, vacant with a rent (or for sale with a price) 
   assert.equal(buildPublicListing(unit({ status: 'for_sale', sale_price: 150000 }), property, undefined, [photo('a')])?.kind, 'sale');
 });
 
+test('carries the organization visit payment instructions, null when unset', () => {
+  const org = { visit_payment_method: 'virtual', visit_payment_instructions: 'Virement RIB TN59 ... ou D17 au 71 000 000.' };
+  const withInstructions = buildPublicListing(unit(), property, org, [photo('a')]);
+  assert.equal(withInstructions?.visit_payment_instructions, org.visit_payment_instructions);
+
+  const withoutOrg = buildPublicListing(unit(), property, undefined, [photo('a')]);
+  assert.equal(withoutOrg?.visit_payment_instructions, null);
+});
+
 test('not listed: hidden, rented, no price, archived, no photo, archived property', () => {
   const photos = [photo('a')];
   assert.equal(buildPublicListing(unit({ show_on_website: false }), property, undefined, photos), null);

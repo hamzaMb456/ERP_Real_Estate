@@ -34,6 +34,7 @@ export const requests: typeof fr = {
     emptyBody: 'Visitors pick a day and a time on the page of a unit: the request appears here, and a confirmed visit goes into your calendar.',
     statuses: { new: 'To confirm', confirmed: 'Confirmed', declined: 'Declined', done: 'Done', cancelled: 'Cancelled' },
     when: (date, time) => `${date} at ${time}`,
+    fee: (amount) => `Visit fee: ${amount}`,
     confirm: 'Confirm the visit',
     decline: 'Decline',
     markDone: 'Mark done',

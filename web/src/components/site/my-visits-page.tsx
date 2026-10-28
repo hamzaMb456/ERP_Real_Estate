@@ -7,6 +7,7 @@ import { CalendarClock } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { useT } from '@/i18n/provider';
+import { formatTnd } from '@/lib/format';
 import { formatDate } from '@/lib/ownership';
 import { graphql } from '@/lib/graphql';
 import { useGraphql } from '@/lib/use-graphql';
@@ -16,10 +17,19 @@ import { cn } from '@/lib/utils';
 import { ScrollItem } from '@/components/motion/primitives';
 
 const GET_VISITS = `query MyVisits { visit_requests(order_by: { created_at: desc }) { id unit_id visit_date visit_time status created_at } }`;
-const GET_LISTINGS_FOR = `query ListingsFor($ids: [uuid!]) { public_listings(where: { unit_id: { _in: $ids } }) { unit_id title city visit_payment_method } }`;
+const GET_LISTINGS_FOR = `query ListingsFor($ids: [uuid!]) {
+  public_listings(where: { unit_id: { _in: $ids } }) { unit_id title city visit_fee visit_payment_method visit_payment_instructions }
+}`;
 
 type VisitRow = { id: string; unit_id: string; visit_date: string; visit_time: string; status: string; created_at: string };
-type ListingRow = { unit_id: string; title: string; city: string | null; visit_payment_method: string | null };
+type ListingRow = {
+  unit_id: string;
+  title: string;
+  city: string | null;
+  visit_fee: number | null;
+  visit_payment_method: string | null;
+  visit_payment_instructions: string | null;
+};
 
 const NO_VISITS: VisitRow[] = [];
 
@@ -87,6 +97,7 @@ export function MyVisitsPage() {
           {visits.map((visit) => {
             const listing = listings[visit.unit_id];
             const showPayment = (visit.status === 'confirmed' || visit.status === 'declined') && listing?.visit_payment_method;
+            const hasFee = listing?.visit_fee != null && listing.visit_fee > 0;
             return (
               <li key={visit.id}>
                 <ScrollItem>
@@ -94,9 +105,12 @@ export function MyVisitsPage() {
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-foreground">{listing?.title ?? t.listingFallback}</p>
                       <p className="text-sm text-muted-foreground">{t.when(formatDate(visit.visit_date), visit.visit_time.slice(0, 5))}</p>
+                      {hasFee ? <p className="mt-1 text-xs text-muted-foreground">{t.fee(formatTnd(listing!.visit_fee))}</p> : null}
                       {showPayment ? (
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {listing!.visit_payment_method === 'virtual' ? t.paymentMethod.virtual : t.paymentMethod.manual}
+                          {listing!.visit_payment_method === 'virtual'
+                            ? `${t.payVirtualLabel} ${listing!.visit_payment_instructions}`
+                            : t.payManual}
                         </p>
                       ) : null}
                     </div>

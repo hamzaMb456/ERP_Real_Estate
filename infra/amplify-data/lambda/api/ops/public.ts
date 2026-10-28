@@ -88,8 +88,29 @@ export const publicOps: Record<string, Op> = {
       })),
     };
   }),
+  /** Whether the signed-in client already has a rental or visit request for this unit (the booking card disables those buttons so they cannot resubmit). */
+  MyUnitRequests: query(CLIENT, async (caller, v) => {
+    const unitId = text(v.unit);
+    const [rentals, visits] = await Promise.all([
+      queryAll('RentalRequest', { index: 'byClient', key: 'client_user_id', value: caller.userId }),
+      queryAll('VisitRequest', { index: 'byClient', key: 'client_user_id', value: caller.userId }),
+    ]);
+    return {
+      has_rental_request: rentals.some((r) => r.unit_id === unitId),
+      has_visit_request: visits.some((r) => r.unit_id === unitId),
+    };
+  }),
   ListingsFor: query(CLIENT, async (_c, v) => {
     const rows = await batchGet('PublicListing', (Array.isArray(v.ids) ? v.ids : []).map(String));
-    return { public_listings: rows.map((r) => ({ unit_id: r.unit_id, title: r.title, city: r.city, visit_payment_method: r.visit_payment_method })) };
+    return {
+      public_listings: rows.map((r) => ({
+        unit_id: r.unit_id,
+        title: r.title,
+        city: r.city,
+        visit_fee: r.visit_fee ?? null,
+        visit_payment_method: r.visit_payment_method,
+        visit_payment_instructions: r.visit_payment_instructions ?? null,
+      })),
+    };
   }),
 };

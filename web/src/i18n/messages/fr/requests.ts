@@ -37,6 +37,7 @@ export const requests = {
     emptyBody: 'Les visiteurs choisissent un jour et une heure sur la page d’une unité : la demande apparaît ici, et la visite confirmée entre dans votre calendrier.',
     statuses: { new: 'À confirmer', confirmed: 'Confirmée', declined: 'Refusée', done: 'Effectuée', cancelled: 'Annulée' },
     when: (date: string, time: string) => `${date} à ${time}`,
+    fee: (amount: string) => `Frais de visite : ${amount}`,
     confirm: 'Confirmer la visite',
     decline: 'Refuser',
     markDone: 'Marquer effectuée',

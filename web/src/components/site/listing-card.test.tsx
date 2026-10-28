@@ -88,7 +88,7 @@ describe('ListingCard', () => {
     const img = screen.getByRole('img', { name: /Appartement S\+2/ });
     expect(img.tagName).toBe('IMG');
     expect(img).toHaveAttribute('loading', 'lazy');
-    expect(img.getAttribute('src')).toContain('/v1/files/file-1?w=640');
+    expect(img.getAttribute('src')).toContain('/property-files/file-1');
     expect(img).toHaveClass('object-cover');
   });
 

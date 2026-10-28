@@ -8,6 +8,7 @@ import { RequestCard } from '@/components/requests/request-card';
 import { closeVisit, confirmVisit, isSlotTaken, saveVisitNote, setVisitStatus } from '@/components/requests/request-mutations';
 import { requestTone, useRequestAction } from '@/components/requests/use-request-action';
 import { Button } from '@/components/ui/button';
+import { formatTnd } from '@/lib/format';
 import { formatDate } from '@/lib/ownership';
 import { matchesRequest, requestUnitHeading, shortTime, VISIT_STATUSES, type VisitRequest, type VisitStatus } from '@/lib/requests';
 import { useCanEdit } from '@/lib/use-can-edit';
@@ -19,7 +20,7 @@ const VISIT_REQUESTS_QUERY = `
   query VisitRequests {
     visit_requests(order_by: { created_at: desc }, limit: 500) {
       id full_name phone email message staff_note created_at visit_date visit_time status appointment_id
-      unit { id code title property { id name city } }
+      unit { id code title visit_fee property { id name city } }
     }
   }
 `;
@@ -115,7 +116,12 @@ export default function VisitsPage() {
             tone={requestTone(request.status)}
             onSaveNote={(note) => saveVisitNote(request.id, note).then(refresh)}
             details={
-              <p className="font-medium text-foreground">{text.visit.when(formatDate(request.visit_date), shortTime(request.visit_time))}</p>
+              <>
+                <p className="font-medium text-foreground">{text.visit.when(formatDate(request.visit_date), shortTime(request.visit_time))}</p>
+                {request.unit.visit_fee != null && request.unit.visit_fee > 0 ? (
+                  <p className="text-muted-foreground">{text.visit.fee(formatTnd(request.unit.visit_fee))}</p>
+                ) : null}
+              </>
             }
             actions={canEdit && actionsOf(request, request.status)}
           />

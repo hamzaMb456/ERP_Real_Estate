@@ -70,6 +70,7 @@ export function buildPublicListing(unit: Item, property: Item | undefined, org: 
     neighbourhood_description: property.neighbourhood_description ?? null,
     visit_fee: unit.visit_fee ?? null,
     visit_payment_method: org?.visit_payment_method ?? null,
+    visit_payment_instructions: org?.visit_payment_instructions ?? null,
   };
 }
 

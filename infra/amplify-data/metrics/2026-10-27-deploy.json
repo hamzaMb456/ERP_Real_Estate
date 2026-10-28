@@ -1,0 +1,29 @@
+{
+  "collectedAt": "2026-10-27T22:58:32.212Z",
+  "durationMs": 156856,
+  "cdkSynthSeconds": 95.042,
+  "redeploySeconds": 61.724,
+  "cloudwatch": {
+    "namespace": "ERP/Deploy",
+    "readback": {
+      "CdkSynthDuration": {
+        "sum": 95.042,
+        "max": 95.042,
+        "samples": 1,
+        "unit": "Seconds"
+      },
+      "RedeployDuration": {
+        "sum": 61.724,
+        "max": 61.724,
+        "samples": 1,
+        "unit": "Seconds"
+      },
+      "RedeployCount": {
+        "sum": 1,
+        "max": 1,
+        "samples": 1,
+        "unit": "Count"
+      }
+    }
+  }
+}

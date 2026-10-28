@@ -1,7 +1,7 @@
 import { getMessages } from '@/i18n/store';
 import { downloadName } from '@/lib/files';
 import { graphql } from '@/lib/graphql';
-import { nhost } from '@/lib/nhost';
+import { getSession } from '@/lib/auth/session';
 import { BUCKET, LEASE_BUCKET } from '@/lib/storage-buckets';
 import type { UploadDeps } from '@/lib/upload';
 
@@ -9,7 +9,7 @@ export { BUCKET, LEASE_BUCKET } from '@/lib/storage-buckets';
 
 /** Uploads/downloads still require a signed-in user; reuse the same session token GraphQL calls use. */
 function authHeader(): Record<string, string> {
-  const token = nhost.getUserSession()?.accessToken;
+  const token = getSession()?.accessToken;
   return token ? { authorization: `Bearer ${token}` } : {};
 }
 

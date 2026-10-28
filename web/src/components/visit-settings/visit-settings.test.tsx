@@ -22,19 +22,22 @@ describe('VisitSettings', () => {
     vi.mocked(toast.error).mockClear();
     graphql.mockReset();
     graphql.mockImplementation(async (query: string) =>
-      query.includes('mutation') ? { update_organizations_by_pk: { id: 'org-1' } } : { organizations: [{ id: 'org-1', visit_payment_method: 'virtual' }] },
+      query.includes('mutation')
+        ? { update_organizations_by_pk: { id: 'org-1' } }
+        : { organizations: [{ id: 'org-1', visit_payment_method: 'virtual', visit_payment_instructions: 'Virement RIB TN59 ...' }] },
     );
   });
 
   it('shows the organization current choice and keeps save disabled until it changes', async () => {
     render(<VisitSettings />);
-    expect(await screen.findByText('Virtuel')).toBeInTheDocument();
+    expect(await screen.findByText('À distance (virement, D17, Flouci…)')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Virement RIB TN59 ...')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
   });
 
   it('saves the picked method and reports success', async () => {
     render(<VisitSettings />);
-    await screen.findByText('Virtuel');
+    await screen.findByText('À distance (virement, D17, Flouci…)');
     await userEvent.click(screen.getByRole('combobox'));
     await userEvent.click(await screen.findByRole('option', { name: 'Gratuit' }));
 
@@ -45,8 +48,33 @@ describe('VisitSettings', () => {
     await waitFor(() => {
       const call = graphql.mock.calls.find(([query]) => String(query).includes('mutation'));
       expect(call).toBeDefined();
-      expect(call![1]).toEqual({ id: 'org-1', value: null });
+      expect(call![1]).toEqual({ id: 'org-1', value: null, instructions: null });
     });
     expect(toast.success).toHaveBeenCalledWith('Préférence enregistrée.');
+  });
+
+  it('requires instructions before saving the remote method, and sends them trimmed', async () => {
+    graphql.mockImplementation(async (query: string) =>
+      query.includes('mutation')
+        ? { update_organizations_by_pk: { id: 'org-1' } }
+        : { organizations: [{ id: 'org-1', visit_payment_method: 'manual', visit_payment_instructions: null }] },
+    );
+    render(<VisitSettings />);
+    await screen.findByText('Sur place (espèces à l’agent)');
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(await screen.findByRole('option', { name: 'À distance (virement, D17, Flouci…)' }));
+
+    const saveButton = screen.getByRole('button', { name: 'Enregistrer' });
+    expect(saveButton).toBeDisabled();
+    expect(screen.getByText('Expliquez comment payer à distance avant d’enregistrer ce mode.')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Comment payer à distance'), '  D17 au 71 000 000.  ');
+    expect(saveButton).not.toBeDisabled();
+    await userEvent.click(saveButton);
+
+    await waitFor(() => {
+      const call = graphql.mock.calls.find(([query]) => String(query).includes('mutation'));
+      expect(call![1]).toEqual({ id: 'org-1', value: 'virtual', instructions: 'D17 au 71 000 000.' });
+    });
   });
 });

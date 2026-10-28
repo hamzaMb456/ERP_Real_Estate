@@ -1,9 +1,15 @@
 // Public photo urls. Kept apart from public-api.ts (server only) so client components can build image urls too;
 // public-api.ts re-exports it.
 
-/** A stored photo served by Nhost storage, resized to `width` pixels. The file is readable without a session. */
-export function publicImageUrl(fileId: string, width: number): string {
-  const subdomain = process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN;
-  const region = process.env.NEXT_PUBLIC_NHOST_REGION;
-  return `https://${subdomain}.storage.${region}.nhost.run/v1/files/${encodeURIComponent(fileId)}?w=${width}&q=80`;
+import { BUCKET } from '@/lib/storage-buckets';
+
+const DEFAULT_STORAGE_URL = 'http://localhost:4566';
+
+/**
+ * A stored photo served from the Floci S3 bucket. The file is readable without a session.
+ * Floci does not resize images, so `width` is not applied and the original file is served.
+ */
+export function publicImageUrl(fileId: string, _width: number): string {
+  const base = process.env.NEXT_PUBLIC_STORAGE_URL ?? DEFAULT_STORAGE_URL;
+  return `${base}/${BUCKET}/${encodeURIComponent(fileId)}`;
 }

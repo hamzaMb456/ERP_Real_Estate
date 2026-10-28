@@ -1,0 +1,393 @@
+name: CI Pipeline
+
+# This workflow runs on every push and pull request to validate code quality.
+# It performs linting, type-checking, unit tests, build, and E2E tests.
+#
+# Required secrets (for deploy job only):
+#   - AWS_ACCESS_KEY_ID: AWS access key for production deploy
+#   - AWS_SECRET_ACCESS_KEY: AWS secret key for production deploy
+#   - AWS_REGION: AWS region (e.g., us-east-1)
+#
+# Required permissions:
+#   - contents: read (default)
+#   - pull-requests: write (for PR comments)
+#   - security-events: write (for CodeQL)
+#   - id-token: write (for OIDC auth)
+#   - attestations: write (for SBOM attestations)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+# Security: Default to read-only, elevate per job
+permissions:
+  contents: read
+
+# Concurrency: Cancel in-progress runs for same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Environment variables
+env:
+  NODE_VERSION: '24'
+  CACHE_VERSION: 'v1'
+  WORKING_DIR: './web'
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Linting
+  # ─────────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm run lint
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Type Checking
+  # ─────────────────────────────────────────────────────────────────────────
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Run TypeScript type check
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npx tsc --noEmit
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Unit Tests (Vitest)
+  # ─────────────────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm test
+        env:
+          # Mock Floci/local AWS endpoints for unit tests
+          AUTH_COGNITO_URL: http://localhost:4566/
+          AUTH_JWKS_URL: http://localhost:4566/us-east-1_dadf1b949/.well-known/jwks.json
+          APPSYNC_URL: http://localhost:4566/v1/apis/861df1f5118d47acb3576c3db2/graphql
+          ERP_COGNITO_POOL_ID: us-east-1_dadf1b949
+          ERP_SECRET_NAME: erp-functions-config
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: coverage-report
+          path: ${{ env.WORKING_DIR }}/coverage/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Build (Next.js)
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint, type-check, unit-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Build Next.js application
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm run build
+        env:
+          # Required for build-time GraphQL codegen (if used)
+          AUTH_COGNITO_URL: http://localhost:4566/
+          AUTH_JWKS_URL: http://localhost:4566/us-east-1_dadf1b949/.well-known/jwks.json
+          APPSYNC_URL: http://localhost:4566/v1/apis/861df1f5118d47acb3576c3db2/graphql
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: nextjs-build-${{ github.sha }}
+          path: ${{ env.WORKING_DIR }}/.next/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # E2E Tests (Playwright) - uses docker-compose with Floci network
+  # ─────────────────────────────────────────────────────────────────────────
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      # Cache docker layers for faster builds
+      - name: Cache Docker layers
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-docker-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-docker-buildx-
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Start Floci LocalStack network (background)
+        run: |
+          # Start Floci network (requires Floci to be running on host or in CI)
+          # In CI, we start LocalStack directly as a service container
+          docker network create floci_default || true
+
+      - name: Start LocalStack (Floci-compatible)
+        run: |
+          docker run -d --name localstack \
+            --network floci_default \
+            --network-alias floci \
+            -p 4566:4566 \
+            -e SERVICES=cognito-idp,appsync,dynamodb,lambda,s3,secretsmanager,cloudformation,events,sts,iam \
+            -e DEBUG=1 \
+            -e AWS_DEFAULT_REGION=us-east-1 \
+            -e AWS_ACCESS_KEY_ID=test \
+            -e AWS_SECRET_ACCESS_KEY=test \
+            localstack/localstack:3.8
+
+      - name: Wait for LocalStack to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:4566/_localstack/health | grep -q '"running"'; then
+              echo "LocalStack is ready"
+              exit 0
+            fi
+            echo "Waiting for LocalStack... ($i/30)"
+            sleep 2
+          done
+          echo "LocalStack failed to start"
+          exit 1
+
+      - name: Deploy Amplify backend to LocalStack
+        working-directory: ./infra/amplify-data
+        run: |
+          npm ci
+          npm run deploy dev
+        env:
+          AWS_ENDPOINT_URL: http://localhost:4566
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          ERP_COGNITO_POOL_ID: us-east-1_dadf1b949
+          ERP_SECRET_NAME: erp-functions-config
+
+      - name: Build web Docker image
+        run: |
+          docker build -t erp-web-ci ./web \
+            --build-arg BASE_IMAGE=node:24-bookworm-slim
+
+      - name: Start web service
+        run: |
+          docker run -d --name web \
+            --network floci_default \
+            -p 3000:3000 \
+            -e AUTH_COGNITO_URL=http://floci:4566/ \
+            -e AUTH_JWKS_URL=http://floci:4566/us-east-1_dadf1b949/.well-known/jwks.json \
+            -e APPSYNC_URL=http://floci:4566/v1/apis/861df1f5118d47acb3576c3db2/graphql \
+            -e NEXT_WATCH_POLL_MS=1000 \
+            erp-web-ci
+
+      - name: Wait for web service to be healthy
+        run: |
+          for i in {1..60}; do
+            if curl -s -f http://localhost:3000/erp/connexion > /dev/null; then
+              echo "Web service is healthy"
+              exit 0
+            fi
+            echo "Waiting for web service... ($i/60)"
+            sleep 2
+          done
+          echo "Web service failed to start"
+          docker logs web
+          exit 1
+
+      - name: Run Playwright E2E tests
+        working-directory: ./web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test
+        env:
+          E2E_BASE_URL: http://localhost:3000
+
+      - name: Upload Playwright trace on failure
+        if: failure()
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: playwright-trace-${{ github.run_id }}
+          path: ${{ env.WORKING_DIR }}/test-results/
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop web localstack || true
+          docker rm web localstack || true
+          docker network rm floci_default || true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Security Scanning
+  # ─────────────────────────────────────────────────────────────────────────
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write  # For CodeQL
+      id-token: write         # For attestations
+      attestations: write     # For SBOM attestations
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      # Dependency Review (runs on PRs)
+      - name: Dependency Review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: critical
+          allow-licenses: MIT, Apache-2.0, BSD-3-Clause, ISC
+
+      # CodeQL Analysis
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, typescript
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
+          upload: true
+
+      # NPM Audit
+      - name: Setup Node.js for audit
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Infrastructure Tests (Amplify backend)
+  # ─────────────────────────────────────────────────────────────────────────
+  infra-tests:
+    name: Infrastructure Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ./infra/amplify-data/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./infra/amplify-data
+        run: npm ci
+
+      - name: Run infrastructure tests
+        working-directory: ./infra/amplify-data
+        run: npm test
+        env:
+          AWS_ENDPOINT_URL: http://localhost:4566
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test

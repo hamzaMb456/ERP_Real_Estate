@@ -30,7 +30,10 @@ async function requestsWithUnits(model: string, orgId: string): Promise<Item[]> 
     const u = unitById.get(r.unit_id);
     const p = u ? propertyById.get(u.property_id) : undefined;
     const { phone_digits: _digits, client_user_id: _client, __typename: _t, organization_id: _o, ...rest } = r;
-    return { ...rest, unit: u ? { id: u.id, code: u.code, title: u.title ?? null, property: p ? { id: p.id, name: p.name, city: p.city } : null } : null };
+    return {
+      ...rest,
+      unit: u ? { id: u.id, code: u.code, title: u.title ?? null, visit_fee: u.visit_fee ?? null, property: p ? { id: p.id, name: p.name, city: p.city } : null } : null,
+    };
   });
 }
 
@@ -116,17 +119,26 @@ export const officeOps: Record<string, Op> = {
 
   VisitPaymentMethod: query(STAFF, async (c) => {
     const org = await getItem('Organization', { id: c.orgId });
-    return { organizations: org ? [{ id: org.id, visit_payment_method: org.visit_payment_method ?? null }] : [] };
+    return {
+      organizations: org
+        ? [{ id: org.id, visit_payment_method: org.visit_payment_method ?? null, visit_payment_instructions: org.visit_payment_instructions ?? null }]
+        : [],
+    };
   }),
-  /** org_admin only; the website shows the method, so every listing of the org is rewritten. */
+  /** org_admin only; 'virtual' needs non-blank instructions (how the visitor actually pays); the website shows both, so every listing of the org is rewritten. */
   SetVisitPaymentMethod: mutation(['org_admin'], async (c, v) => {
     requireWriter(c, 'permission_denied');
     if (str(v.id) !== c.orgId) fail('permission_denied');
     const value = v.value == null ? null : str(v.value);
     if (value !== null && !PAYMENT_METHODS.has(value)) fail('organizations_visit_payment_method_check');
+    const instructions = v.instructions == null ? null : str(v.instructions).trim() || null;
+    if (value === 'virtual' && !instructions) fail('organizations_visit_payment_instructions_required');
     const org = await getItem('Organization', { id: c.orgId });
     if (!org) fail('organization_not_found');
-    await doc.send(new PutCommand({ TableName: table('Organization'), Item: { ...org, visit_payment_method: value, updated_at: new Date().toISOString() } }));
+    await doc.send(new PutCommand({
+      TableName: table('Organization'),
+      Item: { ...org, visit_payment_method: value, visit_payment_instructions: value === 'virtual' ? instructions : null, updated_at: new Date().toISOString() },
+    }));
     await syncPublicListingsFor('byOrg', c.orgId);
     return { update_organizations_by_pk: { id: c.orgId } };
   }),

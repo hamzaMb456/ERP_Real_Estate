@@ -1,59 +1,79 @@
 ﻿'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { StoredSession } from '@nhost/nhost-js';
-import { FetchError } from '@nhost/nhost-js/fetch';
 import { getMessages } from '@/i18n/store';
-import { nhost } from '@/lib/nhost';
+import {
+  AuthError,
+  completeNewPassword,
+  confirmSignUp as confirmAccount,
+  currentSession,
+  getSession,
+  signIn as signInWithCredentials,
+  signOut as endSession,
+  signUp as registerAccount,
+  subscribe,
+} from '@/lib/auth/session';
+import type { AuthSession } from '@/lib/auth/types';
 import { accountErrorKey } from '@/lib/site/account';
 
+type PendingPasswordChange = { email: string; challengeSession: string };
+
 type AuthState = {
-  session: StoredSession | null;
+  session: AuthSession | null;
   ready: boolean;
+  pendingPasswordChange: PendingPasswordChange | null;
   signIn: (email: string, password: string) => Promise<void>;
+  completePasswordChange: (newPassword: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<'verify' | 'ok'>;
+  signUp: (name: string, email: string, password: string) => Promise<'verify'>;
+  confirmSignUp: (email: string, code: string) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthState | null>(null);
 
-function describeSignInError(code: string | undefined, serverMessage: string | undefined, status: number): string {
+function describeSignInError(code: string): string {
   const { auth } = getMessages().shell;
   switch (code) {
-    case 'invalid-email-password':
+    case 'NotAuthorizedException':
+    case 'UserNotFoundException':
       return auth.invalidCredentials;
-    case 'unverified-user':
+    case 'UserNotConfirmedException':
       return auth.unverified;
-    case 'disabled-user':
-      return auth.disabled;
     case 'invalid-request':
       return auth.malformed;
+    case 'unreachable':
+      return auth.unreachable;
     default:
-      return auth.other(code ?? auth.errorStatus(status), serverMessage);
+      return auth.other(code, undefined);
   }
 }
 
-function describeSignUpError(code: string | undefined, _serverMessage: string | undefined, _status: number): string {
+function describeSignUpError(code: string): string {
   const { account } = getMessages().site;
-  const key = accountErrorKey(code);
-  return account.errors[key];
+  return account.errors[accountErrorKey(code)];
+}
+
+function toError(error: unknown, describe: (code: string) => string): Error {
+  if (error instanceof AuthError) return new Error(describe(error.code));
+  if (error instanceof TypeError) return new Error(getMessages().shell.auth.unreachable);
+  return error instanceof Error ? error : new Error(String(error));
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<StoredSession | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [ready, setReady] = useState(false);
+  const [pending, setPending] = useState<PendingPasswordChange | null>(null);
 
   useEffect(() => {
     let active = true;
-    const unsubscribe = nhost.sessionStorage.onChange((next) => {
+    const unsubscribe = subscribe((next) => {
       if (active) setSession(next);
     });
-    nhost
-      .refreshSession()
+    currentSession()
       .catch(() => null)
       .finally(() => {
         if (!active) return;
-        setSession(nhost.getUserSession());
+        setSession(getSession());
         setReady(true);
       });
     return () => {
@@ -64,52 +84,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
-      const response = await nhost.auth.signInEmailPassword({ email, password });
-      if (!response.body.session) {
-        throw new Error(getMessages().shell.auth.noSession);
+      const result = await signInWithCredentials(email, password);
+      if (result.kind === 'new-password') {
+        setPending({ email: result.email, challengeSession: result.challengeSession });
       }
     } catch (error) {
-      if (error instanceof FetchError) {
-        const body = error.body as { error?: string; message?: string } | null;
-        throw new Error(describeSignInError(body?.error, body?.message, error.status));
-      }
-      if (error instanceof TypeError) {
-        throw new Error(getMessages().shell.auth.unreachable);
-      }
-      throw error;
+      throw toError(error, describeSignInError);
     }
   }, []);
 
-  const signUp = useCallback(async (name: string, email: string, password: string): Promise<'verify' | 'ok'> => {
+  const completePasswordChange = useCallback(
+    async (newPassword: string) => {
+      if (!pending) throw new Error(getMessages().shell.auth.noSession);
+      try {
+        await completeNewPassword(pending.email, newPassword, pending.challengeSession);
+        setPending(null);
+      } catch (error) {
+        throw toError(error, describeSignInError);
+      }
+    },
+    [pending],
+  );
+
+  const signUp = useCallback(async (name: string, email: string, password: string): Promise<'verify'> => {
     try {
-      const response = await nhost.auth.signUpEmailPassword({
-        email,
-        password,
-        options: { displayName: name },
-      });
-      // When email verification is required the response has no session yet.
-      return response.body.session ? 'ok' : 'verify';
+      await registerAccount(name, email, password);
+      return 'verify';
     } catch (error) {
-      if (error instanceof FetchError) {
-        const body = error.body as { error?: string; message?: string } | null;
-        throw new Error(describeSignUpError(body?.error, body?.message, error.status));
-      }
-      if (error instanceof TypeError) {
-        throw new Error(getMessages().shell.auth.unreachable);
-      }
-      throw error;
+      throw toError(error, describeSignUpError);
+    }
+  }, []);
+
+  const confirmSignUp = useCallback(async (email: string, code: string) => {
+    try {
+      await confirmAccount(email, code);
+    } catch (error) {
+      throw toError(error, describeSignUpError);
     }
   }, []);
 
   const signOut = useCallback(async () => {
-    const current = nhost.getUserSession();
-    if (current) {
-      await nhost.auth.signOut({ refreshToken: current.refreshToken }).catch(() => null);
-    }
-    nhost.clearSession();
+    await endSession();
   }, []);
 
-  const value = useMemo(() => ({ session, ready, signIn, signUp, signOut }), [session, ready, signIn, signUp, signOut]);
+  const value = useMemo(
+    () => ({ session, ready, pendingPasswordChange: pending, signIn, completePasswordChange, signOut, signUp, confirmSignUp }),
+    [session, ready, pending, signIn, completePasswordChange, signOut, signUp, confirmSignUp],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

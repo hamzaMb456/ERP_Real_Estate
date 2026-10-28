@@ -13,6 +13,7 @@ import { mailtoHref, telHref } from "@/lib/site/listing-links";
 import type { PublicListing } from "@/lib/site/listings-queries";
 import { useClientSession } from "@/components/site/account-menu";
 import { accountHref, SIGN_IN_PATH } from "@/lib/site/account";
+import { useUnitRequests } from "@/lib/site/use-unit-requests";
 import { FavoriteButton } from "./favorite-button";
 import { RequestDialog, type RequestKind } from "./request-dialog";
 import { ShareButton } from "./share-button";
@@ -36,6 +37,16 @@ export function ListingBookingCard({ listing }: { listing: PublicListing }) {
   const { signedIn } = useClientSession();
   const pathname = usePathname();
   const signInHref = accountHref(SIGN_IN_PATH, pathname);
+
+  // The server state (persists across reloads) plus an optimistic flag set the moment a request succeeds, so the
+  // button disables instantly without waiting on a refetch.
+  const { hasRentalRequest, hasVisitRequest } = useUnitRequests(listing.id, signedIn);
+  const [justSent, setJustSent] = useState({ rent: false, visit: false });
+  const rentSent = hasRentalRequest || justSent.rent;
+  // Renting makes visiting moot, so a rent request also disables the visit button.
+  const visitSent = hasVisitRequest || rentSent || justSent.visit;
+  const handleSubmitted = (kind: RequestKind) =>
+    setJustSent((current) => (kind === "rent" ? { rent: true, visit: current.visit } : { ...current, visit: true }));
 
   // On phones the card sits far down the page: once it scrolls out of view, a bar with the price and the main action stays at the bottom.
   useEffect(() => {
@@ -97,6 +108,7 @@ export function ListingBookingCard({ listing }: { listing: PublicListing }) {
               <Button
                 size="lg"
                 className="h-11 w-full"
+                disabled={rentSent}
                 onClick={() => setDialog("rent")}
               >
                 {copy.rentCta}
@@ -112,6 +124,7 @@ export function ListingBookingCard({ listing }: { listing: PublicListing }) {
               size="lg"
               variant={isRent ? "outline" : "default"}
               className="h-11 w-full gap-2"
+              disabled={visitSent}
               onClick={() => setDialog("visit")}
             >
               <CalendarDays aria-hidden="true" />
@@ -125,9 +138,15 @@ export function ListingBookingCard({ listing }: { listing: PublicListing }) {
               </Link>
             </Button>
           )}
-          <p className="text-center text-xs text-muted-foreground">
-            {copy.reassure}
-          </p>
+          {rentSent ? (
+            <p className="text-center text-xs font-medium text-muted-foreground">{copy.alreadyRequestedRent}</p>
+          ) : visitSent ? (
+            <p className="text-center text-xs font-medium text-muted-foreground">{copy.alreadyRequestedVisit}</p>
+          ) : (
+            <p className="text-center text-xs text-muted-foreground">
+              {copy.reassure}
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <FavoriteButton
               listingId={listing.id}
@@ -172,6 +191,7 @@ export function ListingBookingCard({ listing }: { listing: PublicListing }) {
             listing={listing}
             open
             onOpenChange={(open) => !open && setDialog(null)}
+            onSubmitted={handleSubmitted}
           />
         ) : null}
       </aside>
@@ -214,6 +234,7 @@ export function ListingBookingCard({ listing }: { listing: PublicListing }) {
             size="lg"
             className="h-11 shrink-0"
             tabIndex={cardVisible ? -1 : 0}
+            disabled={visitSent}
             onClick={() => setDialog("visit")}
           >
             {copy.visitCta}

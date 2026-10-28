@@ -1,4 +1,4 @@
-﻿import { plural } from '../../plural';
+import { plural } from '../../plural';
 
 export const site = {
   meta: {
@@ -299,6 +299,8 @@ export const site = {
     reassure: 'No commitment · the agency answers within 24 h',
     favouriteAdd: 'Add to favorites',
     favouriteRemove: 'Remove from favorites',
+    alreadyRequestedRent: 'You already sent a rental request for this listing.',
+    alreadyRequestedVisit: 'You already sent a visit request for this listing.',
   },
   request: {
     rentTitle: 'Rental request',
@@ -378,7 +380,9 @@ export const site = {
     goSignUp: 'Create an account',
     goSignIn: 'Sign in',
     checkEmailTitle: 'Check your e-mail',
-    checkEmailBody: 'We sent you a confirmation link. Click it, then sign in.',
+    checkEmailBody: 'We sent you a 6-digit code by email. Enter it below.',
+    codeLabel: 'Confirmation code',
+    codeSubmit: 'Confirm and sign in',
     logout: 'Sign out',
     myAccount: 'My account',
     needLoginTitle: 'Sign-in required',
@@ -403,6 +407,8 @@ export const site = {
     statuses: { new: 'Pending', confirmed: 'Confirmed', declined: 'Declined', done: 'Done', cancelled: 'Cancelled' },
     when: (date: string, time: string) => `${date} at ${time}`,
     listingFallback: 'Listing',
-    paymentMethod: { virtual: 'Payment: online', manual: 'Payment: manual' },
+    fee: (amount: string) => `Visit fee: ${amount}`,
+    payManual: 'Pay the fee in cash directly to the agent during the visit.',
+    payVirtualLabel: 'How to pay:',
   },
 };

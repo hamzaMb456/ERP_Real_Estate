@@ -4,6 +4,7 @@
 export const STAFF_ROLES: readonly string[] = ['org_admin', 'manager', 'viewer'];
 export const SIGN_IN_PATH = '/compte/connexion';
 export const SIGN_UP_PATH = '/compte/inscription';
+export const FORGOT_PASSWORD_PATH = '/compte/mot-de-passe-oublie';
 export const MIN_PASSWORD_LENGTH = 8;
 
 /** True when the role is one of the ERP staff roles (a client never has one). */

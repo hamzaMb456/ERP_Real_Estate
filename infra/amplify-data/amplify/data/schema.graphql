@@ -13,6 +13,7 @@ type Organization @table {
   id: ID!
   name: String!
   visit_payment_method: String
+  visit_payment_instructions: String
 }
 
 type Branch @table {
@@ -359,6 +360,7 @@ type PublicListing @table {
   neighbourhood_description: String
   visit_fee: Float
   visit_payment_method: String
+  visit_payment_instructions: String
 }
 
 type PublicPhoto {

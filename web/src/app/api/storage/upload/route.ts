@@ -5,8 +5,10 @@ import { requireSession, requireWriter, type SessionClaims } from '@/lib/server/
 import { registerStorageFile } from '@/lib/server/storage-registry';
 import { s3 } from '@/lib/server/s3-client';
 import { ALLOWED_BUCKETS, isStorageKey } from '@/lib/storage-buckets';
+import { WRITE_FROZEN, writesFrozen } from '@/lib/write-freeze';
 
 export async function POST(request: Request): Promise<Response> {
+  if (writesFrozen()) return NextResponse.json({ error: WRITE_FROZEN }, { status: 503 });
   let session: SessionClaims;
   try {
     session = await requireSession(request.headers.get('authorization'));
@@ -15,7 +17,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   // JWTs are only type-checked as strings by the verifier, not shape-checked — `sub` could in
-  // principle be any string. Confirm it is a uuid before it ever reaches raw SQL (see hasuraRunSql).
+  // principle be any string. Confirm it is a uuid before it is used as a key.
   if (!isStorageKey(session.userId)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
@@ -40,10 +42,9 @@ export async function POST(request: Request): Promise<Response> {
 
   // property_files_check_storage / lease_files_check_storage (db/migrations/0013) require a
   // matching row here before storage_file_id can be linked to a record — without this the upload
-  // succeeds but every later link attempt fails. Values are safe to inline: `key` just came from
-  // randomUUID(), `bucket` is one of the two ALLOWED_BUCKETS literals, `userId` was regex-checked above.
+  // succeeds but every later link attempt fails.
   try {
-    await registerStorageFile(session.token, key, bucket, session.userId);
+    await registerStorageFile(session.token, key, bucket);
   } catch (error) {
     console.error('[storage/upload] app_storage_files insert failed', error);
     await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => undefined);

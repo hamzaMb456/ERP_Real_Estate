@@ -1,0 +1,126 @@
+{
+  "source": "erp-metrics",
+  "collectedAt": "2026-10-27T23:03:35.057Z",
+  "metrics": [
+    {
+      "kind": "inventory.tables",
+      "payload": {
+        "count": 20,
+        "totalItems": 702
+      },
+      "at": "2026-10-27T23:03:34.332Z"
+    },
+    {
+      "kind": "inventory.cloudformation",
+      "payload": {
+        "stacks": 23,
+        "mainStackResources": 59
+      },
+      "at": "2026-10-27T23:03:34.333Z"
+    },
+    {
+      "kind": "inventory.lambda",
+      "payload": {
+        "count": 9
+      },
+      "at": "2026-10-27T23:03:34.333Z"
+    },
+    {
+      "kind": "inventory.appsync",
+      "payload": [
+        {
+          "name": "ErpApi",
+          "pipelineFunctions": 76,
+          "auth": "AWS_LAMBDA"
+        }
+      ],
+      "at": "2026-10-27T23:03:34.333Z"
+    },
+    {
+      "kind": "inventory.s3",
+      "payload": {
+        "buckets": 5
+      },
+      "at": "2026-10-27T23:03:34.333Z"
+    },
+    {
+      "kind": "inventory.iam",
+      "payload": {
+        "roles": 33
+      },
+      "at": "2026-10-27T23:03:34.333Z"
+    },
+    {
+      "kind": "logs.audit",
+      "payload": {
+        "groups": 11,
+        "events": 2082,
+        "errorLines": 1973,
+        "topErrors": [
+          {
+            "error": "DomainError: permission_denied",
+            "count": 785
+          },
+          {
+            "error": "unexpected error in api resolver: SyntaxError: Expected property name or '}' in ",
+            "count": 479
+          },
+          {
+            "error": "InternalError: internal_error",
+            "count": 475
+          },
+          {
+            "error": "DomainError: file_target_required",
+            "count": 128
+          },
+          {
+            "error": "ResourceNotFoundException: Secrets Manager can't find the specified secret.",
+            "count": 8
+          },
+          {
+            "error": "DomainError: public_org_required",
+            "count": 2
+          }
+        ]
+      },
+      "at": "2026-10-27T23:03:34.333Z"
+    },
+    {
+      "kind": "deploy.timings",
+      "payload": {
+        "cdkSynthSeconds": 95.042,
+        "redeploySeconds": 61.724
+      },
+      "at": "2026-10-27T23:03:34.333Z"
+    },
+    {
+      "kind": "loadtest.appsync",
+      "payload": {
+        "rps": 147.2,
+        "requests": 2959,
+        "errors": 0,
+        "p50": 96.8,
+        "p90": 150.6,
+        "p95": 171.6,
+        "p99": 263.5,
+        "max": 1023.9
+      },
+      "at": "2026-10-27T23:03:34.333Z"
+    },
+    {
+      "kind": "security.accessMatrix",
+      "payload": {
+        "roleMatrix": "665/665",
+        "kindMismatch": "96/96",
+        "authorizer": "8/8",
+        "http": "8/8",
+        "errorLeak": "2/2",
+        "staffParity": "844/844",
+        "crossTenant": "880/880",
+        "client": "3/3",
+        "note": "95 operations x 7 roles, all checks passed"
+      },
+      "at": "2026-10-27T23:03:34.333Z"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>ERP — métriques AWS (Kinesis)</title>
+<style>
+  body{font-family:Segoe UI,Arial,sans-serif;background:#0e1116;color:#e6e6e6;margin:24px}
+  h1{font-size:20px} h2{font-size:15px;margin:26px 0 8px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .card{background:#161b22;border:1px solid #2a3140;border-radius:10px;padding:14px}
+  .card b{display:block;font-size:26px;color:#58a6ff}
+  .tag{color:#8b949e;font-size:12px}
+  canvas{background:#0e1116}
+  table{border-collapse:collapse;font-size:13px}
+  td,th{border:1px solid #2a3140;padding:4px 10px;text-align:left}
+  .ok{color:#3fb950}.err{color:#f85149}
+</style></head><body>
+<h1>ERP back-end — toutes les métriques, source: flux AWS Kinesis <span class="tag">(erp-metrics, lues via GetRecords 2026-10-27)</span></h1>
+<div class="grid">
+  <div class="card"><b>20</b><span class="tag">tables DynamoDB (702 items)</span></div>
+  <div class="card"><b>23</b><span class="tag">stacks CDK (59 ressources dans le stack racine)</span></div>
+  <div class="card"><b>9</b><span class="tag">fonctions Lambda</span></div>
+  <div class="card"><b>76</b><span class="tag">fonctions pipeline AppSync</span></div>
+  <div class="card"><b>5</b><span class="tag">buckets S3</span></div>
+  <div class="card"><b>33</b><span class="tag">rôles IAM</span></div>
+  <div class="card"><b>62</b><span class="tag">s — redéploiement idempotent complet (23 stacks CDK)</span></div>
+  <div class="card"><b>147.2</b><span class="tag">req/s soutenus — 0 échec, 2959 requêtes</span></div>
+  <div class="card"><b>171.6</b><span class="tag">ms p95 (p50 96.8) — envoyé dans CloudWatch Metrics</span></div>
+  <div class="card"><b>2 506</b><span class="tag">vérifications sécurité (95 ops × 7 rôles) — 100 % pass</span></div>
+</div>
+<h2>Latence GraphQL AppSync (lecture seule, 2959 req @ 147.2 req/s)</h2>
+<canvas id="lat" width="660" height="240"></canvas>
+<h2>Déploiement CDK (chronométré, publiés dans CloudWatch Metrics)</h2>
+<canvas id="dep" width="660" height="200"></canvas>
+<h2>Matrice d'accès (95 opérations × 7 rôles — rejouée et verte)</h2>
+<canvas id="sec" width="760" height="220"></canvas>
+<h2>CloudWatch Logs — erreurs réelles logguées (25 oct, auteurs négatifs connus)</h2>
+<table><tr><th>erreur</th><th>×n</th></tr>
+<tr><td>DomainError: permission_denied</td><td class="err">785</td></tr>
+<tr><td>unexpected error in api resolver: SyntaxError: Expected property name or '}' in </td><td class="err">479</td></tr>
+<tr><td>InternalError: internal_error</td><td class="err">475</td></tr>
+<tr><td>DomainError: file_target_required</td><td class="err">128</td></tr>
+<tr><td>ResourceNotFoundException: Secrets Manager can't find the specified secret.</td><td class="ok">8</td></tr>
+<tr><td>DomainError: public_org_required</td><td class="ok">2</td></tr>
+</table>
+<p class="tag">Records Kinesis: 10 · événements loggés: 2082-1973 erreurs sur Lambda</p>
+<script>
+const lat={p:0,f:0}, dep={p:0,f:0}, sec={p:0,f:0};
+function bar(cv, data, colors, title){
+  const c=cv.getContext('2d'); c.fillStyle='#0e1116'; c.fillRect(0,0,cv.width,cv.height);
+  c.fillStyle='#e6e6e6'; c.font='12px Arial'; c.fillText(title,10,16);
+  const max=Math.max(...data.map(d=>d.v))*1.25||1, w=(cv.width-60)/data.length;
+  data.forEach((d,i)=>{const h=d.v/max*(cv.height-50),x=50+i*w;
+    c.fillStyle=colors[i%colors.length]; c.fillRect(x,cv.height-h-28,w-14,h);
+    c.fillStyle='#e6e6e6'; c.fillText(String(d.v),x,cv.height-h-34);
+    c.fillStyle='#8b949e'; c.save(); c.translate(x+6,cv.height-10); c.rotate(-0.6); c.fillText(d.l,0,0); c.restore();});
+}
+bar(document.getElementById('lat'),[
+  {l:'p50',v:96.8},{l:'p90',v:150.6},{l:'p95',v:171.6},{l:'p99',v:263.5},{l:'max',v:1023.9}
+],['#58a6ff','#7ee787','#f85149','#ffa657','#8b949e'],'ms — 2959 requêtes, 0 (mise à jour : 0) erreur');
+bar(document.getElementById('dep'),[
+  {l:'cdk synth',v:95.042},{l:'redeploy complet',v:61.724}
+],['#7ee787','#58a6ff'],'secondes — full idempotent deploy (23 stacks)');
+bar(document.getElementById('sec'),[{"label":"roleMatrix","pass":665,"total":665},{"label":"kindMismatch","pass":96,"total":96},{"label":"authorizer","pass":8,"total":8},{"label":"http","pass":8,"total":8},{"label":"errorLeak","pass":2,"total":2},{"label":"staffParity","pass":844,"total":844},{"label":"crossTenant","pass":880,"total":880},{"label":"client","pass":3,"total":3}].map(x=>({l:x.label,v:x.pass/(x.total||1)*100})),['#3fb950'],'% pass — 8/8/844/880 etc.');
+</script></body></html>

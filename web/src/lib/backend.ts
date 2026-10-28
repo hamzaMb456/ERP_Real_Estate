@@ -1,12 +1,7 @@
-// Which data backend the app talks to. NEXT_PUBLIC_DATA_BACKEND=appsync sends every existing GraphQL
-// operation, by its name, to the AppSync API on Floci; anything else keeps Hasura (Nhost). The AppSync
-// side answers with the same JSON shape Hasura did, so callers do not change.
+// Every GraphQL operation goes to AppSync, by its name. AppSync answers with the JSON shape the old
+// backend used, so callers do not change.
 
-export type DataBackend = 'hasura' | 'appsync';
-
-export function dataBackend(): DataBackend {
-  return process.env.NEXT_PUBLIC_DATA_BACKEND === 'appsync' ? 'appsync' : 'hasura';
-}
+import { assertWritable } from '@/lib/write-freeze';
 
 /** The token the public site sends when there is no session (the authorizer maps it to role "public"). */
 export const PUBLIC_TOKEN = 'public';
@@ -90,6 +85,7 @@ export async function appsyncRequest<T>(
   token: string,
   init: { signal?: AbortSignal } = {},
 ): Promise<T> {
+  assertWritable(query);
   const send = typeof window === 'undefined' ? direct : viaRoute;
   return send<T>(query, variables ?? {}, token, init.signal);
 }

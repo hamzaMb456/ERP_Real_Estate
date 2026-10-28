@@ -67,11 +67,14 @@ export function RequestDialog({
   listing,
   open,
   onOpenChange,
+  onSubmitted,
 }: {
   kind: RequestKind;
   listing: PublicListing;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called once the server accepted the request, so the booking card can disable its button(s) right away. */
+  onSubmitted?: (kind: RequestKind) => void;
 }) {
   const { t, dir } = useI18n();
   const copy = t.site.request;
@@ -134,6 +137,7 @@ export function RequestDialog({
     setSubmitting(false);
     if (result.ok) {
       setSentFor(contact.fullName.trim());
+      onSubmitted?.(kind);
       return;
     }
     setFailure(result.code);

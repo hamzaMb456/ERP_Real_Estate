@@ -1,4 +1,4 @@
-﻿// Public front office (vitrine): shell, navigation, footer and 404. Later slices add their sections to this namespace.
+// Public front office (vitrine): shell, navigation, footer and 404. Later slices add their sections to this namespace.
 import { plural } from '../../plural';
 
 export const site = {
@@ -300,6 +300,8 @@ export const site = {
     reassure: 'Sans engagement · l’agence vous répond sous 24 h',
     favouriteAdd: 'Ajouter aux favoris',
     favouriteRemove: 'Retirer des favoris',
+    alreadyRequestedRent: 'Vous avez déjà envoyé une demande de location pour ce bien.',
+    alreadyRequestedVisit: 'Vous avez déjà envoyé une demande de visite pour ce bien.',
   },
   request: {
     rentTitle: 'Demande de location',
@@ -379,7 +381,9 @@ export const site = {
     goSignUp: 'Créer un compte',
     goSignIn: 'Se connecter',
     checkEmailTitle: 'Vérifiez votre e-mail',
-    checkEmailBody: 'Nous vous avons envoyé un lien de confirmation. Cliquez dessus, puis connectez-vous.',
+    checkEmailBody: 'Nous vous avons envoyé un code à 6 chiffres par e-mail. Saisissez-le ci-dessous.',
+    codeLabel: 'Code de confirmation',
+    codeSubmit: 'Confirmer et se connecter',
     logout: 'Se déconnecter',
     myAccount: 'Mon compte',
     needLoginTitle: 'Connexion requise',
@@ -404,6 +408,8 @@ export const site = {
     statuses: { new: '\u00c0 confirmer', confirmed: 'Confirm\u00e9e', declined: 'Refus\u00e9e', done: 'Effectu\u00e9e', cancelled: 'Annul\u00e9e' },
     when: (date: string, time: string) => `${date} \u00e0 ${time}`,
     listingFallback: 'Logement',
-    paymentMethod: { virtual: 'Paiement\u00a0: virtuel', manual: 'Paiement\u00a0: manuel' },
+    fee: (amount: string) => `Frais de visite\u00a0: ${amount}`,
+    payManual: 'R\u00e9glez les frais en esp\u00e8ces directement \u00e0 l\u2019agent lors de la visite.',
+    payVirtualLabel: 'Comment payer\u00a0:',
   },
 };

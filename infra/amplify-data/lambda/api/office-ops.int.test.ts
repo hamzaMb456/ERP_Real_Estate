@@ -24,7 +24,7 @@ before(async () => {
   if (!ready) return;
   await put('Organization', { id: ORG, name: 'Agence F' });
   await put('Property', { id: PROPERTY, organization_id: ORG, branch_id: 'B', name: 'Résidence F', city: 'Sousse' });
-  await put('Unit', { id: UNIT, organization_id: ORG, property_id: PROPERTY, code: 'F1', status: 'vacant' });
+  await put('Unit', { id: UNIT, organization_id: ORG, property_id: PROPERTY, code: 'F1', status: 'vacant', visit_fee: 30 });
   await put('VisitRequest', visit(VISIT_A, '71000001'));
   await put('VisitRequest', visit(VISIT_B, '71000002'));
 });
@@ -33,6 +33,7 @@ test('batch 5: requests, files, settings, gaps', { skip: !ready && 'Floci dev ta
   await t.test('visit requests list with unit; confirm creates the appointment; a taken slot rolls it back', async () => {
     const list = (await call('run', 'VisitRequests', {})).visit_requests;
     assert.equal(list[0].unit.property.city, 'Sousse');
+    assert.equal(list[0].unit.visit_fee, 30);
     assert.equal(list[0].phone_digits, undefined);
     const appointment = (id: string) => ({ id, kind: 'viewing', title: 'Visite F1', starts_at: '2026-11-05T09:00:00Z', ends_at: '2026-11-05T09:30:00Z', unit_id: UNIT });
     const a1 = randomUUID();
@@ -62,8 +63,17 @@ test('batch 5: requests, files, settings, gaps', { skip: !ready && 'Floci dev ta
   await t.test('visit payment method: org_admin only, listings follow', async () => {
     await assert.rejects(call('exec', 'SetVisitPaymentMethod', { id: ORG, value: 'manual' }, manager), /permission_denied/);
     await call('exec', 'SetVisitPaymentMethod', { id: ORG, value: 'manual' });
-    assert.deepEqual((await call('run', 'VisitPaymentMethod', {})).organizations, [{ id: ORG, visit_payment_method: 'manual' }]);
+    assert.deepEqual((await call('run', 'VisitPaymentMethod', {})).organizations, [
+      { id: ORG, visit_payment_method: 'manual', visit_payment_instructions: null },
+    ]);
     await assert.rejects(call('exec', 'SetVisitPaymentMethod', { id: ORG, value: 'bitcoin' }), /visit_payment_method_check/);
+    // 'virtual' needs non-blank instructions: the client sees them once the visit is confirmed.
+    await assert.rejects(call('exec', 'SetVisitPaymentMethod', { id: ORG, value: 'virtual' }), /visit_payment_instructions_required/);
+    await assert.rejects(call('exec', 'SetVisitPaymentMethod', { id: ORG, value: 'virtual', instructions: '   ' }), /visit_payment_instructions_required/);
+    await call('exec', 'SetVisitPaymentMethod', { id: ORG, value: 'virtual', instructions: 'Virement RIB ...' });
+    assert.deepEqual((await call('run', 'VisitPaymentMethod', {})).organizations, [
+      { id: ORG, visit_payment_method: 'virtual', visit_payment_instructions: 'Virement RIB ...' },
+    ]);
   });
 
   await t.test('record gaps', async () => {

@@ -12,6 +12,8 @@ export type RequestUnit = {
   id: string;
   code: string;
   title: string | null;
+  /** Only sent for visit requests; rental requests leave it undefined. */
+  visit_fee?: number | null;
   property: { id: string; name: string; city: string | null };
 };
 

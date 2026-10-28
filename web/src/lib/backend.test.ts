@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { appsyncRequest, cleanError, dataBackend, operationOf } from './backend';
+import { appsyncRequest, cleanError, operationOf } from './backend';
 
 describe('cleanError', () => {
   it('keeps the resolver code and drops the Lambda stack trace', () => {
@@ -19,17 +19,6 @@ describe('operationOf', () => {
   it('refuses anonymous operations', () => {
     expect(() => operationOf('{ units { id } }')).toThrow(/without a name/);
     expect(() => operationOf('query { units { id } }')).toThrow(/without a name/);
-  });
-});
-
-describe('dataBackend', () => {
-  afterEach(() => vi.unstubAllEnvs());
-
-  it('defaults to Hasura and switches only on "appsync"', () => {
-    vi.stubEnv('NEXT_PUBLIC_DATA_BACKEND', '');
-    expect(dataBackend()).toBe('hasura');
-    vi.stubEnv('NEXT_PUBLIC_DATA_BACKEND', 'appsync');
-    expect(dataBackend()).toBe('appsync');
   });
 });
 
