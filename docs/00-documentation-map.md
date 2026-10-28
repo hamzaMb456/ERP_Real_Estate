@@ -14,7 +14,9 @@ resolved, Problem 6 deferred to V1.\
 Floci AWS stack (AppSync / DynamoDB / S3 / Cognito, self-hosted). Nhost and
 Hasura mentions in older documents (phase-2 database documents, superpowers
 specs / plans / handoffs) refer to the former backend and are kept as
-history.\
+history. The repo-wide purge of Nhost/Hasura references (comments, module
+renames, legacy bridge deletions) is recorded in
+[handoff 2026-10-28](superpowers/handoffs/2026-10-28-nhost-purge-complete.md).\
 **Inputs:** [Phase 0 — Product Definition](phase-0/01-product-definition.md),
 [Cahier des Charges 00 — Cahier des Charges Général](phase-1/specs/00-cahier-des-charges-general.md)
 
