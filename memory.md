@@ -91,3 +91,59 @@ Source: REA analysis of tecnocasa.tn (4 browser scenarios; evidence IDs `ev_1829
 - Daily cron: EventBridge Scheduler 05:00 UTC (06:00 Tunis) → `lambda/daily` (expire leases, then notifications, owners refresh).
 - E-mails: DynamoDB Streams → `lambda/domain/mail-events.ts` (RowChangeEvent adapter) → `lambda/mailer`, which imports `functions/_lib/{smtp-env,secrets,mailer,mail-templates,appointment-decisions,event}`.
 - Ops data layer: `infra/amplify-data/lambda/api` (registry by GraphQL operation name, ops/* resolvers, `query-eval.ts` for where/orderBy, `org-data.ts` per-org loads); `amplify/data/schema.graphql` exposes `whoami` and `run(op, variables)` via `@function`.
+
+---
+
+# Session: feature extraction tecnocasa.tn + app state audit (late October 2026)
+
+> Method: REA controlled-replay browser scenarios (authority `controlled-replay`, confidence `observed`).
+> Evidence bundle (5.7 MB, with full DOM text): `C:\Users\mbark\AppData\Local\Temp\opencode\rea-detail-bundle.json`.
+> Purpose: compare a mature competitor's public site with our vitrine, decide what to copy.
+
+## The 4 captured scenarios (evidence IDs, exact)
+
+| Evidence ID | Pages captured (DOM + accessibility tree) |
+|---|---|
+| `ev_182974533186b142afe128a939be6c6394e7ad3170ced8ce310e2cde2a38b537` | Homepage `https://www.tecnocasa.tn/` (DOM 51 KB + a11y tree) |
+| `ev_35a31c98d7778bb8f4e5ef4036d815bce9ea3bfdc06512ae9a626cf47db575a6` | Sale listing detail `/vendre/appartement/grand-tunis/aouina/72437.html` — Appartement 3 pièces, 111 m², 259 000 DT, Aouina Grand Tunis |
+| `ev_5c7eb41e949a10aaf54ece2fbeae47d77ebf416aa0759402fb1590b1e6bbe724` | Category list `/vendre/appartements/grand-tunis.html` then agencies directory `/agences.html` |
+| `ev_98f24113d0aaa8b774d404cc5b8ebbda665c8e9ddf52dafe0806d2d09f53897c` | Buildings category `/vendre/immeubles/nord-est-ne/grand-tunis.html` |
+
+## Observed Tecnocasa features (extracted from the captured DOM text)
+
+**Listing detail page (the richest):**
+- **WhatsApp contact button**: `https://wa.me/+21628600115` inside `.whatsapp` block, next to the phone.
+- **Masked phone number**: agent contact links (`tel:+0021628600115`) carry `display:none` in `btn-network` — the number is revealed only after user interaction (anti-scraping pattern).
+- **Print PDF** button (`btn-network print-pdf`).
+- **Share widget**: `<div id="estate-share" class="estate-share-container" estate-id="72437" agency-id="tuao3" type="est…">` — per-estate share container.
+- **Favorites** on the listing ("sauvegarde", favorite.svg).
+- **Agency contact card** with e-mail (`mailto:contact.ao3@tecnocasa.tn`) — contact routes to the *agency branch*, not a person.
+- **Rich description + features section** (`features` heading): floor (étage bas), ascenseur, parking, chauffage central + climatiseurs split — structured attributes in prose.
+- **Financement/calculator** matches (x11 "calc" hits).
+
+**Home page:** agency directory nav link (`/agences.html`, class `nav-link agency`), favorites entry point, footer contacts block.
+
+**Category list pages:** desktop estate filters (`desktop-estate-filters`, `search-bar-desk`), **sort control** (`estates-sort`, "Trier"), map integration (preconnect to `maps.medialabtc.it`), favorites on every card (x17 on the immeubles page), carousel pagination (VueCarousel).
+
+**Agencies page:** full directory of agency branches (x91 "agence" matches) — each branch is a first-class entity with its own page.
+
+**NOT found on Tecnocasa pages:** no "similar listings" block — the ±25% similar-listings idea is **our own proposed enhancement**, not a copy of a competitor feature.
+
+## App state audit (ERP_Real_Estate, same session)
+
+**Implemented:**
+- ERP modules: biens, unites, contacts, calendrier, visites, baux (+ demandes de location/visite), listings publication, administration (apparence, visites).
+- Public site: `/`, `/louer`, `/acheter`, `/logement/[id]`, `/favoris`, `/compte` (+ mot de passe oublié / inscription flows, Cognito-backed).
+- DB: migrations 0001–0013 applied; wire contract web ↔ ops Lambda = Hasura-shaped where/orderBy (`$where`, `_ilike`, `by_pk`, `affected_rows`) — deliberately kept.
+
+**NOT implemented** — all render PlaceholderCards from `web/src/app/erp/(app)/[...slug]/page.tsx`:
+- finance, maintenance, fournisseurs (vendors), ventes (sales), rapports (reports), audit, users/roles administration.
+
+**Light MVP verdict:** the 3-feature "light MVP" (listings page, simple search, contact button) is **already implemented** in the app.
+
+## Deferred roadmap (awaiting the user's go — user pace: "take it easy")
+
+1. **WhatsApp button** on the public listing page (mirror Tecnocasa's `wa.me` pattern; agency number from `NEXT_PUBLIC_AGENCY_PHONE` or the org's own field).
+2. **Rate-limit / CAPTCHA hardening** of the two public submit mutations (per-IP rate limit at the edge/backend + e.g. Cloudflare Turnstile checked in the server action). Known gap first recorded in handoff 2026-10-23 (`docs/superpowers/handoffs/2026-10-23-visitor-requests.md`).
+3. **Similar-listings query** ±25 % on price/surface for the unit page (our proposal).
+4. Longer term, candidates observed but not discussed in depth: phone-number masking before reveal, print-PDF of a listing, per-branch agency directory.
