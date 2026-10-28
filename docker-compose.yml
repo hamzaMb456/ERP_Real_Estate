@@ -1,5 +1,6 @@
-# Run the web app, unit tests and E2E in containers. Backend = Nhost (cloud),
-# not dockerized. Secrets stay in web/.env.local and web/.env.test.local
+# Run the web app, unit tests and E2E in containers. Backend = the local Floci
+# container (AWS-compatible: AppSync, DynamoDB, S3, Secrets Manager, Cognito),
+# reached over the external `floci` network. Secrets stay in web/.env.local and web/.env.test.local
 # (git-ignored); they are injected at runtime, never baked into images.
 #
 #   docker compose up                  # app on http://localhost:${WEB_PORT:-3000}

@@ -3,7 +3,7 @@
 -- Apply after 0007, then run db/tests/0008_visitor_requests.test.sql. Safe to run twice.
 -- ASCII only: this file travels through the clipboard, so French text never appears here (notification titles are ASCII).
 --
--- Visitors never touch the tables. They call submit_rental_request / submit_visit_request (Hasura mutations for the role
+-- Visitors never touch the tables. They call submit_rental_request / submit_visit_request (data-layer mutations for the role
 -- public), which check the unit is on the website, validate every value, throttle abuse and insert the row.
 -- Abuse limits (SQL cannot see an IP address; add a per-IP rate limit at the edge if the site is attacked):
 --   - one phone number (digits only, so "20 111 222" and "20111222" are the same) sends at most 3 requests of a kind an hour;
@@ -112,7 +112,7 @@ drop trigger if exists visit_requests_notify on public.visit_requests;
 create trigger visit_requests_notify after insert on public.visit_requests
   for each row execute function public.notify_staff_of_request();
 
--- What a submit function answers: the id of the new request. A view with no rows only gives Hasura a row type to track.
+-- What a submit function answers: the id of the new request. A view with no rows only gives the data layer a row type to track.
 create or replace view public.request_receipt as
 select null::uuid as id, null::text as kind
 where false;
@@ -243,7 +243,7 @@ from public.visit_requests vr
 join public.public_listings l on l.id = vr.unit_id
 where vr.status = 'confirmed' and vr.visit_date >= public.today_tunis();
 
--- Only the Hasura database role (and the owner) may run these functions directly.
+-- Only the data-layer database role (and the owner) may run these functions directly.
 do $$
 declare
   v_fn   text;

@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { decideAppointmentAction, decideParticipantAction } from '../_lib/appointment-decisions';
-import type { HasuraEvent } from '../_lib/event';
+import type { RowChangeEvent } from '../_lib/event';
 
 const participantEvent = (
-  op: HasuraEvent['event']['op'],
+  op: RowChangeEvent['event']['op'],
   next: Record<string, unknown>,
   old: Record<string, unknown> | null = null,
-): HasuraEvent => ({
+): RowChangeEvent => ({
   event: { op, data: { old, new: next } },
   table: { schema: 'public', name: 'appointment_participants' },
   trigger: { name: 't' },
 });
 
-const appointmentEvent = (old: Record<string, unknown>, next: Record<string, unknown>): HasuraEvent => ({
+const appointmentEvent = (old: Record<string, unknown>, next: Record<string, unknown>): RowChangeEvent => ({
   event: { op: 'UPDATE', data: { old, new: next } },
   table: { schema: 'public', name: 'appointments' },
   trigger: { name: 't' },

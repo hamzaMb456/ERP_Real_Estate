@@ -23,7 +23,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }
 
-  // Writer role alone doesn't scope to *which* file — confirm the caller's own Hasura
+  // Writer role alone doesn't scope to *which* file — confirm the caller's own data-layer
   // permissions can see a record referencing this key before deleting it from S3.
   const bucket = await resolveStorageKeyBucket(session.token, key);
   if (!bucket) {

@@ -1,4 +1,4 @@
-// Client accounts of the public site: a client is an ordinary Nhost user with the default role "user"; staff have one of
+// Client accounts of the public site: a client is an ordinary Cognito user with the default role "user"; staff have one of
 // the ERP roles. Helpers shared by the sign-in and sign-up pages, the gates and the ERP guard.
 
 export const STAFF_ROLES: readonly string[] = ['org_admin', 'manager', 'viewer'];
@@ -25,21 +25,21 @@ export function accountHref(path: typeof SIGN_IN_PATH | typeof SIGN_UP_PATH, nex
   return target === '/' ? path : `${path}?next=${encodeURIComponent(target)}`;
 }
 
-export type AccountErrorKey = 'emailTaken' | 'weak' | 'invalid' | 'disabled' | 'other';
+export type AccountErrorKey = 'emailTaken' | 'weak' | 'invalid' | 'other';
 
-/** The wording key for an Nhost auth error code. */
+/** The wording key for a Cognito (or data-layer) auth error code. */
 export function accountErrorKey(code: string | undefined): AccountErrorKey {
   switch (code) {
-    case 'email-already-in-use':
+    case 'UsernameExistsException':
       return 'emailTaken';
-    case 'password-in-hibp-database':
-    case 'password-too-short':
+    case 'InvalidPasswordException':
       return 'weak';
-    case 'invalid-email':
+    case 'InvalidParameterException':
+    case 'NotAuthorizedException':
+    case 'CodeMismatchException':
+    case 'ExpiredCodeException':
     case 'invalid-request':
       return 'invalid';
-    case 'signup-disabled':
-      return 'disabled';
     default:
       return 'other';
   }

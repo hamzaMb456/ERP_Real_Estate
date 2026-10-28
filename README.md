@@ -9,8 +9,10 @@ The project is currently in the specification phase.
 ## Run with Docker
 
 The web app (`web/`), the unit tests and the E2E tests run in containers, one
-command each. The database/backend is Nhost in the cloud and is not
-dockerized: containers reach it over the network.
+command each. The backend is the local Floci container, an AWS-compatible
+emulator at http://localhost:4566 (AppSync, DynamoDB, S3, Secrets Manager and
+Cognito); it runs in its own compose project, so it is not defined in this
+file and the containers reach it over the external `floci` network.
 
 Prerequisites: Docker Desktop, `web/.env.local` (see `web/.env.example`) and,
 for E2E, `web/.env.test.local` (`E2E_EMAIL`, `E2E_PASSWORD`). Both files are

@@ -7,9 +7,8 @@ import { cn } from '@/lib/utils';
 
 type Loaded = { fileId: string; url: string | null };
 
-// `width` no longer resizes server-side (plain S3/Floci has no transform-on-fetch like
-// Nhost's {w, q} did) — kept in the prop list so callers are unchanged; it only matters
-// again if a per-size variant is added later.
+// `width` no longer resizes server-side (plain S3/Floci has no transform-on-fetch) — kept in the prop list so callers
+// are unchanged; it only matters again if a per-size variant is added later.
 export function StorageImage({ fileId, width: _width, alt, className }: { fileId: string; width: number; alt: string; className?: string }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
 

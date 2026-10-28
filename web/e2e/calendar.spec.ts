@@ -3,7 +3,7 @@ import { EMAIL, PASSWORD, isoInDays, pickContact, signIn } from './helpers';
 
 test.skip(!EMAIL || !PASSWORD, 'Set E2E_EMAIL and E2E_PASSWORD in web/.env.test.local');
 
-// Needs migration 0004, the Hasura permissions of this plan and the demo seeds applied on the live project.
+// Needs migration 0004, the data-layer permissions of the current stack and the demo seeds applied on the backend.
 test('calendar: schedule with a renter → calendar → contact page → cancel → filter', async ({ page }) => {
   test.setTimeout(180_000);
   const title = `E2E Rendez-vous ${Date.now().toString().slice(-6)}`;

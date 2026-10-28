@@ -76,7 +76,7 @@ async function viaRoute<T>(query: string, variables: Record<string, unknown>, to
 }
 
 /**
- * Sends an existing Hasura-style operation to AppSync. `token` is the raw JWT, or PUBLIC_TOKEN
+ * Sends an existing row-operation (the where/orderBy query shape) to AppSync. `token` is the raw JWT, or PUBLIC_TOKEN
  * (no "Bearer " prefix: Floci routes Bearer tokens to OIDC, not to the Lambda authorizer).
  */
 export async function appsyncRequest<T>(

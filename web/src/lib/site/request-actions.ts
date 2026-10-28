@@ -1,6 +1,6 @@
 'use server';
 
-// Server actions behind the request dialogs of the public unit page. They run on the server, call the Hasura "public"
+// Server actions behind the request dialogs of the public unit page. They run on the server, call the "public"
 // role, and never throw: the dialog gets a result it can word. The database functions stay the authority (validation,
 // throttle, notification); the checks here only refuse obvious garbage early and keep bots out through the honeypot.
 

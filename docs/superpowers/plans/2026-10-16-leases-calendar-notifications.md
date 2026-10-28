@@ -4,9 +4,9 @@
 
 **Goal:** One shared calendar with appointments and participants, bell notifications, a daily job (06:00 Tunis) that expires overdue leases and writes reminders, and e-mail for reminders and invitations.
 
-**Architecture:** Postgres holds the rules: `appointments`, `appointment_participants` and `notifications` tables, the `staff_members` and `calendar_feed` views, and the SQL function `generate_daily_notifications()`. Hasura cron and event triggers call three small Nhost functions in `functions/`; they contain no business rules and only call Hasura and SMTP. The web adds a FullCalendar wrapper, the appointment dialog, the notification bell, and a calendar entry on the lease fiche and the contact page.
+**Architecture:** Postgres holds the rules: `appointments`, `appointment_participants` and `notifications` tables, the `staff_members` and `calendar_feed` views, and the SQL function `generate_daily_notifications()`. Cron and event triggers call three small Lambda functions in `functions/`; they contain no business rules and only call the data layer and SMTP. The web adds a FullCalendar wrapper, the appointment dialog, the notification bell, and a calendar entry on the lease fiche and the contact page.
 
-**Tech Stack:** Postgres 16 (SQL, plpgsql), Hasura metadata API, Nhost functions (TypeScript, Node 20), nodemailer (Google SMTP), Vitest, Next.js 16, React 19, FullCalendar 6 (`@fullcalendar/react`, `daygrid`, `timegrid`, `list`, `interaction`), react-hook-form + zod, Playwright.
+**Tech Stack:** Postgres 16 (SQL, plpgsql), the data layer's metadata API, Lambda functions (TypeScript, Node 20), nodemailer (Google SMTP), Vitest, Next.js 16, React 19, FullCalendar 6 (`@fullcalendar/react`, `daygrid`, `timegrid`, `list`, `interaction`), react-hook-form + zod, Playwright.
 
 **Spec:** `docs/superpowers/specs/2026-10-15-leases-design.md` (sections 3.1, 5, 6, 7, 8, 9, 10, and section 11 slice 1 steps 4–5).
 
@@ -19,16 +19,16 @@
 - "Today" is `public.today_tunis()` in SQL and `todayTunis()` in TypeScript. Day thresholds come only from `public.lease_rule(name)`. Never hard-code 60, 7, 10 or 90 outside `lease_rule`.
 - Migrations are ASCII only (they travel by clipboard). French text never appears in SQL, only stable error codes.
 - Functions that act for a user are `SECURITY DEFINER`, `set search_path = public, pg_temp`, take `hasura_session json`, and check the caller's organization and role (`org_admin` or `manager`).
-- Hasura metadata is additive: `scripts/apply-hasura-permissions.mjs` and the new `scripts/apply-hasura-triggers.mjs` drop and re-create only the entries they list; they never replace the metadata.
+- The data layer's metadata is additive: `scripts/apply-hasura-permissions.mjs` and the new `scripts/apply-hasura-triggers.mjs` drop and re-create only the entries they list; they never replace the metadata.
 - Functions never contain business rules: `lease-daily.ts` calls two SQL functions and nothing else.
 - Email never blocks an action: the row is saved first; a failure is stored in `email_error` and `email_status = 'failed'`.
-- Secrets (`HASURA_ADMIN_SECRET`, `NHOST_WEBHOOK_SECRET`, `SMTP_*`) are read from the environment only; nothing is written to the repository or to chat.
+- Secrets (`HASURA_ADMIN_SECRET`, `FUNCTIONS_WEBHOOK_SECRET`, `SMTP_*`) are read from the environment only; nothing is written to the repository or to chat.
 - French UI, shadcn/ui, same app shell as Project 1. Each page is checked at desktop and 375 px.
 
 ## Rulings (spec conflicts resolved here)
 
 - **R1 Migration numbering.** Spec section 3.2 is headed `0004_rent_requests.sql` and also says `appointments.rent_request_id` is added in `0004`. Section 3 (header) and section 11 say `0004` is calendar and notifications. This plan follows section 3 and section 11: `0004_calendar_notifications.sql`. Rent requests is `0005_rent_requests.sql` and adds `appointments.rent_request_id` there, because the `rent_requests` table does not exist before `0005`. Cost if wrong: one renumbering in slice 2.
-- **R2 Staff source.** Staff are users whose roles in `auth.user_roles` include `org_admin` or `manager`, with `auth.users.metadata->>'organization_id'` equal to the organization and `disabled = false`. The spec names `auth.users` only; Nhost keeps a user's allowed roles in `auth.user_roles`. Cost if wrong: the staff list is empty and the assumption in spec section 12 fails. Task 2 has a live check the user runs.
+- **R2 Staff source.** Staff are users whose roles in `auth.user_roles` include `org_admin` or `manager`, with `auth.users.metadata->>'organization_id'` equal to the organization and `disabled = false`. The spec names `auth.users` only; the legacy backend keeps a user's allowed roles in `auth.user_roles`. Cost if wrong: the staff list is empty and the assumption in spec section 12 fails. Task 2 has a live check the user runs.
 - **R3 Recipients.** Lease notifications go to every staff member of the organization. Appointment reminders go to the assigned staff member, or to every staff member when no one is assigned.
 - **R4 Calendar lease events.** Only leases with status `active` produce events: `lease_start`, `lease_end`, and `registration_deadline` (only while `registered_at` is null). All are all-day events, one per leased unit, end-exclusive. Cost if wrong: ended leases vanish from the calendar; they stay visible on the list.
 - **R5 Expired notifications.** `lease_expired` is written only for leases whose `ended_on` falls within the last 7 days, so the first run does not flood staff with old expirations.
@@ -40,7 +40,7 @@
 
 1. A cancelled appointment must not produce a reminder, neither in the bell nor by e-mail. Pinned by Task 3 (SQL) and Task 7 (handler).
 2. Running the daily job twice on the same day creates no duplicate notifications. Pinned by Task 3 (SQL) and Task 7 (handler).
-3. A retried event trigger (Nhost retries 3 times) must not e-mail a participant twice. Pinned by Task 9: a participant whose `email_status` is already `sent` is skipped.
+3. A retried event trigger (the legacy backend retries 3 times) must not e-mail a participant twice. Pinned by Task 9: a participant whose `email_status` is already `sent` is skipped.
 4. An appointment whose participant has no e-mail address gets `email_status = 'skipped'`, not `failed`, and the appointment still saves. Pinned by Task 9.
 5. An appointment near midnight, or a reminder for "tomorrow" computed near midnight, uses Tunis days. Pinned by Task 2 (`calendar_feed` day boundaries) and Task 3 (reminder day).
 
@@ -131,7 +131,7 @@ Expected: FAIL, `relation "public.staff_members" does not exist`.
 
 - [ ] **Step 3: Write the views**
 
-Append both views to the migration. `calendar_feed` is a `union all` of the two sources. It is not filtered by SQL; Hasura filters by organization.
+Append both views to the migration. `calendar_feed` is a `union all` of the two sources. It is not filtered by SQL; the data layer filters by organization.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
@@ -140,7 +140,7 @@ Expected: `OK: all calendar tests passed`
 
 - [ ] **Step 5: Live check (user step; the agent does not run it)**
 
-After 0004 is applied to Nhost, ask the user to run in the SQL console: `select user_id, organization_id, role from public.staff_members;`. Expected: one row per org_admin or manager. If it is empty, Ruling R2 is wrong: stop and ask before Task 3.
+After 0004 is applied to the live backend, ask the user to run in the SQL console: `select user_id, organization_id, role from public.staff_members;`. Expected: one row per org_admin or manager. If it is empty, Ruling R2 is wrong: stop and ask before Task 3.
 
 - [ ] **Step 6: Commit**
 
@@ -235,7 +235,7 @@ git commit -m "feat(db): demo calendar seed (appointments, participants, one can
 
 ---
 
-### Task 5: Hasura permissions for calendar and notifications
+### Task 5: Data-layer permissions for calendar and notifications
 
 **Files:**
 - Modify: `scripts/apply-hasura-permissions.mjs`
@@ -278,14 +278,14 @@ git commit -m "feat(hasura): calendar and notification permissions and relations
 
 ---
 
-### Task 6: Hasura triggers script (cron and event triggers)
+### Task 6: Data-layer triggers script (cron and event triggers)
 
 **Files:**
 - Create: `scripts/apply-hasura-triggers.mjs`
 
 **Interfaces:**
-- Consumes: the Hasura metadata helper pattern of `scripts/apply-hasura-permissions.mjs` (`metadata(body)`, `HASURA_URL`, `HASURA_ADMIN_SECRET`, `--dry-run`).
-- Produces: additive creation of four triggers. Each sends the header `x-nhost-webhook-secret` (value from `NHOST_WEBHOOK_SECRET`) to `NHOST_FUNCTIONS_URL` plus a path:
+- Consumes: the metadata helper pattern of `scripts/apply-hasura-permissions.mjs` (`metadata(body)`, `HASURA_URL`, `HASURA_ADMIN_SECRET`, `--dry-run`).
+- Produces: additive creation of four triggers. Each sends the header `x-nhost-webhook-secret` (value from `FUNCTIONS_WEBHOOK_SECRET`) to `FUNCTIONS_URL` plus a path:
   - cron trigger `lease_daily`: schedule `0 6 * * *`, timezone `Africa/Tunis`, path `/lease-daily`;
   - event trigger `notification_email` on `notifications`, operation `insert`, path `/send-notification-email`;
   - event trigger `appointment_invitation` on `appointment_participants`, operations `insert` and `update` of `email_status`, path `/send-appointment-email`;
@@ -301,7 +301,7 @@ Expected: FAIL, `Cannot find module` (file not written yet).
 
 - [ ] **Step 2: Write the script**
 
-Support `--dry-run` (print the JSON bodies, send nothing). Without `HASURA_ADMIN_SECRET`, `NHOST_FUNCTIONS_URL` or `NHOST_WEBHOOK_SECRET`, print which one is missing and exit 1. Use the same batching of 20 as the permissions script.
+Support `--dry-run` (print the JSON bodies, send nothing). Without `HASURA_ADMIN_SECRET`, `FUNCTIONS_URL` or `FUNCTIONS_WEBHOOK_SECRET`, print which one is missing and exit 1. Use the same batching of 20 as the permissions script.
 
 - [ ] **Step 3: Verify**
 
@@ -317,7 +317,7 @@ git commit -m "feat(hasura): cron and event trigger script for the daily job and
 
 ---
 
-### Task 7: Nhost functions scaffold and the daily job
+### Task 7: Lambda functions scaffold and the daily job
 
 **Files:**
 - Create: `functions/package.json`, `functions/tsconfig.json`, `functions/vitest.config.ts`
@@ -329,7 +329,7 @@ git commit -m "feat(hasura): cron and event trigger script for the daily job and
 - `functions/lib/webhook.ts`: `isAuthorizedWebhook(headers: Record<string, string | undefined>, expected: string | undefined): boolean`. Constant-time comparison; a missing `expected` returns false.
 - `functions/lease-daily.ts`: `runLeaseDaily(client): Promise<{ expired: number; notified: number }>`, and the default `handler(request: Request): Promise<Response>`. The handler returns 401 when the webhook check fails and 200 with the counts otherwise. It calls only `expire_overdue_leases` (counted by returned rows) and then `generate_daily_notifications`, in that order.
 
-Environment, read only inside the handler: `HASURA_GRAPHQL_URL`, `HASURA_ADMIN_SECRET`, `NHOST_WEBHOOK_SECRET`.
+Environment, read only inside the handler: `HASURA_GRAPHQL_URL`, `HASURA_ADMIN_SECRET`, `FUNCTIONS_WEBHOOK_SECRET`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -346,7 +346,7 @@ Expected: FAIL, `Cannot find module './lease-daily'`.
 
 - [ ] **Step 3: Implement the scaffold and the handler**
 
-`package.json`: name `erp-functions`, `type: module`; dev dependencies `vitest`, `typescript`, `@types/node`; scripts `test` and `typecheck`. The handler builds the Hasura client from the environment, checks the webhook, then calls `runLeaseDaily`.
+`package.json`: name `erp-functions`, `type: module`; dev dependencies `vitest`, `typescript`, `@types/node`; scripts `test` and `typecheck`. The handler builds the data-layer client from the environment, checks the webhook, then calls `runLeaseDaily`.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
@@ -373,14 +373,14 @@ git commit -m "feat(functions): daily lease job (expiry and notifications) with 
 **Interfaces:**
 - `functions/lib/mailer.ts`: `createMailer(config: { host: string; port: number; user: string; password: string; from: string; transport?: { sendMail(message: object): Promise<unknown> } }): { send(message: { to: string; subject: string; text: string }): Promise<void> }`. Uses nodemailer; port 465 is implicit TLS, otherwise STARTTLS. `transport` is injected in tests.
 - `functions/lib/mail-templates.ts`: `notificationMail(n: { title: string; body: string | null; link: string | null }): { subject: string; text: string }` and `appointmentMail(kind: 'invitation' | 'update' | 'cancellation', a: { title: string; kind: string; startsAt: string; endsAt: string; location: string | null }): { subject: string; text: string }`. French text; times formatted with `Intl.DateTimeFormat('fr-TN', { timeZone: 'Africa/Tunis', dateStyle: 'full', timeStyle: 'short' })`.
-- `functions/send-notification-email.ts`: default `handler(request)`. Returns 401 when the webhook check fails. Reads `event.data.new` (the notification). Loads the recipient's e-mail from `staff_members` by `user_id`. Sends one message. On success writes `emailed_at = now()`. On failure writes `email_error` (the message, at most 500 characters) and still returns 200, so a mail problem never blocks. A row that already has `emailed_at` is skipped, which makes Nhost's retries harmless.
+- `functions/send-notification-email.ts`: default `handler(request)`. Returns 401 when the webhook check fails. Reads `event.data.new` (the notification). Loads the recipient's e-mail from `staff_members` by `user_id`. Sends one message. On success writes `emailed_at = now()`. On failure writes `email_error` (the message, at most 500 characters) and still returns 200, so a mail problem never blocks. A row that already has `emailed_at` is skipped, which makes the backend's retries harmless.
 
-Environment: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, plus the Hasura variables. A missing SMTP variable returns 500 naming the variable (never its value).
+Environment: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, plus the data-layer variables. A missing SMTP variable returns 500 naming the variable (never its value).
 
 - [ ] **Step 1: Write the failing tests**
 
 - `mailer.test.ts`: `send` passes `from`, `to`, `subject` and `text` to the injected transport; a transport rejection rejects `send`.
-- `send-notification-email.test.ts`, with a fake Hasura and a fake mailer: a notification with `emailed_at` already set sends nothing; a send failure writes `email_error` and returns 200; a recipient without an e-mail address writes `email_error = 'destinataire sans e-mail'` and sends nothing; success writes `emailed_at`; the French subject contains the notification title.
+- `send-notification-email.test.ts`, with a fake data-layer client and a fake mailer: a notification with `emailed_at` already set sends nothing; a send failure writes `email_error` and returns 200; a recipient without an e-mail address writes `email_error = 'destinataire sans e-mail'` and sends nothing; success writes `emailed_at`; the French subject contains the notification title.
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
@@ -412,13 +412,13 @@ git commit -m "feat(functions): SMTP sender and notification e-mail handler"
 
 **Interfaces:**
 - Consumes: `createMailer`, `appointmentMail`, `createHasuraClient`, `isAuthorizedWebhook` (Tasks 7–8).
-- Produces: default `handler(request)`. Reads the Nhost event: `event.op` (`INSERT` or `UPDATE`), `event.data.new`, `event.data.old`, and `table.name` (`appointments` or `appointment_participants`).
+- Produces: default `handler(request)`. Reads the legacy event: `event.op` (`INSERT` or `UPDATE`), `event.data.new`, `event.data.old`, and `table.name` (`appointments` or `appointment_participants`).
 - Pure decision functions, unit-tested directly:
   - `decideParticipantAction(event): 'invite' | 'skip' | 'none'`
   - `decideAppointmentAction(event): 'cancel' | 'update' | 'none'`
 
 Rules:
-- Participant insert: `invite` when the appointment has `notify_by_email = true`, `status = 'planned'`, and the contact has an e-mail address (read through Hasura). `skip` otherwise: the participant's `email_status` becomes `skipped`.
+- Participant insert: `invite` when the appointment has `notify_by_email = true`, `status = 'planned'`, and the contact has an e-mail address (read through the data layer). `skip` otherwise: the participant's `email_status` becomes `skipped`.
 - Participant update where `email_status` changes to `pending` (Renvoyer, R6): `invite`, same conditions.
 - Participant row whose `email_status` is already `sent`: `none` (Review Focus 3, a retried insert sends nothing).
 - Appointment update: `cancel` when `status` changed to `cancelled`; `update` when `starts_at`, `ends_at` or `location` changed and `status` is `planned`; `none` otherwise (a change to `notes` alone sends nothing).
@@ -436,7 +436,7 @@ Expected: FAIL, module missing.
 
 - [ ] **Step 3: Implement**
 
-Keep the two decision functions pure. The handler applies each decision through Hasura and the mailer.
+Keep the two decision functions pure. The handler applies each decision through the data layer and the mailer.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
@@ -682,10 +682,10 @@ Expected: both exit 0 with their summaries.
 
 - [ ] **Step 3: Live steps (user only; the agent never types a secret)**
 
-1. Nhost SQL console: run `db/migrations/0004_calendar_notifications.sql` (copied with `Get-Content -Raw -Encoding UTF8`), then `db/seeds/0004_demo_calendar.sql`.
+1. Legacy cloud console (SQL editor): run `db/migrations/0004_calendar_notifications.sql` (copied with `Get-Content -Raw -Encoding UTF8`), then `db/seeds/0004_demo_calendar.sql`.
 2. Run `select user_id, role from public.staff_members;` and report the result (R2 check).
 3. With `HASURA_ADMIN_SECRET` set: `node scripts/apply-hasura-permissions.mjs`, then `node scripts/check-hasura.mjs`.
-4. In the Nhost dashboard, set the function secrets `HASURA_GRAPHQL_URL`, `HASURA_ADMIN_SECRET`, `NHOST_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Set `NHOST_FUNCTIONS_URL`, then run `node scripts/apply-hasura-triggers.mjs`.
+4. In the console, set the function secrets `HASURA_GRAPHQL_URL`, `HASURA_ADMIN_SECRET`, `FUNCTIONS_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`. Set `FUNCTIONS_URL`, then run `node scripts/apply-hasura-triggers.mjs`.
 5. The user decides when to push to GitHub (this deploys `functions/`).
 6. From `web/`: `npm run test:e2e -- e2e/calendar.spec.ts` (credentials in `web/.env.test.local`; delete `web/test-results` afterwards).
 

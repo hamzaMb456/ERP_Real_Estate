@@ -4,23 +4,23 @@
 
 **Goal:** Finish biens, unités and contacts: edit forms, effective-dated ownership on units, links shown both ways, photos and documents, map, incomplete-record list, common areas with ‰ shares.
 
-**Architecture:** Business rules live in Postgres (constraints, a deferred constraint trigger, triggers, three views) and are exposed by Hasura with organization-scoped permissions. The Next.js client pages stay thin: they query Hasura through `useGraphql`/`graphql`, and the pure rules they still need (share suggestion, transfer planning, error wording, gap links, file checks, geocoding parsing) live in small tested modules under `web/src/lib/`.
+**Architecture:** Business rules live in Postgres (constraints, a deferred constraint trigger, triggers, three views) and are exposed by the data layer with organization-scoped permissions. The Next.js client pages stay thin: they query the data layer through `useGraphql`/`graphql`, and the pure rules they still need (share suggestion, transfer planning, error wording, gap links, file checks, geocoding parsing) live in small tested modules under `web/src/lib/`.
 
-**Tech Stack:** Postgres 15 + Hasura (Nhost), Nhost Storage, Next.js 16.4 App Router (client pages), React 19.3, shadcn/ui (radix-nova), react-hook-form + zod 4, motion 14, Leaflet + react-leaflet, OpenStreetMap tiles + Nominatim, Vitest + Testing Library, Playwright.
+**Tech Stack:** Postgres 15 + a GraphQL data layer (AppSync in the current Floci stack), S3 (Floci) for files, Next.js 16.4 App Router (client pages), React 19.3, shadcn/ui (radix-nova), react-hook-form + zod 4, motion 14, Leaflet + react-leaflet, OpenStreetMap tiles + Nominatim, Vitest + Testing Library, Playwright.
 
 **Spec:** `docs/superpowers/specs/2026-10-14-core-records-design.md` — read it alongside this plan.
 
 ## Global Constraints
 
 - UI text is French only; staff-only screens; reuse the existing visual system (shadcn/ui components in `web/src/components/ui`, `PageHeader`, motion primitives in `web/src/components/motion/primitives.tsx`).
-- Every new table carries `organization_id uuid not null` with composite foreign keys `(x_id, organization_id)`; `organization_id` is set by Hasura insert presets and is never in an update permission.
+- Every new table carries `organization_id uuid not null` with composite foreign keys `(x_id, organization_id)`; `organization_id` is set by data-layer insert presets and is never in an update permission.
 - Writers are `org_admin` and `manager`; `viewer` is read-only. Hide write buttons for viewers with `useCanEdit()` (Task 3).
 - Money is TND with 3 decimals; dates are `YYYY-MM-DD` strings in the API and `JJ/MM/AAAA` on screen.
 - Ownership dates are inclusive on both ends; a transfer on date D ends the previous owners on D − 1.
-- Files: photos JPG/PNG/WebP, documents PDF/JPG/PNG, max 10 MB each; bucket `property-files`, private. The bucket enforces the size; the type is checked in the browser (Nhost buckets have no MIME filter).
+- Files: photos JPG/PNG/WebP, documents PDF/JPG/PNG, max 10 MB each; bucket `property-files`, private. The bucket enforces the size; the type is checked in the browser (the legacy storage buckets had no MIME filter).
 - Map tiles: OpenStreetMap with attribution; address search only on an explicit click, `countrycodes=tn`, max 5 results.
 - Common-area shares are integers 0–1000 per unit; the building total must be 1000.
-- Schema changes are applied by the user in the Nhost dashboard SQL editor; Hasura metadata by the user running `node scripts/apply-hasura-permissions.mjs` with `HASURA_ADMIN_SECRET`. Never type secrets or credentials.
+- Schema changes are applied by the user in the legacy cloud console's SQL editor; data-layer metadata by the user running `node scripts/apply-hasura-permissions.mjs` with `HASURA_ADMIN_SECRET`. Never type secrets or credentials.
 - Run the `database-reviewer` agent on every SQL file in this plan before the user applies it.
 - Commit steps: the user has asked to hold commits. Execute a task's commit step only once the user lifts the hold; otherwise skip it and move on.
 - Next.js 16 note (`web/AGENTS.md`): read `web/node_modules/next/dist/docs/` before using an API you have not seen in this repo.
@@ -45,7 +45,7 @@
 | `db/tests/0002_core_records.test.sql` | Self-rolling-back DB rule tests | 1 |
 | `scripts/apply-hasura-permissions.mjs` | Tracking, relationships, permissions, storage rules | 2 |
 | `web/vitest.config.ts`, `web/src/test/setup.ts` | Unit/component test setup | 3 |
-| `web/src/lib/errors.ts` | DB/Hasura error → French message | 3 |
+| `web/src/lib/errors.ts` | DB/data-layer error → French message | 3 |
 | `web/src/lib/use-can-edit.ts` | Writer role check | 3 |
 | `web/src/lib/ownership.ts` | Dates, current check, owner validation, transfer plan | 4 |
 | `web/src/lib/shares.ts` | ‰ suggestion and totals | 4 |
@@ -81,7 +81,7 @@
 - Create: `db/tests/0002_core_records.test.sql`
 
 **Interfaces:**
-- Consumes: tables from `db/migrations/0001_foundation.sql` (`organizations`, `branches`, `properties`, `units`, `contacts`, `contact_roles`, function `public.set_updated_at()`); Nhost `storage.files`, `storage.buckets`.
+- Consumes: tables from `db/migrations/0001_foundation.sql` (`organizations`, `branches`, `properties`, `units`, `contacts`, `contact_roles`, function `public.set_updated_at()`); the legacy storage schemas `storage.files`, `storage.buckets`.
 - Produces (names every later task uses):
   - tables `public.ownerships(id, organization_id, unit_id, contact_id, share_percent numeric(5,2), starts_on date, ends_on date null, notes)`, `public.property_files(id, organization_id, property_id, unit_id, storage_file_id, kind, category, title, is_cover, sort_order)`, `public.common_areas(id, organization_id, property_id, name, kind, notes)`;
   - columns `contacts.archived_at`, `contacts.is_organization`, `units.common_share`; unit types `house`, `land`;
@@ -242,7 +242,7 @@ end $$;
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Ask the user to paste the file into the Nhost dashboard SQL editor and press Run.
+Ask the user to paste the file into the legacy cloud console's SQL editor and press Run.
 Expected: an error like `relation "ownerships" does not exist` (the migration is not applied yet).
 
 - [ ] **Step 3: Write the migration**
@@ -546,7 +546,7 @@ Run the `database-reviewer` agent with this brief: "Review db/migrations/0002_co
 
 - [ ] **Step 6: Apply and run the tests**
 
-Ask the user to run, in the Nhost dashboard SQL editor, in this order (leave "Track this" off — Task 2 tracks tables and views):
+Ask the user to run, in the legacy cloud console's SQL editor, in this order (leave "Track this" off — Task 2 tracks tables and views):
 1. `db/migrations/0002_core_records.sql` → expected: success.
 2. `db/tests/0002_core_records.test.sql` → expected: an error dialog reading `OK: all core-records tests passed`.
 3. `db/seeds/0002_demo_core_records.sql` → expected: success.
@@ -562,7 +562,7 @@ git commit -m "feat(db): ownership on units, files, common areas, record gaps"
 
 ---
 
-### Task 2: Hasura tracking, relationships and permissions
+### Task 2: Data-layer tracking, relationships and permissions
 
 **Files:**
 - Modify: `scripts/apply-hasura-permissions.mjs` (full replacement below)
@@ -889,11 +889,11 @@ $env:HASURA_ADMIN_SECRET = "<secret>"
 node scripts/apply-hasura-permissions.mjs
 ```
 
-Expected: `Applied 23 relationships and N permissions.` If it fails, read the printed Hasura error (never ask for the secret) and fix the script.
+Expected: `Applied 23 relationships and N permissions.` If it fails, read the printed data-layer error (never ask for the secret) and fix the script.
 
 - [ ] **Step 4: Verify as a manager**
 
-Ask the user to open the Nhost dashboard GraphQL tab, add headers `x-hasura-role: manager` and `x-hasura-org-id: 11111111-1111-4111-8111-111111111111`, and run:
+Ask the user to open the console's GraphQL tab, add headers `x-hasura-role: manager` and `x-hasura-org-id: 11111111-1111-4111-8111-111111111111`, and run:
 
 ```graphql
 query { current_ownerships { unit { code } contact { full_name } share_percent } record_gaps_aggregate { aggregate { count } } }
@@ -6061,7 +6061,7 @@ git commit -m "feat(biens): common areas and thousandths per unit"
 - Modify: `web/src/app/(app)/biens/page.tsx` (cover thumbnail)
 
 **Interfaces:**
-- Consumes: `ConfirmDialog` (Task 8), `useCanEdit`, `toFrenchError` (Task 3), `nhost` from `web/src/lib/nhost.ts`, `graphql`.
+- Consumes: `ConfirmDialog` (Task 8), `useCanEdit`, `toFrenchError` (Task 3), `nhost` from `web/src/lib/nhost.ts` (the legacy client, since replaced by the S3/Floci storage module), `graphql`.
 - Produces:
   - `MAX_FILE_BYTES`, `type FileKind = 'photo' | 'document'`, `ACCEPT_ATTR`, `DOCUMENT_CATEGORIES`, `type DocumentCategory`, `validateFile(file, kind): string | null`, `titleFromFileName(name): string`
   - `type FileTarget = { propertyId: string } | { unitId: string }`, `fileTargetWhere(target, kind): Record<string, unknown>`, `type UploadDeps`, `uploadAndLink(file, target, meta, deps): Promise<void>`
@@ -6482,7 +6482,7 @@ export function FileUploader({ target, kind, category, nextSortOrder, onUploaded
 }
 ```
 
-The Nhost client gives no upload progress events, so each file shows its state (waiting, sending, sent, failed) with an activity bar instead of a percentage.
+The storage client gives no upload progress events, so each file shows its state (waiting, sending, sent, failed) with an activity bar instead of a percentage.
 
 Create `web/src/components/files/storage-image.tsx`:
 

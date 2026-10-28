@@ -69,7 +69,7 @@ function GalleryPhoto({
       aria-label={label}
       className="group block size-full cursor-zoom-in outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-inset"
     >
-      {/* A plain <img>: photos come from Nhost Storage (per-project subdomain) and are already resized by its image transform. */}
+      {/* A plain <img>: photos come from Floci S3 (public bucket url). */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={publicImageUrl(id, width)}

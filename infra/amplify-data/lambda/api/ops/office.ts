@@ -12,8 +12,8 @@ import { canAccessStorageFile, forgetStorageFile, linkFile, registerStorageFile,
 import { syncPublicListingsFor } from '../../domain/public-listings.ts';
 import { recordGaps } from '../../domain/record-gaps.ts';
 import { updateRentalRequest, updateVisitRequest } from '../../domain/requests.ts';
-import type { Where } from '../hasura-eval.ts';
-import { eqValue, matches, page, sortRows } from '../hasura-eval.ts';
+import type { Where } from '../query-eval.ts';
+import { eqValue, matches, page, sortRows } from '../query-eval.ts';
 import { byOrg } from '../org-data.ts';
 import type { Op } from '../registry.ts';
 import { STAFF, WRITERS, mutation, query } from '../registry.ts';

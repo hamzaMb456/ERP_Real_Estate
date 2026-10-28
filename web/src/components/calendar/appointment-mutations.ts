@@ -3,7 +3,7 @@ import { graphql } from '@/lib/graphql';
 
 export type ParticipantInput = { contactId: string; role: ParticipantRole };
 
-/** The appointment columns a client may write, in Hasura's snake_case. */
+/** The appointment columns a client may write, in snake_case. */
 export type AppointmentFields = {
   kind: AppointmentKind;
   title: string;
@@ -76,7 +76,7 @@ function updateQuery(hasSet: boolean, hasRemove: boolean, hasAdd: boolean): stri
     hasRemove ? '$remove: [uuid!]!' : '',
     hasAdd ? '$add: [appointment_participants_insert_input!]!' : '',
   ].filter(Boolean);
-  // Hasura runs the root fields of a mutation in order: update, delete, then insert.
+  // The data layer runs the root fields of a mutation in order: update, delete, then insert.
   const roots = [
     hasSet ? 'update_appointments_by_pk(pk_columns: { id: $id }, _set: $set) { id }' : '',
     hasRemove

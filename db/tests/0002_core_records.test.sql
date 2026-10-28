@@ -1,4 +1,4 @@
--- Tests for 0002_core_records. Paste into Nhost dashboard → Database → SQL Editor and Run.
+-- Tests for 0002_core_records. Paste into the legacy console → Database → SQL Editor and Run.
 -- Everything runs inside one DO block that always ends by raising an exception, so the
 -- whole transaction rolls back and no test data stays in the database.
 -- Success: the editor shows the error « OK: all core-records tests passed ».

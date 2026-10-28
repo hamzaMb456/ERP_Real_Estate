@@ -97,10 +97,10 @@ export function HomeHero({ cities, photos = [] }: { cities: string[]; photos?: s
   return (
     <section ref={root} className="px-4 pt-4 pb-16 sm:px-6 sm:pt-6 lg:px-8">
       <div className="relative mx-auto flex min-h-[560px] w-full max-w-7xl flex-col justify-between overflow-hidden rounded-2xl shadow-[0_1px_3px_rgb(0_0_0/0.05),0_12px_24px_-12px_rgb(4_120_87/0.18)]">
-        {/* The newest listings' photos (Nhost already resizes them); the illustration stands in until a listing has one. */}
+        {/* The newest listings' photos; the illustration stands in until a listing has one. */}
         {slides.length > 0 ? (
           slides.map((id, index) => (
-            // eslint-disable-next-line @next/next/no-img-element -- photos come from Nhost Storage with its own image transform
+            // eslint-disable-next-line @next/next/no-img-element -- photos come from Floci S3 at the size that was uploaded
             <img
               key={id}
               data-hero-slide=""

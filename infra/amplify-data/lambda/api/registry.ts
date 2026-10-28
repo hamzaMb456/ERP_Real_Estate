@@ -1,5 +1,5 @@
 // Every operation the web sends, by its GraphQL operation name. Each returns the same JSON shape the
-// web's Hasura query returned, so a component switches backend without changing.
+// web's query returned, so a component switches backend without changing.
 import type { Caller } from '../domain/auth.ts';
 
 export type Vars = Record<string, unknown>;

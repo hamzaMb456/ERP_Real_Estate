@@ -1,4 +1,4 @@
-// The small part of Hasura's query language the web sends as variables ($where, $orderBy...), evaluated
+// The small part of the row-query language the web sends as variables ($where, $orderBy...), evaluated
 // in memory over rows already scoped to one organization. Lets resolvers answer the web's existing
 // queries with the exact same result shape, so components do not change.
 type Row = Record<string, unknown>;
@@ -45,7 +45,7 @@ function compare(value: unknown, op: string, arg: unknown): boolean {
   }
 }
 
-/** Hasura bool_exp: _and/_or/_not, column operators, and nested objects for relationships. */
+/** Row-filter expression: _and/_or/_not, column operators, and nested objects for relationships. */
 export function matches(row: Row | undefined, where: Where | undefined | null): boolean {
   if (!where) return true;
   return Object.entries(where).every(([key, cond]) => {

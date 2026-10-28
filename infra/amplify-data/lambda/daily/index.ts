@@ -1,4 +1,4 @@
-// Daily job (EventBridge Scheduler, 05:00 UTC = 06:00 Tunis): replaces the Hasura lease_daily cron.
+// Daily job (EventBridge Scheduler, 05:00 UTC = 06:00 Tunis).
 // Order matters: expire leases first, so the notifications see the new statuses.
 import { todayTunis } from '../domain/dates.ts';
 import { expireOverdueLeases } from '../domain/leases.ts';

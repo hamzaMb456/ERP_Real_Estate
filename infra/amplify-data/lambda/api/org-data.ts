@@ -1,8 +1,8 @@
 // Read helpers shared by the ERP resolvers: everything is loaded per organization, then joined in
-// memory into the nested shapes the web's Hasura queries asked for.
+// memory into the nested shapes the web's queries asked for.
 import type { Item } from '../domain/db.ts';
 import { batchGet, queryAll } from '../domain/db.ts';
-import { sortRows } from './hasura-eval.ts';
+import { sortRows } from './query-eval.ts';
 
 export const byOrg = (model: string, orgId: string): Promise<Item[]> =>
   queryAll(model, { index: 'byOrg', key: 'organization_id', value: orgId });

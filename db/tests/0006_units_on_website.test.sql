@@ -1,4 +1,4 @@
--- Tests for 0006_units_on_website. Paste into the Nhost dashboard SQL Editor and Run, or run locally with
+-- Tests for 0006_units_on_website. Paste into the legacy console SQL Editor and Run, or run locally with
 -- bash scripts/db-local.sh test db/tests/0006_units_on_website.test.sql
 -- One DO block that always ends by raising an exception, so everything rolls back and no test data stays.
 -- Success: the error "OK: all website tests passed". Failure: an error starting with "FAIL".

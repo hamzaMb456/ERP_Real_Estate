@@ -4,7 +4,7 @@
 -- Money is TND with 3 decimals: numeric(12,3).
 -- Organizations are never hard-deleted (properties/units use ON DELETE RESTRICT on purpose);
 -- records are archived with archived_at instead.
--- Hasura: keep organization_id out of every update permission (set it only through insert presets).
+-- Data layer: keep organization_id out of every update permission (set it only through insert presets).
 
 create or replace function public.set_updated_at()
 returns trigger

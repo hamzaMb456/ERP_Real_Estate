@@ -17,17 +17,17 @@ Plan: `docs/superpowers/plans/2026-10-16-leases-calendar-notifications.md` · Sp
 
 ## Verified locally
 
-- `web`: 238 tests, `tsc`, `lint`, `build` (route `/calendrier`). `functions`: 93 tests, `tsc`. Local Postgres: `OK: all core-records tests passed`, `OK: all lease tests passed`, `OK: all calendar tests passed`. Both Hasura scripts `--dry-run` OK.
-- NOT verified: anything against the live Nhost project, a logged-in browser (desktop and 375 px), real SMTP.
+- `web`: 238 tests, `tsc`, `lint`, `build` (route `/calendrier`). `functions`: 93 tests, `tsc`. Local Postgres: `OK: all core-records tests passed`, `OK: all lease tests passed`, `OK: all calendar tests passed`. Both data-layer scripts `--dry-run` OK.
+- NOT verified: anything against the live backend, a logged-in browser (desktop and 375 px), real SMTP.
 
 ## User steps, in this order (the agent never types a secret)
 
 0. Finish the Plan A live steps first (`docs/superpowers/handoffs/2026-10-15-leases-plan-a.md`, steps 1–7): `0004` builds on `0003`.
-1. Nhost SQL console: run `db/migrations/0004_calendar_notifications.sql` (copy with `Get-Content -Raw -Encoding UTF8`, « Track this » off), then `db/tests/0004_calendar_notifications.test.sql` → expect `OK: all calendar tests passed`, then `db/seeds/0004_demo_calendar.sql`.
+1. SQL console of the legacy cloud backend: run `db/migrations/0004_calendar_notifications.sql` (copy with `Get-Content -Raw -Encoding UTF8`, « Track this » off), then `db/tests/0004_calendar_notifications.test.sql` → expect `OK: all calendar tests passed`, then `db/seeds/0004_demo_calendar.sql`.
 2. **Check ruling R2:** `select user_id, organization_id, role from public.staff_members;` must list your org_admin / manager users. If it is empty, tell the agent: the staff source (`auth.user_roles` + `auth.users.metadata->>'organization_id'`) is wrong and `staff_members` must change before anything else works.
 3. With `$env:HASURA_ADMIN_SECRET` set: `node scripts/apply-hasura-permissions.mjs`, then `node scripts/check-hasura.mjs` (expect the 5 new names tracked, `generate_daily_notifications` tracked, no inconsistent metadata).
-4. Nhost dashboard: secrets for the functions `HASURA_GRAPHQL_URL`, `HASURA_ADMIN_SECRET`, `NHOST_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, optionally `APP_URL` (links in e-mails). Hasura needs `NHOST_FUNCTIONS_URL` and `NHOST_WEBHOOK_SECRET` in its own environment (the trigger script resolves them there; the secret is never written to the metadata). Google SMTP needs an app password.
-5. You decide when to push to GitHub: that deploys `functions/`. Then `node scripts/apply-hasura-triggers.mjs`. Hasura cron runs in UTC: `0 5 * * *` = 06:00 Tunis (no daylight saving time).
+4. Function environment (as Lambda environment variables / Secrets Manager now): secrets for the functions `HASURA_GRAPHQL_URL`, `HASURA_ADMIN_SECRET`, `NHOST_WEBHOOK_SECRET`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, optionally `APP_URL` (links in e-mails). The trigger layer needed `NHOST_FUNCTIONS_URL` and `NHOST_WEBHOOK_SECRET` in its own environment (the trigger script resolves them there; the secret is never written to the metadata). Google SMTP needs an app password.
+5. You decide when to push to GitHub: that deploys `functions/`. Then `node scripts/apply-hasura-triggers.mjs`. The cron trigger runs in UTC: `0 5 * * *` = 06:00 Tunis (no daylight saving time).
 6. From `web/`: `npm run test:e2e -- e2e/calendar.spec.ts` and `leases.spec.ts` (credentials in `web/.env.test.local`; delete `web/test-results` afterwards).
 7. Browser pass: `/calendrier` (month / week / list, filters, « + », the sheet, Reporter, Annuler), a lease fiche → « Calendrier », a contact page, the bell, the dashboard tile; desktop and 375 px. Also confirm the URL keeps `?vue=…&date=…` on reload (`history.replaceState` vs `useSearchParams` in this Next version).
 8. One real e-mail check: create an appointment with a participant whose e-mail is yours.
@@ -37,7 +37,7 @@ Plan: `docs/superpowers/plans/2026-10-16-leases-calendar-notifications.md` · Sp
 - Rulings R1–R8 are at the top of the plan. R1: the spec called `0004` both « calendar » and « rent requests »; `0004` is calendar, rent requests will be `0005` and add `appointments.rent_request_id`, inspections and deposit `0006`.
 - Notification titles in the database are ASCII (`Bail 12`, or the appointment title); the French wording comes from the kind (`web/src/lib/notifications.ts`, `functions/_lib/mail-templates.ts`).
 - FullCalendar runs with `timeZone: 'UTC'` and timed events are shifted to Tunis wall clock (Tunisia is UTC+1 with no DST).
-- Nhost deploys every file under `functions/` as an endpoint except names starting with `_`, hence `_lib/` and `_tests/`.
+- At the time, the legacy backend deployed every file under `functions/` as an endpoint except names starting with `_`, hence `_lib/` and `_tests/` (the same layout is kept for the Lambda functions).
 - `generate_daily_notifications` and `expire_overdue_leases` have no role permission: only the admin secret (the daily job) can call them.
 
 ## Deferred minors (not fixed on purpose)

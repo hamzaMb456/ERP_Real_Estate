@@ -57,7 +57,7 @@ export function ListingCard({ listing }: { listing: PublicListing }) {
     <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-shadow duration-200 hover:shadow-lg motion-reduce:transition-none">
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {showPhoto && listing.coverFileId ? (
-          // A plain <img>: photos come from Nhost Storage under a per-project subdomain and are already resized by its image transform.
+          // A plain <img>: photos come from Floci S3 (public bucket url).
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={publicImageUrl(listing.coverFileId, COVER_WIDTH)}

@@ -379,7 +379,7 @@ type Lock @table {
 # ---------------------------------------------------------------- operations (grow in P4)
 
 # The web sends its existing queries by GraphQL operation name; the api Lambda answers with the
-# same JSON shape Hasura returned (see lambda/api/ops). Role checks happen per operation there.
+# same JSON shape the former API returned (see lambda/api/ops). Role checks happen per operation there.
 type Query {
   whoami: String @function(name: "api") @auth(rules: [{ allow: custom }])
   run(op: String!, variables: AWSJSON): AWSJSON @function(name: "api") @auth(rules: [{ allow: custom }])

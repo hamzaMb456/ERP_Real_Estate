@@ -1,4 +1,4 @@
--- Tests for 0003_leases. Paste into the Nhost dashboard SQL Editor and Run, or run locally with
+-- Tests for 0003_leases. Paste into the legacy console SQL Editor and Run, or run locally with
 -- bash scripts/db-local.sh test db/tests/0003_leases.test.sql
 -- One DO block that always ends by raising an exception, so everything rolls back and no test data stays.
 -- Success: the error « OK: all lease tests passed ». Failure: an error starting with « FAIL ».
@@ -490,7 +490,7 @@ begin
     if sqlerrm <> 'lease_not_draft' then raise exception 'FAIL 21: wrong error: %', sqlerrm; end if;
   end;
 
-  -- 22. The lease functions trust the session argument, so only the Hasura roles may run them.
+  -- 22. The lease functions trust the session argument, so only the data-layer roles may run them.
   select count(*) into n
   from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
   where p.oid in (

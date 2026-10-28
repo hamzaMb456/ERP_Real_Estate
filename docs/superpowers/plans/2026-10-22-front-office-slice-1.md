@@ -4,9 +4,9 @@
 
 **Goal:** Move the ERP under `/erp`, open a public site at `/` with home, search and unit pages that show real units the staff publish from the ERP.
 
-**Architecture:** The ERP route group moves to `src/app/erp/`; a new `src/app/(site)/` route group holds the public pages. Staff publish a unit through a new `listings` table edited on the ERP unit page; a database trigger enforces the publishing rules. Public pages are server components that query Hasura as the unauthenticated `public` role (views `public_listings`, `public_listing_photos`) and pass data to client components that render text through the i18n catalogs; photos load straight from Nhost Storage through a `public` storage permission.
+**Architecture:** The ERP route group moves to `src/app/erp/`; a new `src/app/(site)/` route group holds the public pages. Staff publish a unit through a new `listings` table edited on the ERP unit page; a database trigger enforces the publishing rules. Public pages are server components that query the data layer as the unauthenticated `public` role (views `public_listings`, `public_listing_photos`) and pass data to client components that render text through the i18n catalogs; photos load straight from S3 (Floci) through a `public` storage permission.
 
-**Tech Stack:** Next.js 16 (App Router, `cacheComponents`), React 19, Tailwind 4, GSAP design system already in the repo, Nhost (Hasura, Auth, Storage), Postgres 16, vitest, Playwright.
+**Tech Stack:** Next.js 16 (App Router, `cacheComponents`), React 19, Tailwind 4, GSAP design system already in the repo, the Floci AWS stack (AppSync + DynamoDB + S3 + Cognito), Postgres 16, vitest, Playwright.
 
 **Spec:** `docs/superpowers/specs/2026-10-22-front-office-design.md` (approved 2026-10-22). Slice 1 = spec §11 item 1.
 
@@ -19,7 +19,7 @@
 - No FNAIM or other French body anywhere; footer copyright « © 2026 Emerald Immobilier Tunisie. Tous droits réservés. »; trust badge « Agence immobilière agréée — Tunisie ».
 - Public site serves one organization: `NEXT_PUBLIC_AGENCY_ORG_ID`; every public query filters on it (spec F5, R7).
 - Only French public pages are indexed (spec R8): server render is French; en/ar switch on the client like the ERP.
-- Migrations are applied by the user in the Nhost SQL editor; Hasura metadata only through `scripts/apply-hasura-permissions.mjs`; nothing is pushed to Nhost by Claude.
+- Migrations are applied by the user in the legacy cloud console; data-layer metadata only through `scripts/apply-hasura-permissions.mjs`; nothing is pushed to the backend by Claude.
 - Migration numbering for this project, replacing spec §6's numbers: `0005_listings.sql` (this slice), `0006_rent_requests_visits.sql`, `0007_sales_offers.sql`, `0008_client_space.sql`, `0009_inspections_deposit.sql`. Task 2 updates the spec's numbering paragraph to match.
 - Commit after every task with a conventional message; no attribution lines.
 
@@ -73,14 +73,14 @@
 - [ ] **Step 4: Run** the new SQL test → `OK: all`; re-run the `0002`–`0004` tests → still `OK: all`.
 - [ ] **Step 5: Commit** — `git commit -m "feat(db): listings with publishing rules and public views (0005)"`
 
-### Task 3: Hasura metadata for listings, the `public` role and public photos
+### Task 3: Data-layer metadata for listings, the `public` role and public photos
 
 **Files:**
 - Modify: `scripts/apply-hasura-permissions.mjs`
 
 **Interfaces:**
 - Consumes: Task 2 objects.
-- Produces (in Hasura): tracked `listings`, `public_listings`, `public_listing_photos`; relationships `units.listings` (array), `listings.unit` (object), `public_listings.photos` (array → `public_listing_photos` on `listing_id`). Permissions: `org_admin`, `manager` select/insert/update on `listings` with the organization filter (insert columns: all except `id`, `organization_id` (preset from `X-Hasura-Org-Id`), `published_at` and the timestamps; no delete, listings are closed, not deleted); `viewer` select on `listings`; role **`public`** select on `public_listings` and `public_listing_photos` (all columns, no row filter: the views hold only published rows and the site filters by organization), and select on `storage.files` limited to files linked to a published listing (through `property_links` → unit → `listings.status = 'published'`), columns `id, mime_type, size, updated_at`.
+- Produces (in the data layer): tracked `listings`, `public_listings`, `public_listing_photos`; relationships `units.listings` (array), `listings.unit` (object), `public_listings.photos` (array → `public_listing_photos` on `listing_id`). Permissions: `org_admin`, `manager` select/insert/update on `listings` with the organization filter (insert columns: all except `id`, `organization_id` (preset from `X-Hasura-Org-Id`), `published_at` and the timestamps; no delete, listings are closed, not deleted); `viewer` select on `listings`; role **`public`** select on `public_listings` and `public_listing_photos` (all columns, no row filter: the views hold only published rows and the site filters by organization), and select on `storage.files` limited to files linked to a published listing (through `property_links` → unit → `listings.status = 'published'`), columns `id, mime_type, size, updated_at`.
 
 - [ ] **Step 1: Run** `node scripts/apply-hasura-permissions.mjs --dry-run` and note the counts it prints.
 - [ ] **Step 2: Add** the entries above following the script's existing patterns (TRACK list, SELECT_COLUMNS, writer permissions, the storage block around line 342, the relationship list).
@@ -94,7 +94,7 @@
 - Modify: `web/src/app/erp/(app)/biens/[id]/unites/[unitId]/page.tsx` (add the card under the lease card), `web/src/i18n/messages/{fr,en,ar}/index.ts` (register `listings`), `web/src/lib/show-error.ts` (map the five `LISTING_*` codes)
 
 **Interfaces:**
-- Consumes: `listings` table and its Hasura permissions (Tasks 2–3).
+- Consumes: `listings` table and its data-layer permissions (Tasks 2–3).
 - Produces: `type ListingKind = 'rent' | 'sale'`; `type ListingStatus = 'draft' | 'published' | 'paused' | 'closed'`; `AMENITIES` (the nine values of Task 2, same order); `defaultKindFor(unitStatus: string): ListingKind | null` (`for_sale` → `'sale'`, `vacant` / `rented` → `'rent'`, else `null`); `listingErrorKey(message: string): keyof Messages['listings']['errors'] | null` (finds a `LISTING_*` code inside a GraphQL error message); `<ListingCardErp unitId unitStatus />`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -213,6 +213,6 @@
 - Consumes: everything above.
 
 - [ ] **Step 1: Write** `front-office.spec.ts`: staff signs in at `/erp/connexion`; opens a vacant seeded unit that has a photo, creates a rent listing « Appartement test E2E » at 1 234 TND and publishes it; signs out; as a visitor opens `/louer`, finds the card « Appartement test E2E » with « 1 234 », opens it, sees « Conditions » and « 2 468 » (deposit); `/biens` redirects to `/erp/biens`; staff signs in again and closes the listing; `/logement/<id>` now shows the public 404 page.
-- [ ] **Step 2: Write the handoff** for the user, in order, each with how to check it worked: (1) apply `db/migrations/0005_listings.sql` then `db/seeds/0005_listings.sql` in the Nhost SQL editor; (2) in Nhost → Settings → Hasura → environment variables, set `HASURA_GRAPHQL_UNAUTHORIZED_ROLE=public`; (3) run `node scripts/apply-hasura-permissions.mjs` with `HASURA_ADMIN_SECRET` set; (4) add `NEXT_PUBLIC_AGENCY_ORG_ID` (from `select id from organizations`), `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_AGENCY_PHONE`, `NEXT_PUBLIC_AGENCY_EMAIL`, `NEXT_PUBLIC_AGENCY_ADDRESS` to `web/.env.local`, then `docker compose restart web`; (5) publish one unit from the ERP and open `/louer` while logged out; (6) run the E2E with the user's own test credentials.
+- [ ] **Step 2: Write the handoff** for the user, in order, each with how to check it worked: (1) apply `db/migrations/0005_listings.sql` then `db/seeds/0005_listings.sql` in the legacy cloud console; (2) in the console → Settings → environment variables, set `HASURA_GRAPHQL_UNAUTHORIZED_ROLE=public`; (3) run `node scripts/apply-hasura-permissions.mjs` with `HASURA_ADMIN_SECRET` set; (4) add `NEXT_PUBLIC_AGENCY_ORG_ID` (from `select id from organizations`), `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_AGENCY_PHONE`, `NEXT_PUBLIC_AGENCY_EMAIL`, `NEXT_PUBLIC_AGENCY_ADDRESS` to `web/.env.local`, then `docker compose restart web`; (5) publish one unit from the ERP and open `/louer` while logged out; (6) run the E2E with the user's own test credentials.
 - [ ] **Step 3: Verify everything** — `cd web; npx tsc --noEmit; npx eslint src; npx vitest run; npm run build` all green; SQL tests `0002`–`0005` print `OK: all`; `node scripts/apply-hasura-permissions.mjs --dry-run` succeeds. The E2E needs the live backend set up by the handoff, so it is run after the user's steps.
 - [ ] **Step 4: Commit** — `git commit -m "test(e2e): publish a unit and see it on the public site; slice 1 handoff"`

@@ -332,7 +332,7 @@ $$;
 create trigger leases_sync_units after insert or update of status on public.leases
   for each row execute function public.leases_sync_units();
 
--- Who is calling: Hasura passes its session variables as json. Only org_admin and manager may act.
+-- Who is calling: the data layer passes its session variables as json. Only org_admin and manager may act.
 create or replace function public.lease_session_org(p_session json)
 returns uuid
 language plpgsql
@@ -541,7 +541,7 @@ begin
 end;
 $$;
 
--- The lease functions trust the session json they receive from Hasura, so only the Hasura database role
+-- The lease functions trust the session json they receive from the data layer, so only the data-layer database role
 -- (and the owner) may run them: by default Postgres lets every role execute a function.
 do $$
 declare

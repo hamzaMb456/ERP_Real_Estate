@@ -47,7 +47,7 @@ This **overrides decision D-010** ("no renter/owner portal in the MVP") and the 
 | F3 | Look: Stitch project `projects/18117543231921807105`, design system « Emerald Vitrine » (`assets/13284678866910658658`). Screens: Accueil `73944003ff204a708656f918ec88b559`, Logements à louer `32680b4e46ea4f86a7758d0df5727ee7`, Fiche logement `44c57dc4b6b54e2086e11282b3110c62`, Demande de location `d0f8f73e731b4c72b2a4bedcea7e1fa3`, Faire une offre `23bbd2a4b3ff4b0cb5b20854083c4963`, Espace client `03373468ac23464190264a579d734764`. | User |
 | F4 | Built with the existing GSAP design system (icons from `@/components/icons`, gloss buttons, `PageHeader`, `ScrollStagger`, `gsapTokens`, reduced-motion safe). | User |
 | F5 | One agency per deployment for the public site: it serves the organization `NEXT_PUBLIC_AGENCY_ORG_ID`. Client writes never trust a client-supplied organization: SQL functions take it from the unit. | My call (security) |
-| F6 | All client writes go through `SECURITY DEFINER` SQL functions exposed as Hasura mutations (pattern of `activate_lease`), never direct table inserts. | My call |
+| F6 | All client writes go through `SECURITY DEFINER` SQL functions exposed as data-layer mutations (pattern of `activate_lease`), never direct table inserts. | My call |
 | F7 | Text in the i18n catalogs (fr, en, ar), French first; amounts in TND with the existing formatters. | Existing convention |
 | F8 | Rent requests reuse the table planned in the leases spec (Plan C, `rent_requests`, source `web`), extended with the application fields. Plan C is absorbed here. | My call |
 
@@ -71,10 +71,10 @@ an anonymous user hitting `/erp/*` goes to `/erp/connexion`; staff may browse th
 
 ## 5. Accounts and permissions
 
-- Same Nhost project. Staff keep roles `org_admin | manager | viewer` and `metadata.organization_id`.
-- New Hasura role **`client`** for public sign-ups (Nhost email + password, email verification on).
-  New Hasura role **`public`** (unauthenticated) to read published listings.
-- The user configures in the Nhost dashboard: default role for sign-ups = `client`, allowed roles for
+- Same backend (the Floci AWS stack). Staff keep roles `org_admin | manager | viewer` and `metadata.organization_id`.
+- New data-layer role **`client`** for public sign-ups (Cognito email + password, email verification on).
+  New data-layer role **`public`** (unauthenticated) to read published listings.
+- The user configures in the console: default role for sign-ups = `client`, allowed roles for
   sign-ups = `[client]`, email verification on, the site's redirect URLs. Staff accounts keep being
   created by an admin with their roles. Exact steps go in the plan.
 - A client is linked to one ERP contact: `client_accounts (user_id pk, contact_id, organization_id,
@@ -196,9 +196,9 @@ Errors carry stable codes mapped to messages in the catalogs.
 
 ## 10. Constraints
 
-- Next.js 16, React 19, Tailwind 4, Nhost (Hasura, Auth, Storage) as today; no new backend.
-- Migrations applied by the user in the Nhost SQL editor; Hasura permissions through
-  `scripts/apply-hasura-permissions.mjs` (extended). Claude pushes nothing to Nhost.
+- Next.js 16, React 19, Tailwind 4, the Floci AWS stack (AppSync + DynamoDB + S3 + Cognito) as today; no new backend.
+- Migrations applied by the user in the legacy cloud console; data-layer permissions through
+  `scripts/apply-hasura-permissions.mjs` (extended). Claude pushes nothing to the backend.
 - Personal data (Tunisian law 2004-63): consent on forms, private documents, a client can close their
   account (data kept only where a lease or sale requires it).
 - Tests: vitest for helpers and components; SQL tests for every function (local harness
@@ -250,7 +250,7 @@ Component breakdown, query shapes, exact column types and indexes, how redirects
   explicitly share: `lease_files.client_visible boolean default false`, ticked per file on the lease
   page (signed lease, move-in report). Co-renter and guarantor ID files are never shared. No rent-receipt
   PDF generation in this project (V1 in the scope matrix).
-- **R7 One agency per Nhost project.** Confirmed as the model (F5). `client_accounts.user_id` stays the
+- **R7 One agency per backend deployment.** Confirmed as the model (F5). `client_accounts.user_id` stays the
   key; public GraphQL may expose other organizations' published listings, which are public anyway;
   the site always filters by `NEXT_PUBLIC_AGENCY_ORG_ID`.
 - **R8 Languages and SEO.** Only French pages are indexed; English and Arabic switch on the client like
@@ -263,9 +263,9 @@ Component breakdown, query shapes, exact column types and indexes, how redirects
 
 ## 14. Answers from the user (2026-10-22)
 
-- **Q1 Auth e-mails:** Nhost Auth sends verification and password-reset e-mails through **Google
-  SMTP** (Nhost's own SMTP is paid), the same Google account and app password as the reminder e-mails.
-  The user enters the SMTP settings in the Nhost dashboard (Auth → SMTP); the plan lists the steps.
+- **Q1 Auth e-mails:** Cognito sends verification and password-reset e-mails through **Google
+  SMTP** (the legacy backend's own SMTP was paid), the same Google account and app password as the reminder e-mails.
+  The user enters the SMTP settings in the console (Cognito → SMTP settings); the plan lists the steps.
   The public domain is not chosen yet: redirect URLs come from `NEXT_PUBLIC_SITE_URL`.
 - **Q2 Expired reservation:** when an active reservation reaches `expires_at` without a signed
   compromis, the reservation becomes `expired`, its sale row is `cancelled`, and the deposit payment

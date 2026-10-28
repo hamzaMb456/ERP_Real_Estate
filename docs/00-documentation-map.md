@@ -10,6 +10,11 @@ with two seller models (Phase 0 §0.29, Cahier des Charges 00 D-008 / D-009).\
 Problem 4 to Problem 6 answered by proposals to confirm.\
 **Changes in 0.4:** only internal staff log in to the MVP (D-010): Problem 5
 resolved, Problem 6 deferred to V1.\
+**Note (late October 2026):** since the backend cutover, the backend is the
+Floci AWS stack (AppSync / DynamoDB / S3 / Cognito, self-hosted). Nhost and
+Hasura mentions in older documents (phase-2 database documents, superpowers
+specs / plans / handoffs) refer to the former backend and are kept as
+history.\
 **Inputs:** [Phase 0 — Product Definition](phase-0/01-product-definition.md),
 [Cahier des Charges 00 — Cahier des Charges Général](phase-1/specs/00-cahier-des-charges-general.md)
 

@@ -1,4 +1,4 @@
-// Turns database and Hasura error messages into the sentences staff see, in the interface language.
+// Turns data-layer error messages into the sentences staff see, in the interface language.
 // One place, so every page words the same failure the same way. Sentences live in src/i18n/messages/*/errors.ts.
 
 import { getMessages } from '@/i18n/store';

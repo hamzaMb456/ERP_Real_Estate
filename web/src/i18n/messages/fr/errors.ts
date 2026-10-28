@@ -1,4 +1,4 @@
-// Sentences for database and Hasura errors (codes raised by db/migrations). Used by src/lib/errors.ts.
+// Sentences for data-layer errors (codes raised by db/migrations). Used by src/lib/errors.ts.
 
 export const errors = {
   unknown: 'Erreur inconnue.',

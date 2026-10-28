@@ -3,8 +3,8 @@ import type { Item } from '../../domain/db.ts';
 import { batchGet, getItem, queryAll } from '../../domain/db.ts';
 import { fail } from '../../domain/errors.ts';
 import { submitRentalRequest, submitVisitRequest } from '../../domain/requests.ts';
-import type { OrderBy, Where } from '../hasura-eval.ts';
-import { aggregate, distinctOn, eqValue, matches, page, sortRows } from '../hasura-eval.ts';
+import type { OrderBy, Where } from '../query-eval.ts';
+import { aggregate, distinctOn, eqValue, matches, page, sortRows } from '../query-eval.ts';
 import type { Op, Vars } from '../registry.ts';
 import { ANYONE, CLIENT, mutation, query } from '../registry.ts';
 

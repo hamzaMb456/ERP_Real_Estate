@@ -20,7 +20,7 @@ On `/logement/<id>` the sticky card replaces the old "contact" card:
 - **Visites** (`/erp/visites`, new nav item under Calendrier): same board. "Confirmer la visite" creates a half-hour `viewing` appointment in the calendar and confirms the request in ONE GraphQL request. Two confirmed visits can never share a slot (unique index; the page words the error). "Marquer effectuée" / "Annuler la visite" also update the calendar appointment.
 - Each new request notifies every staff member (bell), linking to the right page.
 
-## To apply on Nhost, in this order
+## To apply on the legacy backend (the steps of the time), in this order
 
 1. `db/migrations/0007_unit_details.sql` (if not yet applied).
 2. `db/migrations/0008_visitor_requests.sql` (safe to run twice). Test with `db/tests/0008_visitor_requests.test.sql`: the expected result is the error "OK: all visitor request tests passed".
@@ -31,7 +31,7 @@ On `/logement/<id>` the sticky card replaces the old "contact" card:
 
 Database side: 3 requests per phone (digits only) per hour and per kind, 30 per organization per 10 minutes, identical pending request refused, names without control, `<`, `>` or bidi characters, strict e-mail format (no `?` or `&`, so a `mailto:` link cannot be abused), a hidden honeypot field.
 
-Known gap (security review): the Hasura endpoint is public, so a determined attacker can call the two mutations directly, rotate fake phone numbers and exhaust the organization cap (visitors then see "trop de demandes") and flood staff notifications. SQL cannot see an IP address. Before a public launch add, at the edge or at Nhost, a per-IP rate limit on the two mutations and a CAPTCHA token (for example Cloudflare Turnstile) checked by the server action.
+Known gap (security review): the data-layer endpoint is public, so a determined attacker can call the two mutations directly, rotate fake phone numbers and exhaust the organization cap (visitors then see "trop de demandes") and flood staff notifications. SQL cannot see an IP address. Before a public launch add, at the edge or at the backend, a per-IP rate limit on the two mutations and a CAPTCHA token (for example Cloudflare Turnstile) checked by the server action.
 
 Other notes from the review: a request keeps its unit from being deleted (archive units instead); `public_listings` is readable for every organization of the database (fine with one agency, add an organization filter if the database ever hosts several).
 

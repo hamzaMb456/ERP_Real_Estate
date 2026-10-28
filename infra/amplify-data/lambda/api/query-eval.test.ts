@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { distinctOn, eqValue, matches, page, sortRows } from './hasura-eval.ts';
+import { distinctOn, eqValue, matches, page, sortRows } from './query-eval.ts';
 
 const rows = [
   { id: 'a', city: 'Tunis', price: 900, rooms: 2, available_from: null, property: { name: 'Zeta' } },

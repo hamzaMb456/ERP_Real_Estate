@@ -27,19 +27,19 @@ Plan: `docs/superpowers/plans/2026-10-15-leases-core.md` · Spec: `docs/superpow
 - `npm run build`: succeeds, routes `/baux`, `/baux/[id]`, `/baux/[id]/modifier`, `/baux/nouveau` present.
 - Local Postgres: `OK: all lease tests passed` and `OK: all core-records tests passed`.
 
-## NOT verified yet: needs the live Nhost database (user steps, the agent never types the admin secret)
+## NOT verified yet: needs the live backend database (user steps, the agent never types the admin secret)
 
-1. Nhost SQL editor: run `db/migrations/0003_leases.sql` (ASCII only; copy with `Get-Content -Raw -Encoding UTF8`), tick « Track this » off.
+1. SQL editor of the legacy cloud console: run `db/migrations/0003_leases.sql` (ASCII only; copy with `Get-Content -Raw -Encoding UTF8`), tick « Track this » off.
 2. Run `db/tests/0003_leases.test.sql` → expect `OK: all lease tests passed`.
 3. Run `db/seeds/0003_demo_leases.sql`.
 4. From the worktree, with `$env:HASURA_ADMIN_SECRET` set: `node scripts/apply-hasura-permissions.mjs`, then `node scripts/check-hasura.mjs`.
-5. Assumption to check: Hasura's database role is `nhost_hasura`. If lease mutations fail with « permission denied for function », grant `EXECUTE` on the lease functions to the role Hasura really uses (one `GRANT`).
+5. Assumption to check: the data layer's database role is `nhost_hasura`. If lease mutations fail with « permission denied for function », grant `EXECUTE` on the lease functions to the role the data layer really uses (one `GRANT`).
 6. Then, from `web/`: `npm run test:e2e -- e2e/leases.spec.ts` and `npm run test:e2e -- e2e/core-records.spec.ts` (credentials in `web/.env.test.local`; delete `web/test-results` afterwards, snapshots contain typed credentials). Expect 1 passed each.
 7. Browser pass of every new page (plan Task 15 step 5): `/baux`, `/baux/nouveau`, `/baux/<id>` (three tabs, each header action), `/baux/<id>/modifier`, unit page, contact page, dashboard tiles, desktop and 375 px.
 
 ## Still to do on the lease side
 
-- **Daily expiry.** `expire_overdue_leases` exists and is admin-only, but nothing calls it yet: Plan B deploys the Nhost function. Until then, expired leases are not auto-expired (run it by hand with the admin secret).
+- **Daily expiry.** `expire_overdue_leases` exists and is admin-only, but nothing calls it yet: Plan B deploys the daily function. Until then, expired leases are not auto-expired (run it by hand with the admin secret).
 
 ## Vitest fix (Task 0)
 
@@ -53,7 +53,7 @@ Vitest 4 would not start on this machine (rolldown native binding missing). Fix,
 
 ## Next step
 
-Write **Plan B** (migration `0004`: calendar `appointments`, `notifications`, `calendar_feed`, `staff_members`; the daily Nhost function for expiry, reminders and Google e-mail; FullCalendar), against the real interfaces built here. Ask the user before starting. Plans C (rent requests, `0005`) and D (inspections and deposit, `0006`) follow.
+Write **Plan B** (migration `0004`: calendar `appointments`, `notifications`, `calendar_feed`, `staff_members`; the daily Lambda function for expiry, reminders and Google e-mail; FullCalendar), against the real interfaces built here. Ask the user before starting. Plans C (rent requests, `0005`) and D (inspections and deposit, `0006`) follow.
 
 ## Final review (done)
 

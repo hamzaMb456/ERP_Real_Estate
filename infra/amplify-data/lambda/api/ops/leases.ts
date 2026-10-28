@@ -8,7 +8,7 @@ import { linkFile } from '../../domain/files.ts';
 import { currentRents, leaseFlags, leaseOverview } from '../../domain/lease-overview.ts';
 import type { DraftInput, Lease, PartyInput, RentInput } from '../../domain/lease-rules.ts';
 import { activateLease, changeRent, endLease, renewLease, saveDraftLease, updateLeaseRecord } from '../../domain/leases.ts';
-import { matches, sortRows } from '../hasura-eval.ts';
+import { matches, sortRows } from '../query-eval.ts';
 import { active, activeLeaseByUnit, byOrg, contactsById, ownerIds, ownersOf } from '../org-data.ts';
 import type { Op, Vars } from '../registry.ts';
 import { STAFF, WRITERS, mutation, query } from '../registry.ts';

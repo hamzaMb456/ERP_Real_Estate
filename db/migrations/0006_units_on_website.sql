@@ -50,7 +50,7 @@ from (
 where l.unit_id = u.id and l.organization_id = u.organization_id;
 
 -- Public listings, one row per visible unit; the row id is the unit id (the site links to /logement/<unit id>).
--- The columns, their order and their types are exactly those of the 0005 view, so create or replace keeps Hasura's
+-- The columns, their order and their types are exactly those of the 0005 view, so create or replace keeps the data layer's
 -- tracking, relationships and permissions valid. Columns a unit has no value for are constants: the deposit and
 -- reservation terms use the defaults the 0005 listings had, there is no virtual tour, and published_at is the unit's
 -- creation date (it only orders "latest first").

@@ -393,7 +393,6 @@ export const site = {
       emailTaken: 'Un compte existe déjà avec cet e-mail.',
       weak: 'Ce mot de passe est trop faible ou connu. Choisissez-en un autre.',
       invalid: 'Informations non valides. Vérifiez le formulaire.',
-      disabled: 'La création de compte est fermée pour le moment.',
       other: 'Opération impossible. Réessayez dans un instant.',
     },
   },

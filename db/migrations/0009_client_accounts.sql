@@ -1,5 +1,5 @@
 -- 0009_client_accounts: visitors must be signed in to send a rental or visit request. A client account is an ordinary
--- Nhost user with the default role "user" (not a staff role). The two submit functions are now called with the client's
+-- auth user with the default role "user" (not a staff role). The two submit functions are now called with the client's
 -- own token; this trigger records who sent the request and refuses a request without a signed-in user.
 -- Apply after 0008, then run db/tests/0009_client_accounts.test.sql. Safe to run twice. ASCII only.
 
@@ -8,7 +8,7 @@ alter table public.visit_requests add column if not exists client_user_id uuid r
 create index if not exists rental_requests_client_idx on public.rental_requests (client_user_id) where client_user_id is not null;
 create index if not exists visit_requests_client_idx on public.visit_requests (client_user_id) where client_user_id is not null;
 
--- The user id Hasura puts in the session of the call (null when there is none).
+-- The user id the data layer puts in the session of the call (null when there is none).
 create or replace function public.current_client_id()
 returns uuid
 language sql

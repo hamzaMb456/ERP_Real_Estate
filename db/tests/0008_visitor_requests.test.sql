@@ -1,4 +1,4 @@
--- Tests for 0008_visitor_requests. Paste into the Nhost dashboard SQL Editor and Run, or run locally with
+-- Tests for 0008_visitor_requests. Paste into the legacy console SQL Editor and Run, or run locally with
 -- bash scripts/db-local.sh test db/tests/0008_visitor_requests.test.sql
 -- One DO block that always ends by raising an exception, so everything rolls back and no test data stays.
 -- Success: the error "OK: all visitor request tests passed". Failure: an error starting with "FAIL".

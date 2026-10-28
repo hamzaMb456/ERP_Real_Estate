@@ -36,7 +36,7 @@ alter table public.properties
 
 -- Same view as 0006 with the real values instead of constants (deposit_months, reservation_deposit, reservation_days,
 -- virtual_tour_url keep their position and type) and the new columns appended at the end, so create or replace keeps
--- Hasura's tracking, relationships and permissions valid.
+-- the data layer's tracking, relationships and permissions valid.
 create or replace view public.public_listings as
 select u.id,
        u.organization_id,

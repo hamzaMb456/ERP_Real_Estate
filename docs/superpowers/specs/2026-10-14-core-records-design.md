@@ -29,7 +29,7 @@ with no data visible across organizations.
 | Houses and plots get **one unit automatically** ("Maison" / "Terrain"). | Keeps the units-only model; a house lease or sale needs a unit anyway. |
 | Ownership is **effective-dated** with a **share %**; several co-owners allowed (indivision). | Glossary §5, scope matrix §4.4 (MVP). Needed to sell a leased unit. |
 | The organization owns its own stock through one **self contact** (`is_organization`). | Glossary N-03: one ownership model for both seller types. |
-| Business rules live **in Postgres** (constraints, triggers, views), exposed by Hasura. | Leases and sales reuse the same views; bad data cannot be written around the UI. |
+| Business rules live **in the database** (constraints, triggers, views), exposed by the data layer. | Leases and sales reuse the same views; bad data cannot be written around the UI. |
 | Map: **Leaflet + OpenStreetMap** tiles, address search via **Nominatim** on demand, then drag/click to adjust. | Free, no key, user-friendly; Tunisian addresses often need manual adjustment. Google left out (billing key). |
 | Common-area shares in **thousandths (‰) per unit**, suggested from surfaces, editable, warning when total ≠ 1000. | Matches Tunisian co-ownership rulebooks while staying quick to fill. |
 | Duplicate contacts are **warned, not blocked**. | Two people can legitimately share a phone or e-mail. |
@@ -68,7 +68,7 @@ keys `(x_id, organization_id)` like 0001, so a row can only point at rows of the
   `daterange(starts_on, ends_on, '[]')`.
 - Constraint trigger, `deferrable initially deferred`: for the affected unit, the sum of
   `share_percent` of rows overlapping any day must stay ≤ 100. Deferred so a transfer (end old rows +
-  insert new rows in one GraphQL request, which Hasura runs in one transaction) passes.
+  insert new rows in one GraphQL request, which the data layer runs in one transaction) passes.
 
 **`property_files`**
 
@@ -105,7 +105,7 @@ keys `(x_id, organization_id)` like 0001, so a row can only point at rows of the
   `is_organization = true`). The migration back-fills one for each existing organization.
 - `updated_at` maintenance on the new tables, same as 0001.
 
-### 3.4 Views (tracked in Hasura, select-only)
+### 3.4 Views (tracked by the data layer, select-only)
 
 - `current_ownerships`: ownerships where `starts_on <= current_date` and
   (`ends_on is null` or `ends_on >= current_date`).
@@ -129,7 +129,7 @@ keys `(x_id, organization_id)` like 0001, so a row can only point at rows of the
   `units.common_share` added to the writers' update columns.
 - Relationships: `units.ownerships`, `units.current_owners`, `contacts.ownerships`,
   `properties.files`, `units.files`, `properties.common_areas`, `properties.owners` (view).
-- Storage (`storage.files`), added without replacing Nhost's own metadata:
+- Storage (`storage.files`), added without replacing the storage service's own metadata:
   - insert: writers, check `bucket_id = 'property-files'`;
   - select / delete: rows that have a `property_files` link in the user's organization
     (manual relationship `storage.files.id → property_files.storage_file_id`).
@@ -189,7 +189,7 @@ keys `(x_id, organization_id)` like 0001, so a row can only point at rows of the
 
 - Accepted: photos JPG/PNG/WebP; documents PDF/JPG/PNG; max 10 MB each. Checked in the browser and by
   the bucket.
-- Upload: `nhost.storage.upload` to `property-files` → insert `property_files`. If the insert fails,
+- Upload: storage upload (S3, Floci) to `property-files` → insert `property_files`. If the insert fails,
   delete the uploaded file immediately (no orphans).
 - Thumbnails via storage image transformation (width parameter); full size and PDFs via presigned URLs.
 - Delete: confirmation dialog → delete `property_files` row → delete the storage file.
@@ -207,7 +207,7 @@ keys `(x_id, organization_id)` like 0001, so a row can only point at rows of the
 
 ## 6. Errors
 
-One shared mapper turns database/Hasura errors into French messages:
+One shared mapper turns database/data-layer errors into French messages:
 
 | Cause | Message |
 |---|---|
@@ -222,7 +222,7 @@ One shared mapper turns database/Hasura errors into French messages:
 - **Database**: `db/tests/0002_core_records.test.sql`, run in the SQL editor inside a transaction that
   rolls back. Covers: 100 % cap, transfer in one transaction, overlap exclusion, end ≥ start, house
   auto-unit, self contact creation, unit code uniqueness, `record_gaps` rows.
-  Cross-organization isolation is checked through Hasura with two JWT roles in the E2E suite.
+  Cross-organization isolation is checked through the data layer with two JWT roles in the E2E suite.
 - **Unit (Vitest)**: share suggestion (largest-remainder so the total is exactly 1000), transfer
   date maths, error mapper, gap labels and links, file validation.
 - **Component (Testing Library)**: forms (validation, duplicate warning), shares table total, transfer

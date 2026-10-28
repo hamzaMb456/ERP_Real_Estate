@@ -1,5 +1,5 @@
-/** Hasura event trigger body, as Nhost passes it to a function. */
-export type HasuraEvent = {
+/** Row-change event body: what a table change handler receives (op, old row, new row, table, trigger). */
+export type RowChangeEvent = {
   event: {
     op: 'INSERT' | 'UPDATE' | 'DELETE' | 'MANUAL';
     data: { old: Record<string, unknown> | null; new: Record<string, unknown> | null };
@@ -13,7 +13,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** Narrows an unknown request body to an event; returns null when the shape is wrong. */
-export function parseEvent(body: unknown): HasuraEvent | null {
+export function parseEvent(body: unknown): RowChangeEvent | null {
   if (!isRecord(body) || !isRecord(body.event)) return null;
   const { op, data } = body.event;
   if (typeof op !== 'string' || !isRecord(data)) return null;
@@ -21,7 +21,7 @@ export function parseEvent(body: unknown): HasuraEvent | null {
   const trigger = isRecord(body.trigger) ? body.trigger : {};
   return {
     event: {
-      op: op as HasuraEvent['event']['op'],
+      op: op as RowChangeEvent['event']['op'],
       data: {
         old: isRecord(data.old) ? data.old : null,
         new: isRecord(data.new) ? data.new : null,

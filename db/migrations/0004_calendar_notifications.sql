@@ -78,7 +78,7 @@ create trigger appointment_participants_set_updated_at before update on public.a
   for each row execute function public.set_updated_at();
 
 -- The staff member in charge must be an org_admin or manager of the same organization.
--- Organization comes from auth.users.metadata (the source of the X-Hasura-Org-Id claim);
+-- Organization comes from auth.users.metadata (the source of the organization claim);
 -- allowed roles come from auth.user_roles.
 create or replace function public.check_appointment_staff()
 returns trigger
@@ -234,10 +234,10 @@ as $$
   end;
 $$;
 
--- Daily job (admin only, called by the lease-daily Nhost function after expire_overdue_leases).
+-- Daily job (admin only, called by the lease-daily function after expire_overdue_leases).
 -- Writes one notification per staff recipient; the dedupe key makes a second run the same day a no-op.
 -- Titles are ASCII ('Bail <number>' or the appointment title); the web and the e-mail templates add the
--- French wording from the kind. Returns the notifications it inserted (a row set, because Hasura tracks
+-- French wording from the kind. Returns the notifications it inserted (a row set, because the data layer tracks
 -- only set-returning functions).
 create or replace function public.generate_daily_notifications()
 returns setof public.notifications
@@ -310,7 +310,7 @@ begin
 end;
 $$;
 
--- Only the Hasura database role (and the owner) may run the trigger function and the daily job.
+-- Only the data-layer database role (and the owner) may run the trigger function and the daily job.
 do $$
 declare
   v_fn   text;

@@ -24,7 +24,7 @@ export type ListingDetails = {
   visitFee: number | null;
 };
 
-/** A listing row of public_listings as Hasura returns it, details part. */
+/** A listing row of public_listings as the data layer returns it, details part. */
 export type ListingDetailsRow = {
   bedrooms: NumberLike;
   bathrooms: NumberLike;
@@ -85,7 +85,7 @@ export const DETAIL_FIELDS = `
   energy_class min_lease_months charges_included year_built floors_count neighbourhood_description visit_fee
 `;
 
-/** Hasura sends numeric columns as numbers or as strings depending on its settings. */
+/** The data layer sends numeric columns as numbers or as strings depending on its serde settings. */
 export function toNumber(value: NumberLike): number | null {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);

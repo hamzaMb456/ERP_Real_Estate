@@ -11,8 +11,7 @@ const EXPIRES_SECONDS = 300;
 export async function POST(request: Request): Promise<Response> {
   let session: SessionClaims;
   try {
-    // Reading a file only needs a valid session, not the writer role (matches the
-    // Nhost-storage behaviour this replaces: any signed-in user could fetch a file).
+    // Reading a file only needs a valid session, not the writer role (any signed-in user may fetch a file).
     session = await requireSession(request.headers.get('authorization'));
   } catch {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -25,7 +24,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // The key itself isn't a secrecy boundary — any signed-in user could guess or reuse a uuid.
-  // Only presign a file the caller's own Hasura permissions let them see.
+  // Only presign a file the caller's own data-layer permissions let them see.
   const bucket = await resolveStorageKeyBucket(session.token, key);
   if (!bucket) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });

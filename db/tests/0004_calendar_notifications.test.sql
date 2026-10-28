@@ -221,7 +221,7 @@ begin
   if exists (select 1 from public.notifications where id = n_old) then raise exception 'FAIL: 91-day notification kept'; end if;
   if not exists (select 1 from public.notifications where id = n_keep) then raise exception 'FAIL: 89-day notification deleted'; end if;
 
-  -- 12. Admin only: nobody but the Hasura database role may run it.
+  -- 12. Admin only: nobody but the data-layer database role may run it.
   if has_function_privilege('public', 'public.generate_daily_notifications()', 'execute') then
     raise exception 'FAIL: generate_daily_notifications is executable by public';
   end if;

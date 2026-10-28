@@ -19,7 +19,7 @@ Read this first in a new session. Branch `claude/continuation-bdded2`
 - Unit/component tests: `cd web && npm test` → 63 passing; coverage gate ≥ 80 % met
   (`npm run test:coverage`). Lint and build clean.
 - Final whole-branch review done; 6 findings fixed, 5 minors deferred (below).
-- **Live Nhost project** (`rxcugiymqkyghsuixmhi`):
+- **Live backend** (the Floci AWS stack; cloud project id `rxcugiymqkyghsuixmhi` at the time):
   - `db/migrations/0002_core_records.sql` applied (after renaming a clashing constraint to
     `property_files_category_matches_kind`).
   - `db/tests/0002_core_records.test.sql` → `OK: all core-records tests passed`.
@@ -29,7 +29,7 @@ Read this first in a new session. Branch `claude/continuation-bdded2`
 ## Not done yet (next session, in this order)
 
 1. **Demo data probably not applied**: the check showed B-101 `common_share = null`
-   (seed sets 221). Re-run `db/seeds/0002_demo_core_records.sql` in the Nhost SQL Console
+   (seed sets 221). Re-run `db/seeds/0002_demo_core_records.sql` in the legacy cloud console (SQL editor)
    (safe to re-run).
 2. **Browser test of every page** (user signed in at http://localhost:3000, role manager):
    dashboard tile, `/biens` (owner column/filter, cover photo, "Carte"), bien tabs
@@ -38,7 +38,7 @@ Read this first in a new session. Branch `claude/continuation-bdded2`
    cancel upcoming transfer; `#modifier` dialog), contacts (edit, duplicate warning on
    phone `20 000 001`, archive, owned units), `/biens/carte`, `/biens/parties-communes`,
    `/biens/fiches-incompletes`. Check desktop + 375 px mobile, no console errors.
-   Confirm live: first photo upload works (hasura-storage + storage.files permissions),
+   Confirm live: first photo upload works (the data layer's storage permissions + `storage.files` permissions),
    and a transfer above 100 % shows the French message.
 3. **E2E**: user writes `web/.env.test.local` with `E2E_EMAIL` / `E2E_PASSWORD`
    (never typed by the agent), then `cd web && npm run test:e2e`.
@@ -46,7 +46,7 @@ Read this first in a new session. Branch `claude/continuation-bdded2`
 
 ## How things are applied (user runs; agent never types secrets)
 
-- SQL: Nhost dashboard → Database → SQL Console. The agent can put a file in the user's
+- SQL: the legacy cloud console (Database → SQL Console). The agent can put a file in the user's
   clipboard: `Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard` (PowerShell 5.1 — without
   `-Encoding UTF8` accents turn into mojibake, e.g. "intÃ©rieur").
 - Metadata: `$env:HASURA_ADMIN_SECRET = "<secret>"` then

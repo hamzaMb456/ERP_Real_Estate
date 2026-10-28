@@ -1,4 +1,4 @@
--- Tests for 0005_listings. Paste into the Nhost dashboard SQL Editor and Run, or run locally with
+-- Tests for 0005_listings. Paste into the legacy console SQL Editor and Run, or run locally with
 -- bash scripts/db-local.sh test db/tests/0005_listings.test.sql
 -- One DO block that always ends by raising an exception, so everything rolls back and no test data stays.
 -- Success: the error « OK: all listing tests passed ». Failure: an error starting with « FAIL ».

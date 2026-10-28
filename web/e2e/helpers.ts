@@ -11,7 +11,7 @@ export async function signIn(page: Page) {
   await page.getByLabel('Adresse e-mail professionnelle').fill(EMAIL as string);
   await page.getByLabel('Mot de passe', { exact: true }).fill(PASSWORD as string);
   await page.getByRole('button', { name: 'Se connecter' }).click();
-  // The first sign-in compiles the dashboard route in dev and calls Nhost: allow more than the default 5 s.
+  // The first sign-in compiles the dashboard route in dev and calls Cognito and the data layer: allow more than the default 5 s.
   await expect(page).not.toHaveURL(/connexion/, { timeout: 30_000 });
 }
 

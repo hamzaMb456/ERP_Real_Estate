@@ -1,5 +1,5 @@
 -- Tests for 0009_client_accounts. Run locally with: bash scripts/db-local.sh test db/tests/0009_client_accounts.test.sql
--- or paste into the Nhost SQL Editor. Always ends with an exception so nothing stays; success = "OK: all client account tests passed".
+-- or paste into the legacy console SQL editor. Always ends with an exception so nothing stays; success = "OK: all client account tests passed".
 
 do $$
 declare

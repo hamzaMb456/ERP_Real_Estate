@@ -39,9 +39,9 @@ deposit amount and movements.
 | D3 | A lease past its end date **stays active for a 7-day grace**, shown « Échu · à renouveler ». On day 8 a daily job sets it `expired` and frees the unit. | Never frees a unit someone may still occupy, but cannot stay stale forever. |
 | D4 | Renewal **extends the same lease**: the end date moves and a `lease_terms` row logs the term (optionally with a new rent). | User choice; no copying of parties and units. |
 | D5 | Registration warning only in the **last 10 days** before the 60-day deadline, and when overdue. Deadline = signed date + 60 days (to confirm with the accountant). | User choice; the legal rule is in the Regulatory & Legal Register. |
-| D6 | Rules and every multi-step action live in Postgres (constraints, triggers, SQL functions). Nhost functions are used only for the daily job and email. | Latency (one call, no cold start), consistency, no deploy needed for normal use. |
+| D6 | Rules and every multi-step action live in Postgres (constraints, triggers, SQL functions). Lambda functions are used only for the daily job and email. | Latency (one call, no cold start), consistency, no deploy needed for normal use. |
 | D7 | Derived values are views, not stored copies: current rent, deposit balance, ending soon, registration state, calendar feed, request matches. | Storage and no stale data. |
-| D8 | Reminders: bell notifications + dashboard tiles + email. Email via Google SMTP; the credentials are Nhost secrets entered by the user. | User choice (Nhost email is paid). |
+| D8 | Reminders: bell notifications + dashboard tiles + email. Email via Google SMTP; the credentials are function secrets (Lambda environment variables / Secrets Manager) entered by the user. | User choice (the legacy backend's managed email was paid). |
 | D9 | One shared `appointments` table and one calendar component for all modules; lease-derived dates come from a view. | Other modules (maintenance, sales viewings, security) plug in later. |
 | D10 | The day thresholds (grace 7, ending soon 60, registration 60, warning 10) are defined once in the SQL function `lease_rule(name)`. Views return ready-made flags; the web never recomputes them. | One source of truth. |
 | D11 | The **lessor (bailleur)** shown on a lease is the unit's current owner from Project 1 (`current_owners`), not a stored copy. | Ownership changes (a sale) must not rewrite leases. |
@@ -52,7 +52,7 @@ deposit amount and movements.
 
 Money is `numeric(12,3)` (TND). Every table has `organization_id` with composite foreign keys
 `(id, organization_id)` as in Project 1. `updated_at` triggers as in Project 1. Migrations are applied by
-the user in the Nhost SQL Console (clipboard, UTF-8) and reviewed by the `database-reviewer` agent.
+the user in the legacy cloud console (clipboard, UTF-8) and reviewed by the `database-reviewer` agent.
 
 Migrations are split by plan: `0003_leases.sql` (core: `lease_rule`, `today_tunis`, leases, units, parties,
 rents, terms, files, guard triggers, unit-status sync, lease functions, views `lease_overview`,
@@ -131,7 +131,7 @@ the unit becomes `rented` if an `active` lease covers it, otherwise `vacant`. It
 when it is currently `rented` or `vacant`; `for_sale`, `sold` and `under_maintenance` are never
 overridden. The manual status correction on the unit page (Project 1) stays.
 
-**Views** (select-only, tracked in Hasura, filtered by `organization_id`):
+**Views** (select-only, tracked by the data layer, filtered by `organization_id`):
 - `lease_overview` — lease, aggregated units and renters, current total rent and charges, and the flags:
   `is_ending_soon` (active, end within 60 days), `in_grace` (active, end date passed, within 7 days),
   `registration_deadline`, `registration_state` in `not_applicable | registered | pending | due_soon |
@@ -167,9 +167,9 @@ A trigger under an advisory lock per lease keeps the balance ≥ 0.
 
 ## 4. Actions (SQL functions, one atomic call each)
 
-All are `SECURITY DEFINER`, `set search_path = public, pg_temp`, take the Hasura session
+All are `SECURITY DEFINER`, `set search_path = public, pg_temp`, take the data-layer session
 (`session_argument`) and check explicitly that the caller's organization owns the lease and that the
-role is `org_admin` or `manager`. Exposed as Hasura mutations. Raised exceptions carry a stable code so
+role is `org_admin` or `manager`. Exposed as data-layer mutations. Raised exceptions carry a stable code so
 the web can map them to French messages (§9).
 
 | Function | Does |
@@ -184,37 +184,37 @@ the web can map them to French messages (§9).
 | `generate_daily_notifications()` | **admin only**: inserts notifications (deduplicated) for ending soon, grace week, expired, registration due and overdue, and appointments planned for tomorrow; deletes notifications older than 90 days. |
 
 **Creating a lease** is one GraphQL request with four insert fields (lease, units, parties, first rents)
-that Hasura runs in order in one transaction (nested inserts are not used: the relationships are
+that the data layer runs in order in one transaction (nested inserts are not used: the relationships are
 manual, with composite keys). A draft is edited the same way: delete its units and parties, update the
-lease, insert them again. **Converting a request** sends, in one request (Hasura runs the root fields of a mutation
+lease, insert them again. **Converting a request** sends, in one request (the data layer runs the root fields of a mutation
 in one transaction), the optional contact insert, the draft lease insert with client-generated UUIDs,
 and `convert_rent_request`.
 
-## 5. Daily job and email (Nhost functions)
+## 5. Daily job and email (Lambda functions)
 
-New folder `functions/` at the repository root (TypeScript, deployed by Nhost when the user pushes to
+New folder `functions/` at the repository root (TypeScript, deployed when the user pushes to
 GitHub — nothing is pushed without the user's decision).
 
-- `functions/lease-daily.ts` — called by a Hasura **cron trigger** at 06:00 `Africa/Tunis`: runs
-  `expire_overdue_leases` then `generate_daily_notifications` through Hasura with the admin secret from
+- `functions/lease-daily.ts` — called by a **cron trigger** at 06:00 `Africa/Tunis`: runs
+  `expire_overdue_leases` then `generate_daily_notifications` through the data layer with the admin secret from
   the function environment. It contains no business rules.
-- `functions/send-notification-email.ts` — called by a Hasura **event trigger** on `notifications`
+- `functions/send-notification-email.ts` — called by an **event trigger** on `notifications`
   insert: sends one email to the staff member and sets `emailed_at` or `email_error`.
 - `functions/send-appointment-email.ts` — **event trigger** on `appointment_participants` insert and on
   `appointments` update of `starts_at`, `ends_at`, `location` or `status`: sends an invitation or an
   update (or a cancellation) to participants with an email when `notify_by_email` is on, and sets each
   participant's `email_status`.
-- Event triggers retry 3 times (60 s apart). Handlers are idempotent and check the Nhost-provided
-  `x-nhost-webhook-secret` header (value from `NHOST_WEBHOOK_SECRET`); requests without it get 401.
+- Event triggers retry 3 times (60 s apart). Handlers are idempotent and check the provided
+  `x-nhost-webhook-secret` header (value from `FUNCTIONS_WEBHOOK_SECRET`); requests without it get 401.
 - Email: `nodemailer` over Google SMTP. `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` and
-  `SMTP_FROM` are Nhost project secrets entered by the user in the Nhost dashboard;
+  `SMTP_FROM` are Lambda environment variables / Secrets Manager entries entered by the user in the console;
   they are never in the repository or in chat. A Google account with an app password is required.
 - Triggers are created by `scripts/apply-hasura-triggers.mjs` (admin secret from the environment, run by
-  the user), through the Hasura metadata API, additively; Hasura metadata is never replaced wholesale.
+  the user), through the metadata API of the legacy data layer, additively; the metadata is never replaced wholesale.
 - Staff list for "staff in charge" and notification recipients: users of the organization from
   `auth.users`, matched on `metadata.organization_id` (the claim source used for `X-Hasura-Org-Id`)
   with roles `org_admin` or `manager`. A `staff_members` view over `auth.users` (organization, user id,
-  display name, email, role) is created in `0004` and tracked in Hasura.
+  display name, email, role) is created in `0004` and tracked by the data layer.
 
 ## 6. Permissions (`scripts/apply-hasura-permissions.mjs`, additive)
 
@@ -310,9 +310,9 @@ Email problems never block an action: the notification or appointment is saved, 
   `rented`), renewal, current and future rent, deposit never below 0, registration deadline and the
   10-day window, grace boundary (day 7 stays active, day 8 expires), request matching, atomic
   conversion, notification idempotency, appointment constraints, session checks of the `SECURITY DEFINER`
-  functions (wrong organization, wrong role). Cross-organization isolation through Hasura in E2E.
+  functions (wrong organization, wrong role). Cross-organization isolation through the data layer in E2E.
 - **Unit (Vitest)** — Tunis-time date maths, error mapper, calendar event mapping, email templates,
-  function handlers with a fake SMTP and fake Hasura.
+  function handlers with a fake SMTP and a fake data-layer client.
 - **Components (Testing Library)** — lease form, activate and end dialogs, rent change, deposit,
   inspection comparison, calendar filters and appointment dialog.
 - **E2E (Playwright)** — draft lease on 2 units with a renter and a guarantor → activate → unit shows
@@ -338,15 +338,15 @@ Email problems never block an action: the notification or appointment is saved, 
    and refund.
 
 Each slice is usable and verified on its own. Steps done by the user, as in Project 1: run SQL in the
-Nhost SQL Console (clipboard copied with `-Encoding UTF8`); run the permissions and triggers scripts
-with the admin secret; enter the SMTP secrets in the Nhost dashboard; decide when to push to GitHub
+legacy cloud console (clipboard copied with `-Encoding UTF8`); run the permissions and triggers scripts
+with the admin secret; enter the SMTP secrets in the console; decide when to push to GitHub
 (deploys the functions).
 
 ## 12. Assumptions to confirm
 
 - Registration deadline = signed date + 60 days (confirm with the accountant; changing it is one value
   in `lease_rule`).
-- Staff members can be read from `auth.users` metadata through Hasura (verified in plan step 1).
+- Staff members can be read from `auth.users` metadata through the data layer (verified in plan step 1).
 - A Google account with an app password is available for SMTP; daily sending limits of the account
   apply.
 

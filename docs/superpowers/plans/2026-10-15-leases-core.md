@@ -4,21 +4,21 @@
 
 **Goal:** Staff can create, activate, renew, end and follow leases (several renters, guarantors and units per lease, rent history, registration at the tax office, documents), with the unit status following the lease, a lease card on the unit and contact pages, and dashboard tiles for leases to renew and registrations due.
 
-**Architecture:** Rules live in Postgres (constraints, triggers, `SECURITY DEFINER` functions that take the Hasura session), exactly like Project 1. The web app is Next.js pages that call Hasura GraphQL; a lease is created with several insert fields in one request (one transaction). A local Postgres in Docker runs every migration, seed and SQL test before anything touches the live Nhost database.
+**Architecture:** Rules live in Postgres (constraints, triggers, `SECURITY DEFINER` functions that take the data-layer session), exactly like Project 1. The web app is Next.js pages that call the data layer's GraphQL; a lease is created with several insert fields in one request (one transaction). A local Postgres in Docker runs every migration, seed and SQL test before anything touches the live backend database.
 
-**Tech Stack:** Postgres 16 (Nhost), Hasura metadata API, Next.js 16 / React 19 / TypeScript, shadcn/ui, plain React state in forms and dialogs (like Project 1), Vitest + Testing Library, Playwright, Docker (local SQL tests only).
+**Tech Stack:** Postgres 16 (legacy backend), data-layer metadata API, Next.js 16 / React 19 / TypeScript, shadcn/ui, plain React state in forms and dialogs (like Project 1), Vitest + Testing Library, Playwright, Docker (local SQL tests only).
 
 **Spec:** `docs/superpowers/specs/2026-10-15-leases-design.md` (sections 2, 3.1, 4, 6, 7, 9, 10, 11). This plan is **Plan A of four**: A core leases (migration `0003`), B calendar, notifications and email (`0004`), C rent requests (`0005`), D inspections and deposit (`0006`). Plans B–D are written when A is built, against the real interfaces A leaves behind.
 
 ## Deviations from the spec (decided while planning; Task 1 patches the spec)
 
 1. **Four plans and four migrations** instead of one plan and `0003`–`0005`: `0003_leases.sql`, `0004_calendar_notifications.sql`, `0005_rent_requests.sql`, `0006_inspections_deposit.sql`. Smaller migrations are easier to apply and review.
-2. **Creating a lease** sends four insert fields in one GraphQL request (lease, units, parties, first rents), not a nested insert: Hasura's nested inserts do not support the manual, composite-key relationships used here. Hasura runs the fields of one mutation in one transaction, in order.
-3. **Webhook secret:** event and cron triggers use Nhost's built-in `x-nhost-webhook-secret` header and `NHOST_WEBHOOK_SECRET` variable, so no extra secret is needed (Plan B).
-4. **Staff list:** a `staff_members` view over `auth.users` is added upfront (Plan B) instead of exposing `auth.users` to Hasura.
+2. **Creating a lease** sends four insert fields in one GraphQL request (lease, units, parties, first rents), not a nested insert: the data layer's nested inserts do not support the manual, composite-key relationships used here. The data layer runs the fields of one mutation in one transaction, in order.
+3. **Webhook secret:** event and cron triggers use the backend's built-in `x-nhost-webhook-secret` header and `FUNCTIONS_WEBHOOK_SECRET` variable, so no extra secret is needed (Plan B).
+4. **Staff list:** a `staff_members` view over `auth.users` is added upfront (Plan B) instead of exposing `auth.users` to the data layer.
 5. **Draft edit** deletes and re-inserts a draft's units, parties and first rents in one request (Task 10); a guard trigger allows this only on drafts.
 6. **Branch filter** of the lease list is deferred (it needs a branch column on `lease_overview`); the five tabs and the search ship now.
-7. **Optional function arguments have SQL defaults** (`default null`) because Hasura makes arguments without a default required in GraphQL.
+7. **Optional function arguments have SQL defaults** (`default null`) because the data layer makes arguments without a default required in GraphQL.
 
 ## Global Constraints
 
@@ -30,7 +30,7 @@
 - `organization_id` comes from the JWT on insert and is never updatable. Every table has composite foreign keys `(id, organization_id)`.
 - Migration files are **ASCII only** (they travel through the clipboard); French text lives in TypeScript. Seeds may contain accents and are copied with `Get-Content -Raw -Encoding UTF8`.
 - All UI text is French, with `’` apostrophes like Project 1. Roles: `org_admin` and `manager` write, `viewer` reads (`useCanEdit()`).
-- Branch `claude/continuation-bdded2`, conventional commits (`feat:`, `fix:`, `test:`, `docs:`), no attribution lines. The agent never types the Hasura admin secret or any password; the user runs the live-database steps.
+- Branch `claude/continuation-bdded2`, conventional commits (`feat:`, `fix:`, `test:`, `docs:`), no attribution lines. The agent never types the data-layer admin secret or any password; the user runs the live-database steps.
 - New pure logic gets Vitest tests and is added to the coverage `include` list in `web/vitest.config.ts` (threshold 80 %).
 - Run the `database-reviewer` agent on every SQL file before it is applied to the live database (Task 7).
 
@@ -217,7 +217,7 @@ manual, with composite keys). A draft is edited the same way: delete its units a
 lease, insert them again.
 ```
 
-(c) In section 5, replace `X-Webhook-Secret` header set in the trigger metadata` with `the Nhost-provided `x-nhost-webhook-secret` header (value from `NHOST_WEBHOOK_SECRET`)` and remove `WEBHOOK_SECRET` from the list of secrets the user enters; in section 5's staff-list bullet replace the last sentence with `A \`staff_members\` view over \`auth.users\` (organization, user id, display name, email, role) is created in \`0004\` and tracked in Hasura.`
+(c) In section 5, replace `X-Webhook-Secret` header set in the trigger metadata` with `the provided `x-nhost-webhook-secret` header (value from `FUNCTIONS_WEBHOOK_SECRET`)` and remove `WEBHOOK_SECRET` from the list of secrets the user enters; in section 5's staff-list bullet replace the last sentence with `A \`staff_members\` view over \`auth.users\` (organization, user id, display name, email, role) is created in \`0004\` and tracked by the data layer.`
 
 - [ ] **Step 7: Commit**
 
@@ -408,7 +408,7 @@ git commit -m "feat: French messages for lease errors and a retry action on erro
 
 ### Task 3: Local SQL harness and migration 0003, part 1 (tables, guards, documents)
 
-Why a harness: the live database is changed only by the user, through the Nhost SQL console. A local Postgres in Docker (with stub `auth` and `storage` schemas) lets every SQL test run in seconds, and the first time the SQL touches Nhost it is already green.
+Why a harness: the live database is changed only by the user, through the legacy cloud console. A local Postgres in Docker (with stub `auth` and `storage` schemas) lets every SQL test run in seconds, and the first time the SQL touches the live backend it is already green.
 
 **Files:**
 - Create: `db/local/stubs.sql`, `scripts/db-local.sh`, `db/migrations/0003_leases.sql`, `db/tests/0003_leases.test.sql`
@@ -420,9 +420,9 @@ Why a harness: the live database is changed only by the user, through the Nhost 
 - [ ] **Step 1: Start Docker Desktop** (user: open the Docker Desktop app and wait until it says « Engine running »). Check:
 
 Run: `docker version --format "{{.Server.Version}}"`
-Expected: a version number such as `27.x`. If Docker cannot run on this machine, skip the harness: run each SQL file in the Nhost console instead (copy with `Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard`) and treat « Run in the harness » steps as « run in the console ».
+Expected: a version number such as `27.x`. If Docker cannot run on this machine, skip the harness: run each SQL file in the cloud console instead (copy with `Get-Content -Raw -Encoding UTF8 <file> | Set-Clipboard`) and treat « Run in the harness » steps as « run in the console ».
 
-- [ ] **Step 2: Create the stubs** — `db/local/stubs.sql` (stands in for the schemas Nhost provides)
+- [ ] **Step 2: Create the stubs** — `db/local/stubs.sql` (stands in for the schemas the legacy backend provides)
 
 ```sql
 -- Local stand-ins for the Nhost schemas that our migrations reference. Never applied to Nhost.
@@ -511,7 +511,7 @@ esac
 - [ ] **Step 4: Check the harness on the existing Project 1 files**
 
 Run: `bash scripts/db-local.sh up` then `bash scripts/db-local.sh test db/tests/0002_core_records.test.sql`
-Expected: `applying 0001_foundation.sql`, `applying 0002_core_records.sql`, `applying 0001_demo_data.sql`, `applying 0002_demo_core_records.sql`; the test prints `ERROR:  OK: all core-records tests passed` and the script ends without `TESTS FAILED`. If a Project 1 file fails only because of a missing Nhost object, add that object to `db/local/stubs.sql` and repeat.
+Expected: `applying 0001_foundation.sql`, `applying 0002_core_records.sql`, `applying 0001_demo_data.sql`, `applying 0002_demo_core_records.sql`; the test prints `ERROR:  OK: all core-records tests passed` and the script ends without `TESTS FAILED`. If a Project 1 file fails only because of a missing legacy-backend object, add that object to `db/local/stubs.sql` and repeat.
 
 - [ ] **Step 5: Write the failing tests** — `db/tests/0003_leases.test.sql` (tests 1–6; Tasks 4 and 5 add tests above the two marker lines)
 
@@ -973,14 +973,14 @@ git commit -m "feat(db): leases tables, guards and documents (migration 0003, pa
 
 **Interfaces:**
 - Consumes: tables and guards from Task 3.
-- Produces (SQL), all `SECURITY DEFINER`, all returning `setof public.leases` and taking the Hasura session as the last argument `hasura_session json`:
+- Produces (SQL), all `SECURITY DEFINER`, all returning `setof public.leases` and taking the data-layer session as the last argument `hasura_session json`:
   - `public.activate_lease(p_lease_id uuid, p_signed_on date, hasura_session json)`
   - `public.renew_lease(p_lease_id uuid, p_new_end_date date, p_rents jsonb, p_note text, hasura_session json)` — `p_rents` is `[{ "unit_id": uuid, "rent_amount": number, "charges_amount": number }]` or null.
   - `public.end_lease(p_lease_id uuid, p_ended_on date, p_reason text, hasura_session json)`
   - `public.change_rent(p_lease_id uuid, p_unit_id uuid, p_effective_from date, p_rent numeric, p_charges numeric, p_reason text, hasura_session json)`
-  - `public.expire_overdue_leases()` — no session; for the admin role only (no Hasura role permission is granted to it).
+  - `public.expire_overdue_leases()` — no session; for the admin role only (no data-layer role permission is granted to it).
   - helpers `public.lease_session_org(json) → uuid`, `public.sync_unit_status(uuid)`, `public.assert_no_lease_overlap(uuid, date, date)`.
-  - Every optional argument has a `default null` (or `0`): Hasura makes function arguments without a default required in GraphQL. `hasura_session` also defaults to null, and a null session is refused with `lease_forbidden`.
+  - Every optional argument has a `default null` (or `0`): the data layer makes function arguments without a default required in GraphQL. `hasura_session` also defaults to null, and a null session is refused with `lease_forbidden`.
 
 - [ ] **Step 1: Add two units to the fixtures and relax the term check** — in `db/tests/0003_leases.test.sql` replace the line `u5 uuid := 'b0000000-0000-4000-8000-000000000015'; u6 uuid := 'b0000000-0000-4000-8000-000000000016';` with:
 
@@ -1481,7 +1481,7 @@ git commit -m "feat(db): lease functions, overlap rule and unit-status sync (mig
 - Modify: `db/migrations/0003_leases.sql` (replace the `<<< PART 3` marker), `db/tests/0003_leases.test.sql` (add above the `<<< NEXT TESTS (task 5)` marker)
 
 **Interfaces:**
-- Produces (SQL views, all with `organization_id`, tracked in Hasura in Task 6):
+- Produces (SQL views, all with `organization_id`, tracked by the data layer in Task 6):
   - `public.current_lease_rents` — `organization_id, lease_id, unit_id, effective_from, rent_amount, charges_amount, next_change_on, next_rent_amount, next_charges_amount` (one row per leased unit: the latest rent starting on or before today, or the earliest one when none has started).
   - `public.lease_overview` — `id, organization_id, number, status, start_date, end_date, payment_day, deposit_amount, signed_at, registered_at, registration_receipt, ended_on, end_reason, archived_at, unit_count, unit_codes, renter_names, total_rent, total_charges, is_ending_soon, in_grace, grace_days_left, registration_deadline, registration_state`.
   - `public.unit_current_lease` — `organization_id, unit_id, lease_id, number, start_date, end_date, renter_names, in_grace, is_ending_soon, rent_amount, charges_amount`.
@@ -1643,7 +1643,7 @@ git commit -m "feat(db): lease overview, current rents and unit lease views (mig
 
 ---
 
-### Task 6: Hasura tracking, relationships, permissions and function permissions
+### Task 6: Data-layer tracking, relationships, permissions and function permissions
 
 `scripts/apply-hasura-permissions.mjs` stays one additive, idempotent script. This task extends its tables, adds a `--dry-run` that needs no secret and no network, and extends `check-hasura.mjs`.
 
@@ -1676,7 +1676,7 @@ if (!SECRET && !DRY_RUN) {
 - [ ] **Step 2: Run the dry run to see it is not supported yet**
 
 Run: `node scripts/apply-hasura-permissions.mjs --dry-run`
-Expected: the script goes on to call Hasura with an undefined secret and fails (network or 401 error) instead of printing a summary. This is the failing state; Step 12 adds the summary.
+Expected: the script goes on to call the data layer with an undefined secret and fails (network or 401 error) instead of printing a summary. This is the failing state; Step 12 adds the summary.
 
 - [ ] **Step 3: Several buckets** — replace `const BUCKET = 'property-files';` with:
 
@@ -1906,9 +1906,9 @@ git commit -m "feat: Hasura tracking, permissions and function permissions for l
 
 ---
 
-### Task 7: Demo seed, database review, and applying everything to the live Nhost project
+### Task 7: Demo seed, database review, and applying everything to the live backend
 
-The agent writes the seed, runs the reviewer and prepares the commands. **The user runs the live steps** (SQL console and the two Hasura scripts, which need the admin secret the agent never types).
+The agent writes the seed, runs the reviewer and prepares the commands. **The user runs the live steps** (SQL console and the two data-layer scripts, which need the admin secret the agent never types).
 
 **Files:**
 - Create: `db/seeds/0003_demo_leases.sql`
@@ -2010,7 +2010,7 @@ git commit -m "feat(db): demo leases seed"
 Get-Content -Raw -Encoding UTF8 db\migrations\0003_leases.sql | Set-Clipboard
 ```
 
-The user opens the Nhost dashboard → Database → SQL Editor, pastes, **leaves « Track this » off** (tracking is done by the script in Step 8), and runs. Expected: success. Verify with this query (the agent copies it the same way from a one-line file or the user types it):
+The user opens the legacy cloud console → Database → SQL Editor, pastes, **leaves « Track this » off** (tracking is done by the script in Step 8), and runs. Expected: success. Verify with this query (the agent copies it the same way from a one-line file or the user types it):
 
 ```sql
 select to_regclass('public.lease_overview'), to_regproc('public.activate_lease');
@@ -2034,7 +2034,7 @@ Get-Content -Raw -Encoding UTF8 db\seeds\0003_demo_leases.sql | Set-Clipboard
 
 Paste and run. Verify: `select number, status, unit_codes from lease_overview order by number;` returns five rows.
 
-- [ ] **Step 8: Hasura (user; the agent never types the secret)** — from the worktree:
+- [ ] **Step 8: Data-layer metadata (user; the agent never types the secret)** — from the worktree:
 
 ```powershell
 $env:HASURA_ADMIN_SECRET = "<admin secret from the Nhost dashboard>"
@@ -4029,7 +4029,7 @@ export function LeaseActions({ lease, onChanged }: Props) {
 - [ ] **Step 11: Run to verify it passes**
 
 Run: `npx vitest run src/components/leases/lease-actions.test.tsx`
-Expected: PASS, 5 tests. (`@/lib/graphql` is mocked so the test never builds the Nhost client.)
+Expected: PASS, 5 tests. (`@/lib/graphql` is mocked so the test never builds the backend client.)
 
 - [ ] **Step 12: The timeline and the registration card**
 

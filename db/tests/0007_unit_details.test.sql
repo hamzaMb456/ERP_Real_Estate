@@ -1,4 +1,4 @@
--- Tests for 0007_unit_details. Paste into the Nhost dashboard SQL Editor and Run, or run locally with
+-- Tests for 0007_unit_details. Paste into the legacy console SQL Editor and Run, or run locally with
 -- bash scripts/db-local.sh test db/tests/0007_unit_details.test.sql
 -- One DO block that always ends by raising an exception, so everything rolls back and no test data stays.
 -- Success: the error "OK: all unit detail tests passed". Failure: an error starting with "FAIL".

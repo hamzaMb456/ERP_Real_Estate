@@ -18,7 +18,7 @@ const FEED_QUERY = `
 
 type RawFeedRow = Omit<FeedRow, 'contact_ids'> & { contact_ids: string[] | string | null };
 
-/** Hasura returns uuid[] as a JSON array; a Postgres array literal ("{a,b}") is accepted too. */
+/** The feed may send uuid[] as a JSON array; a Postgres array literal ("{a,b}") is accepted too. */
 function toContactIds(value: string[] | string | null): string[] {
   if (Array.isArray(value)) return value;
   if (typeof value !== 'string') return [];
@@ -52,7 +52,7 @@ const FEED_ROWS_QUERY = `
   }
 `;
 
-/** Feed rows chosen by a Hasura filter (a lease's appointments, a year around today, ...), newest first. */
+/** Feed rows chosen by a row filter (a lease's appointments, a year around today, ...), newest first. */
 export function useFeedRows(where: Record<string, unknown>, reloadKey = 0): QueryState<FeedRow[]> {
   const result = useGraphql<{ calendar_feed: RawFeedRow[] }>(FEED_ROWS_QUERY, { where }, reloadKey);
   return result.status === 'success' ? { status: 'success', data: result.data.calendar_feed.map(normalizeFeedRow) } : result;

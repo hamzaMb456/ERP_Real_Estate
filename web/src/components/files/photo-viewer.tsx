@@ -12,7 +12,7 @@ type Photo = { id: string; storage_file_id: string; title: string };
 const IMAGE_CLASS = 'max-h-[75vh] w-full rounded-md bg-black object-contain';
 
 /**
- * Full-screen photo viewer. By default photos load through the authenticated Nhost client (ERP). The public site has
+ * Full-screen photo viewer. By default photos load through a presigned S3/Floci url (ERP). The public site has
  * no session: it passes `imageSrc` (a plain url per file), and `closeLabel` to replace the English built-in close
  * button; `contentClassName` lets a portaled viewer carry the public theme (`site-root`).
  */
@@ -60,7 +60,7 @@ export function PhotoViewer({
               </DialogClose>
             )}
             {imageSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element -- the public photo url is already resized by Nhost storage
+              // eslint-disable-next-line @next/next/no-img-element -- the public photo url is already the size the server sends
               <img src={imageSrc(photo.storage_file_id, 1600)} alt={photo.title} className={IMAGE_CLASS} />
             ) : (
               <StorageImage fileId={photo.storage_file_id} width={1600} alt={photo.title} className={IMAGE_CLASS} />

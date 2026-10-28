@@ -1,9 +1,6 @@
-// Fetches the Hasura/SMTP/APP_URL config from AWS Secrets Manager, merged over plain Lambda env vars.
-// NHOST_WEBHOOK_SECRET deliberately stays a plain Lambda env var, not in this secret: it's checked on
-// every single request (isAuthorizedWebhook, before anything else runs), so a bad-auth request should
-// reject cheaply without ever calling Secrets Manager. Only the config needed *after* auth passes
-// (Hasura admin access, SMTP) is worth the extra API call and the "one secret, multiple functions,
-// rotate without redeploying" benefit.
+// Fetches the SMTP/APP_URL config from AWS Secrets Manager, merged over plain Lambda env vars.
+// Only the config needed per request (SMTP) is worth the extra API call and the "one secret,
+// multiple functions, rotate without redeploying" benefit.
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import type { Env } from './runtime';
 

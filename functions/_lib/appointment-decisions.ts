@@ -1,9 +1,9 @@
-import type { HasuraEvent } from './event';
+import type { RowChangeEvent } from './event';
 
 export type ParticipantAction = 'invite' | 'skip' | 'none';
 export type AppointmentAction = 'cancel' | 'update' | 'invite_all' | 'none';
 
-/** What the handler read from Hasura about the appointment and the contact. */
+/** What the handler read from the row change about the appointment and the contact. */
 export type ParticipantContext = { planned: boolean; notifyByEmail: boolean; email: string | null };
 
 /**
@@ -11,7 +11,7 @@ export type ParticipantContext = { planned: boolean; notifyByEmail: boolean; ema
  * Without `context` the answer is event-only: 'invite' means "candidate, check the conditions";
  * with `context` the conditions are applied and a failing one gives 'skip'.
  */
-export function decideParticipantAction(event: HasuraEvent, context?: ParticipantContext): ParticipantAction {
+export function decideParticipantAction(event: RowChangeEvent, context?: ParticipantContext): ParticipantAction {
   const row = event.event.data.new;
   const old = event.event.data.old;
   if (event.table.name !== 'appointment_participants' || !row) return 'none';
@@ -33,7 +33,7 @@ function sameValue(a: unknown, b: unknown): boolean {
   return !Number.isNaN(left) && left === right;
 }
 
-export function decideAppointmentAction(event: HasuraEvent): AppointmentAction {
+export function decideAppointmentAction(event: RowChangeEvent): AppointmentAction {
   const next = event.event.data.new;
   const old = event.event.data.old;
   if (event.table.name !== 'appointments' || event.event.op !== 'UPDATE' || !next || !old) return 'none';

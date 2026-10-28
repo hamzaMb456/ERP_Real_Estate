@@ -167,7 +167,7 @@ create trigger units_close_listings after update of archived_at on public.units
   for each row when (old.archived_at is null and new.archived_at is not null)
   execute function public.close_listings_on_unit_archived();
 
--- Only the Hasura database role (and the owner) may run the trigger functions directly.
+-- Only the data-layer database role (and the owner) may run the trigger functions directly.
 do $$
 declare
   v_fn   text;
@@ -190,7 +190,7 @@ end $$;
 -- Public listings: published listings of units (and biens) that are not archived. Plain view, owned by the role that
 -- runs this migration, with the default security_invoker = off: it reads the base tables with its owner's rights, so
 -- the front office can show unit and bien columns without any permission on units, properties or property_files.
--- No table in this schema uses row level security; Hasura decides who may read what, and the unauthenticated public
+-- No table in this schema uses row level security; the data layer decides who may read what, and the unauthenticated public
 -- role gets select on this view (and on public_listing_photos) only, always filtered by organization_id.
 -- Coordinates are rounded to 3 decimals (about 100 m): the exact address is not public. A published listing whose
 -- photos were all deleted stays here with cover_file_id null and photo_count 0; the page shows a placeholder.

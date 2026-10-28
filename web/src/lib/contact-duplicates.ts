@@ -44,7 +44,7 @@ export function findDuplicates(input: DuplicateInput, candidates: DuplicateCandi
     .filter((match) => match.fields.length > 0);
 }
 
-/** Hasura filter that fetches possible duplicates; `findDuplicates` then keeps exact matches only. */
+/** Row-filter (where) clause that fetches possible duplicates; `findDuplicates` then keeps exact matches only. */
 export function duplicateWhere(input: DuplicateInput): Record<string, unknown> | null {
   const conditions: Record<string, unknown>[] = [];
   if (input.national_id.trim()) conditions.push({ national_id: { _ilike: input.national_id.trim() } });

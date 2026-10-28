@@ -10,7 +10,7 @@ import {
   createCommonArea, createProperty, createUnit, deleteCommonArea, saveShares, updateCommonArea, updateProperty, updateUnit,
 } from '../../domain/places.ts';
 import { recordGaps } from '../../domain/record-gaps.ts';
-import { matches, sortRows } from '../hasura-eval.ts';
+import { matches, sortRows } from '../query-eval.ts';
 import { active, activeLeaseByUnit, byOrg, contactsById, count, groupBy, ownerIds, ownersOf, photosOf } from '../org-data.ts';
 import type { Op, Vars } from '../registry.ts';
 import { STAFF, WRITERS, mutation, query } from '../registry.ts';
@@ -149,7 +149,7 @@ export const placeOps: Record<string, Op> = {
           property: p ? { id: p.id, name: p.name, city: p.city, archived_at: p.archived_at } : null,
           photos: photos.slice(0, 1).map((f) => ({ storage_file_id: f.storage_file_id })),
           photoCount: count(photos.length),
-          // unit_current_lease is an array relationship in Hasura (a unit can, in theory, have several).
+          // current_lease is an array relationship (a unit can, in theory, have several concurrent leases).
           current_lease: lease ? [{ renter_names: (lease.party_names as string[] | undefined)?.join(', ') ?? null, end_date: lease.end_date }] : [],
           current_owners: ownersOf(u, contacts).map((o) => ({ contact: { id: o.contact.id, full_name: o.contact.full_name } })),
         };

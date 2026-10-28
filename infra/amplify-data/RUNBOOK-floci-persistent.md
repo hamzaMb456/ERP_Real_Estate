@@ -1,5 +1,7 @@
 # Runbook: switch the live Floci from `memory` to `persistent`
 
+> Statut : bascule exécutée (octobre 2026). Les mentions de Nhost/Hasura ci-dessous décrivent l'ancien backend, remplacé depuis.
+
 Written 2026-10-24. **Nothing here has been run against the live container.** Each tool used below was tested on a scratch
 Floci or scratch tables (see "What is tested and what is not").
 

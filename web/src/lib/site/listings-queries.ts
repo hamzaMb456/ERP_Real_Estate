@@ -6,7 +6,7 @@ import { publicQuery } from './public-api';
 import { DETAIL_FIELDS, toListingDetails, toNumber, type ListingDetails, type ListingDetailsRow, type NumberLike } from './listing-details';
 import type { SearchFilters, SearchMode } from './search-params';
 
-// Reads of the public views (public_listings, public_listing_photos) as the Hasura "public" role. Since migration 0006
+// Reads of the public views (public_listings, public_listing_photos) in the "public" role. Since migration 0006
 // a "listing" is a unit that is on the website by itself (its id is the unit id). Three rules:
 // - every query filters on the one organization the site serves, and on offerable units (one shared `where` helper);
 // - user input only ever travels as GraphQL variables, the query texts below are constants;
@@ -60,7 +60,7 @@ export type PublicListing = {
   photos?: { storageFileId: string; position: number }[];
 } & ListingDetails;
 
-/** A row of public_listings as Hasura returns it (snake_case, numerics as numbers or strings). */
+/** A row of public_listings as the data layer returns it (snake_case, numerics as numbers or strings). */
 export type ListingRow = {
   id: string;
   organization_id: string;

@@ -7,7 +7,7 @@ test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 });
 
 // Self-contained: the test creates its own bien with one vacant unit and uploads its own photo, so it needs no seeded
 // photo (the demo seeds have none). It needs the slice 1 setup of docs/superpowers/handoffs/2026-10-22-front-office-slice-1.md
-// (migrations 0005 and 0006, role `public`, Hasura permissions, NEXT_PUBLIC_AGENCY_ORG_ID in web/.env.local). There is
+// (migrations 0005 and 0006, role `public`, data-layer permissions, NEXT_PUBLIC_AGENCY_ORG_ID in web/.env.local). There is
 // no publishing step: a unit with a rent and a photo is on the site by itself. The public pages are
 // cached for a few minutes ('use cache', cacheLife 'minutes'), so the visitor steps reload until the change shows up.
 

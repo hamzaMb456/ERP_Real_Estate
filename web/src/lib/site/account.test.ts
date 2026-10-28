@@ -36,11 +36,14 @@ describe('accountHref', () => {
 });
 
 describe('accountErrorKey', () => {
-  it('maps Nhost codes to wording keys', () => {
-    expect(accountErrorKey('email-already-in-use')).toBe('emailTaken');
-    expect(accountErrorKey('password-in-hibp-database')).toBe('weak');
-    expect(accountErrorKey('invalid-email')).toBe('invalid');
-    expect(accountErrorKey('signup-disabled')).toBe('disabled');
+  it('maps Cognito codes to wording keys', () => {
+    expect(accountErrorKey('UsernameExistsException')).toBe('emailTaken');
+    expect(accountErrorKey('InvalidPasswordException')).toBe('weak');
+    expect(accountErrorKey('InvalidParameterException')).toBe('invalid');
+    expect(accountErrorKey('NotAuthorizedException')).toBe('invalid');
+    expect(accountErrorKey('CodeMismatchException')).toBe('invalid');
+    expect(accountErrorKey('ExpiredCodeException')).toBe('invalid');
+    expect(accountErrorKey('invalid-request')).toBe('invalid');
     expect(accountErrorKey('anything-else')).toBe('other');
     expect(accountErrorKey(undefined)).toBe('other');
   });

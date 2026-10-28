@@ -1,4 +1,4 @@
--- Local stand-ins for the Nhost schemas that our migrations reference. Never applied to Nhost.
+-- Local stand-ins for the auth and storage schemas that our migrations reference. Never applied to the cloud backend.
 create schema if not exists auth;
 create table if not exists auth.users (
   id            uuid primary key default gen_random_uuid(),
@@ -10,7 +10,7 @@ create table if not exists auth.users (
   disabled      boolean not null default false,
   created_at    timestamptz not null default now()
 );
--- Nhost keeps every role a user may take (the JWT allowed roles) here.
+-- The old auth kept every role a user may take (the JWT allowed roles) here.
 create table if not exists auth.user_roles (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users (id) on delete cascade,
@@ -28,7 +28,7 @@ create table if not exists storage.buckets (
   download_expiration    integer,
   cache_control          text
 );
--- Nhost always has a "default" bucket.
+-- The old storage always has a "default" bucket.
 insert into storage.buckets (id) values ('default') on conflict (id) do nothing;
 create table if not exists storage.files (
   id                  uuid primary key default gen_random_uuid(),

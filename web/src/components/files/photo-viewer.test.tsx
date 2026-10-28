@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PhotoViewer } from './photo-viewer';
 
-// The ERP viewer loads photos through the authenticated Nhost client; the test only needs to know it was used.
+// The ERP viewer loads photos through a presigned S3/Floci url; the test only needs to know it was used.
 vi.mock('@/components/files/storage-image', () => ({
   StorageImage: ({ fileId, alt }: { fileId: string; alt: string }) => <div data-testid="storage-image" data-file={fileId} aria-label={alt} />,
 }));

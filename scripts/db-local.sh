@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local Postgres (Docker) for running db/migrations, db/seeds and db/tests without the Nhost console.
+# Local Postgres (Docker) for running db/migrations, db/seeds and db/tests without the cloud console.
 # Usage:  bash scripts/db-local.sh up                     rebuild the database: stubs, migrations, seeds
 #         bash scripts/db-local.sh test db/tests/X.sql    run a SQL test file (passes when it prints "OK: all")
 #         bash scripts/db-local.sh apply db/seeds/X.sql   run any SQL file

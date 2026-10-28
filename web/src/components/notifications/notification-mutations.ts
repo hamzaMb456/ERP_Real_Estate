@@ -1,6 +1,6 @@
 import { graphql } from '@/lib/graphql';
 
-// Hasura only lets a user read and update (read_at only) the notifications of their own organization.
+// The data layer only lets a user read and update (read_at only) the notifications of their own organization.
 export const NOTIFICATIONS_QUERY = `
   query Notifications {
     notifications(order_by: { created_at: desc }, limit: 20) {

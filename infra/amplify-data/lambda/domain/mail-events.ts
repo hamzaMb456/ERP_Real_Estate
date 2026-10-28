@@ -1,11 +1,11 @@
-// E-mails driven by table changes (DynamoDB Streams), replacing the Hasura event triggers.
+// E-mails driven by table changes (DynamoDB Streams).
 // The decisions and the French templates are the ones functions/ already uses; only the data
-// access moved from Hasura to DynamoDB. A change record is turned into the Hasura event shape
+// access moved from Postgres to DynamoDB. A change record is turned into the RowChangeEvent shape
 // those decision functions expect.
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { decideAppointmentAction, decideParticipantAction } from '../../../../functions/_lib/appointment-decisions.ts';
-import type { HasuraEvent } from '../../../../functions/_lib/event.ts';
+import type { RowChangeEvent } from '../../../../functions/_lib/event.ts';
 import { appointmentMail, notificationMail } from '../../../../functions/_lib/mail-templates.ts';
 import type { Item } from './db.ts';
 import { batchGet, doc, getItem, queryAll, table } from './db.ts';
@@ -58,12 +58,12 @@ export function fromStreamRecord(record: StreamRecord): ChangeRecord {
   };
 }
 
-function asHasuraEvent(change: ChangeRecord): HasuraEvent {
+function asRowChangeEvent(change: ChangeRecord): RowChangeEvent {
   const op = change.op === 'MODIFY' ? 'UPDATE' : change.op === 'REMOVE' ? 'DELETE' : 'INSERT';
   return {
     table: { name: TABLE_NAMES[change.model] ?? change.model },
     event: { op, data: { old: change.old ?? null, new: change.new ?? null } },
-  } as unknown as HasuraEvent;
+  } as unknown as RowChangeEvent;
 }
 
 async function loadAppointment(id: string): Promise<Appointment | null> {
@@ -114,7 +114,7 @@ async function sendToParticipant(deps: MailDeps, appointment: Appointment, parti
 
 /** Invitation (insert) or resend (back to pending) for one participant. */
 async function onParticipant(change: ChangeRecord, deps: MailDeps): Promise<string> {
-  const event = asHasuraEvent(change);
+  const event = asRowChangeEvent(change);
   if (decideParticipantAction(event) === 'none' || !change.new) return 'none';
   const appointment = await loadAppointment(change.new.appointment_id);
   const participant = appointment?.participants.find((p) => p.contact_id === change.new!.contact_id);
@@ -132,7 +132,7 @@ async function onParticipant(change: ChangeRecord, deps: MailDeps): Promise<stri
 
 /** Cancellation or update mail to everyone reachable, or invitations once e-mails are switched on. */
 async function onAppointment(change: ChangeRecord, deps: MailDeps): Promise<string> {
-  const event = asHasuraEvent(change);
+  const event = asRowChangeEvent(change);
   const action = decideAppointmentAction(event);
   if (action === 'none' || !change.new) return 'none';
   const appointment = await loadAppointment(change.new.id);

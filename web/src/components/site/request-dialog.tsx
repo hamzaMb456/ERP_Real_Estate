@@ -126,7 +126,7 @@ export function RequestDialog({
     let result: RequestResult;
     try {
       // Pass the JWT so the server action can forward it to the database function: the function raises
-      // REQUEST_LOGIN_REQUIRED when no hasura.user session variable is present (migration 0009).
+      // REQUEST_LOGIN_REQUIRED when no session variable is present (migration 0009).
       const accessToken = token ?? undefined;
       result = isRent
         ? await submitRentalRequestAction({ unitId: listing.id, startDate, months, ...contact, website, accessToken })

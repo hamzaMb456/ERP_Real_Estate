@@ -67,7 +67,7 @@ erDiagram
 
 Every business table carries `organization_id`. The foreign keys between tables are composite
 (`id, organization_id`), so a unit can only belong to a property of the same organization.
-Hasura filters every query by the `organization_id` found in the user's JWT.
+AppSync filters every query by the `organization_id` found in the user's JWT.
 
 ## Conventions
 

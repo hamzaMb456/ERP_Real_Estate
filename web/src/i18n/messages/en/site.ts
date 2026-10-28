@@ -392,7 +392,6 @@ export const site = {
       emailTaken: 'An account already exists with this e-mail.',
       weak: 'This password is too weak or known. Pick another one.',
       invalid: 'Some details are not valid. Check the form.',
-      disabled: 'Sign-up is closed for now.',
       other: 'Could not complete this. Try again in a moment.',
     },
   },
