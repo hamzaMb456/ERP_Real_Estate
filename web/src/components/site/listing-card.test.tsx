@@ -146,6 +146,15 @@ describe('ListingCard', () => {
     expect(html).not.toContain('>Disponible<');
   });
 
+  it('has a hide toggle outside the link that redirects to sign-in when not authenticated', () => {
+    renderCard(makeListing());
+    const hideBtn = screen.getByRole('button', { name: MESSAGES.fr.site.listingCard.hide });
+    expect(hideBtn).toHaveAttribute('aria-pressed', 'false');
+    expect(hideBtn.closest('a')).toBeNull();
+    fireEvent.click(hideBtn);
+    expect(push).toHaveBeenCalledWith('/compte/connexion');
+  });
+
   it('has a live favourite toggle outside the link', () => {
     renderCard(makeListing());
     const heart = screen.getByRole('button', { name: MESSAGES.fr.site.booking.favouriteAdd });

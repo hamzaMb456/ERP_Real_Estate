@@ -10,6 +10,7 @@ import { formatDate } from '@/lib/ownership';
 import { publicImageUrl } from '@/lib/site/image-url';
 import type { PublicListing } from '@/lib/site/listings-queries';
 import { FavoriteButton } from './favorite-button';
+import { HideButton } from './hide-button';
 
 const COVER_WIDTH = 640;
 
@@ -77,9 +78,10 @@ export function ListingCard({ listing }: { listing: PublicListing }) {
           {comesLater && listing.availableFrom ? copy.availableFrom(formatDate(listing.availableFrom)) : copy.available}
         </span>
 
-        <span className="absolute end-3 top-3 z-10">
+        <div className="absolute end-3 top-3 z-10 flex items-center gap-1.5">
+          <HideButton listingId={listing.id} />
           <FavoriteButton listingId={listing.id} />
-        </span>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">

@@ -1,6 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import type { PublicListing } from '@/lib/site/listings-queries';
+import { useClientSession } from './account-menu';
+import { recordListingView } from '@/lib/site/client-space';
 import { ListingBookingCard } from './listing-booking-card';
 import {
   ListingAmenities,
@@ -21,6 +24,13 @@ import { ListingSimilar } from './listing-similar';
  * The data is read on the server; this part only displays it.
  */
 export function ListingPageContent({ listing, similar }: { listing: PublicListing; similar: PublicListing[] }) {
+  const { signedIn } = useClientSession();
+
+  useEffect(() => {
+    if (signedIn) {
+      void recordListingView(listing.id);
+    }
+  }, [signedIn, listing.id]);
   return (
     <>
       <ListingBreadcrumb listing={listing} />

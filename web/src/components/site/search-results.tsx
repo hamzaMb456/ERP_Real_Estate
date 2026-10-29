@@ -15,6 +15,8 @@ import { activeFilters, removeFilter, SEARCH_PATH, searchHref, switchMode, type 
 import type { SearchFilters, SearchMode, SearchSort } from '@/lib/site/search-params';
 import { cn } from '@/lib/utils';
 import { ListingCard } from './listing-card';
+import { useClientSession } from './account-menu';
+import { useHiddenListings } from '@/lib/site/client-space';
 import { QuickFilters } from './quick-filters';
 import { SearchMap } from './search-map';
 import { SearchPagination } from './search-pagination';

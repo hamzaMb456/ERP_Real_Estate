@@ -48,10 +48,10 @@ export function AccountMenu({ className }: { className?: string }) {
   }
   return (
     <div className={className}>
-      <span className="inline-flex max-w-40 items-center gap-1.5 truncate text-sm font-medium text-foreground">
+      <Link href="/compte" className="inline-flex max-w-40 items-center gap-1.5 truncate text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm">
         <User className="size-4 shrink-0 text-primary" aria-hidden="true" />
         <span className="truncate">{name}</span>
-      </span>
+      </Link>
       <Button type="button" variant="ghost" size="icon-lg" aria-label={t.logout} onClick={() => void signOut()}>
         <LogOut aria-hidden="true" />
       </Button>

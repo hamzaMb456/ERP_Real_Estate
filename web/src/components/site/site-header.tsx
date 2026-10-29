@@ -7,7 +7,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useI18n } from '@/i18n/provider';
-import { AccountMenu } from '@/components/site/account-menu';
+import { AccountMenu, useClientSession } from '@/components/site/account-menu';
 import { cn } from '@/lib/utils';
 
 const LINK_CLASS =
@@ -36,12 +36,14 @@ export function SiteLogo({ className }: { className?: string }) {
 /** Public site header: logo, main links, account menu, language switcher; a sheet menu below `md`. */
 export function SiteHeader() {
   const { t, dir } = useI18n();
+  const { signedIn } = useClientSession();
   const links = [
     { href: '/louer', label: t.site.nav.rent },
     { href: '/acheter', label: t.site.nav.buy },
     { href: '/#comment-ca-marche', label: t.site.nav.howItWorks },
     { href: '/#contact', label: t.site.nav.contact },
     { href: '/favoris', label: t.site.favourites.navLabel },
+    ...(signedIn ? [{ href: '/compte', label: t.site.nav.clientArea }] : []),
   ];
 
   return (
