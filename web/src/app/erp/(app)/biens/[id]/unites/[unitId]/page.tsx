@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { Archive, ArchiveRestore, ArrowLeft, Banknote, DoorOpen, Layers, Loader2, Maximize2, Pencil, SearchX } from '@/components/icons';
+import { useParams, useRouter } from 'next/navigation';
+import { Archive, ArchiveRestore, ArrowLeft, Banknote, DoorOpen, Layers, Loader2, Maximize2, Pencil, SearchX, Trash2 } from '@/components/icons';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { StatusBadge } from '@/components/domain/badges';
 import { UnitDialog, type UnitFormUnit } from '@/components/domain/unit-dialog';
 import { FieldHelp } from '@/components/field-help';
@@ -46,6 +47,12 @@ const UPDATE_UNIT = `
   }
 `;
 
+const DELETE_UNIT = `
+  mutation DeleteUnit($id: uuid!) {
+    delete_units_by_pk(pk_columns: { id: $id }) { id }
+  }
+`;
+
 const UNIT_TABS = ['apercu', 'proprietaires', 'photos', 'documents'] as const;
 
 type UnitDetails = UnitFormUnit & {
@@ -74,12 +81,14 @@ function Fact({ icon: Icon, label, value }: { icon: typeof Layers; label: string
 
 export default function UnitDetailPage() {
   const t = useT();
+  const router = useRouter();
   const { id, unitId } = useParams<{ id: string; unitId: string }>();
   const canEdit = useCanEdit();
   const [hash, setHash] = useHash();
   const [tab, setTab] = useHashTab(UNIT_TABS, 'apercu');
   const [reload, setReload] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const result = useGraphql<{ unit: UnitDetails | null }>(UNIT_QUERY, { id: unitId }, reload);
 
   const back = (
@@ -145,6 +154,17 @@ export default function UnitDetailPage() {
     }
   }
 
+  // Backend is authoritative: it still refuses a unit a lease, an owner or a request still references.
+  async function remove() {
+    try {
+      await graphql(DELETE_UNIT, { id: current.id });
+      toast.success(t.properties.unit.deletedToast, { description: current.code });
+      router.push('/erp/biens/' + current.property.id);
+    } catch (error) {
+      toast.error(t.properties.unit.updateFailed, { description: toUserMessage(error) });
+    }
+  }
+
   return (
     <Stagger className="space-y-6">
       <StaggerItem>
@@ -194,12 +214,26 @@ export default function UnitDetailPage() {
                     )}
                     {archived ? t.properties.detail.restore : t.properties.detail.archive}
                   </Button>
+                  {current.status !== 'rented' && (
+                    <Button variant="outline" className="text-destructive hover:bg-destructive/10" disabled={saving} onClick={() => setDeleteOpen(true)}>
+                      <Trash2 data-icon="inline-start" />
+                      {t.common.delete}
+                    </Button>
+                  )}
                 </>
               )}
             </>
           }
         />
       </StaggerItem>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t.properties.unit.deleteTitle}
+        description={t.properties.unit.deleteBody(current.code)}
+        onConfirm={remove}
+      />
 
       <StaggerItem>
         <Tabs value={tab} onValueChange={(value) => setTab(value as (typeof UNIT_TABS)[number])}>

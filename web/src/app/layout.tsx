@@ -37,7 +37,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="locale" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: LOCALE_SCRIPT }} />
         <Script id="palette" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <I18nProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {/* type="text/javascript": React 19 warns on component-rendered <script> (next-themes'
+              no-flash script, unmaintained upstream); a JS MIME type is an accepted data block for
+              React and still executes on the initial document load. See next-themes issue #387. */}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+            scriptProps={{ type: 'text/javascript' }}
+          >
             <MotionProvider>
               <TooltipProvider delayDuration={150}>
                 <AuthProvider>

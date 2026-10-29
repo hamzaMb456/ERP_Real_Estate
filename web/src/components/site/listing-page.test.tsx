@@ -334,13 +334,13 @@ describe('ListingPageContent: similar listings', () => {
   it('shows the similar listings as cards', () => {
     const other = makeListing({ id: 'l-2', title: 'Studio voisin' });
     renderPage(makeListing(), [other]);
-    const section = screen.getByRole('region', { name: 'Biens similaires à Carthage' });
+    const section = screen.getByRole('region', { name: 'Biens recommandés à Carthage' });
     expect(within(section).getByRole('link', { name: 'Studio voisin' })).toHaveAttribute('href', '/logement/l-2');
   });
 
   it('hides the section when there is nothing similar', () => {
     renderPage(makeListing(), []);
-    expect(screen.queryByText(/Biens similaires/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Biens recommandés/)).not.toBeInTheDocument();
   });
 });
 

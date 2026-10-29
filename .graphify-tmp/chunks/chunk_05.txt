@@ -1,0 +1,9 @@
+infra/amplify-data/metrics/pfe-img/p01_Im1.jpg
+infra/amplify-data/metrics/pfe-img/p01_Im2.png
+infra/amplify-data/metrics/pfe-img/p19_Im3.png
+infra/amplify-data/metrics/pfe-img/p19_Im4.png
+infra/amplify-data/metrics/pfe-img/p20_Im5.png
+infra/amplify-data/metrics/pfe-img/p20_Im6.png
+infra/amplify-data/metrics/pfe-img/p21_Im7.png
+infra/amplify-data/metrics/pfe-img/p22_Im8.png
+infra/amplify-data/metrics/pfe-img/p22_Im9.png

@@ -368,6 +368,36 @@ type PublicPhoto {
   position: Int!
 }
 
+# ---------------------------------------------------------------- client space (signed-in visitors)
+
+"""
+A search the signed-in client saved to rerun later. `filters` is the JSON of the search page filters
+(web/src/lib/site/search-params.ts); it is validated again when the link is built, never trusted.
+"""
+type SavedSearch @table {
+  id: ID!
+  client_user_id: ID! @index(name: "byClient", sortKeyFields: ["created_at"])
+  label: String!
+  filters: String!
+  created_at: AWSDateTime
+}
+
+"Listings this client hid from their own browsing. id = <user_id>#<listing_id>, so hiding twice cannot duplicate."
+type HiddenListing @table {
+  id: ID!
+  client_user_id: ID! @index(name: "byClient", sortKeyFields: ["created_at"])
+  listing_id: ID!
+  created_at: AWSDateTime
+}
+
+"Recently viewed listings, one row per client x listing (re-viewing refreshes viewed_at). id = <user_id>#<listing_id>."
+type ListingView @table {
+  id: ID!
+  client_user_id: ID! @index(name: "byClient", sortKeyFields: ["viewed_at"])
+  listing_id: ID!
+  viewed_at: AWSDateTime
+}
+
 # ---------------------------------------------------------------- integrity helpers
 
 "Unique-constraint locks (UNIQ#...) and atomic counters (COUNTER#...)."

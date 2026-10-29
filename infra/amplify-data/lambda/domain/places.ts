@@ -6,7 +6,7 @@ import { requireWriter } from './auth.ts';
 import { isIsoDate } from './dates.ts';
 import { fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
-import { getItem, table, transact } from './db.ts';
+import { getItem, queryAll, table, transact } from './db.ts';
 import { syncPublicListing, syncPublicListingsFor } from './public-listings.ts';
 
 type Rule = {
@@ -185,6 +185,45 @@ export async function updateUnit(caller: Caller, id: string, set: Item): Promise
   await transact(items, 'units_property_id_code_key');
   await syncPublicListing(id);
   return next;
+}
+
+/**
+ * Hard delete, for mistaken or mock rows only: a unit nothing references. A unit tied to a lease,
+ * an ownership, a request or an appointment is refused (archive it instead) so no history is
+ * orphaned. The unit's file links, public listing and code lock go with it, in one transaction.
+ */
+export async function deleteUnit(caller: Caller, id: string): Promise<void> {
+  const orgId = requireWriter(caller, 'permission_denied');
+  const unit = await loadOwned('Unit', orgId, id, 'unit_not_found');
+  const [junctions, leases, ownerships, visits, rentals, appointments, files] = await Promise.all([
+    queryAll('LeaseUnit', { index: 'byUnit', key: 'unit_id', value: id }),
+    queryAll('Lease', { index: 'byOrg', key: 'organization_id', value: orgId }),
+    queryAll('Ownership', { index: 'byUnit', key: 'unit_id', value: id }),
+    queryAll('VisitRequest', { index: 'byUnit', key: 'unit_id', value: id }),
+    queryAll('RentalRequest', { index: 'byOrg', key: 'organization_id', value: orgId }),
+    queryAll('Appointment', { index: 'byOrgStart', key: 'organization_id', value: orgId }),
+    queryAll('FileLink', { index: 'byTarget', key: 'target_key', value: `unit#${id}` }),
+  ]);
+  const referenced =
+    junctions.length > 0 ||
+    leases.some((l) => ((l.unit_ids as string[] | undefined) ?? []).includes(id)) ||
+    ownerships.length > 0 ||
+    visits.length > 0 ||
+    rentals.some((r) => r.unit_id === id) ||
+    appointments.some((a) => a.unit_id === id);
+  if (referenced) fail('unit_not_deletable');
+  const items: TxItem[] = [
+    {
+      Delete: {
+        TableName: table('Unit'), Key: { id },
+        ConditionExpression: 'organization_id = :org', ExpressionAttributeValues: { ':org': orgId },
+      },
+    },
+    ...files.map((f) => ({ Delete: { TableName: table('FileLink'), Key: { id: f.id } } }) as TxItem),
+    { Delete: { TableName: table('PublicListing'), Key: { id } } },
+    { Delete: { TableName: table('Lock'), Key: { id: codeLockId(unit.property_id as string, unit.code as string) } } },
+  ];
+  await transact(items);
 }
 
 /** update_units_many for the syndic shares table: common_share only. */

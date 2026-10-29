@@ -75,4 +75,30 @@ test('batch 1: biens, units, common areas, dashboard', { skip: !ready && 'Floci 
     assert.ok(d.record_gaps_aggregate.aggregate.count >= 1);
     assert.equal(d.appointments_today.aggregate.count, 0);
   });
+
+  await t.test('delete: unreferenced unit goes with its files/listing/lock; referenced and foreign refused', async () => {
+    const clean = (await call('exec', 'AddUnit', { object: { property_id: building, code: 'DEL1', rent_amount: 500 } })).insert_units_one.id;
+    const leased = (await call('exec', 'AddUnit', { object: { property_id: building, code: 'DEL2' } })).insert_units_one.id;
+    const junctioned = (await call('exec', 'AddUnit', { object: { property_id: building, code: 'DEL3' } })).insert_units_one.id;
+    const at = new Date().toISOString();
+    // A hand-seeded lease naming the unit, a LeaseUnit junction row, and one file link on the clean unit.
+    await doc.send(new PutCommand({ TableName: table('Lease'), Item: { __typename: 'Lease', id: randomUUID(), organization_id: ORG, number: 1, status: 'draft', start_date: '2026-10-01', end_date: '2027-09-30', unit_ids: [leased], created_at: at, updated_at: at } }));
+    await doc.send(new PutCommand({ TableName: table('LeaseUnit'), Item: { __typename: 'LeaseUnit', lease_id: 'lease-junction', unit_id: junctioned, organization_id: ORG, created_at: at, updated_at: at } }));
+    const fileLink = randomUUID();
+    await doc.send(new PutCommand({ TableName: table('FileLink'), Item: { __typename: 'FileLink', id: fileLink, organization_id: ORG, target_key: `unit#${clean}`, storage_file_id: 'sf1', kind: 'photo', title: 'x', sort_order: 0, created_at: at } }));
+    await doc.send(new PutCommand({ TableName: table('PublicListing'), Item: { __typename: 'PublicListing', id: clean, organization_id: ORG, unit_id: clean, published_at: at } }));
+
+    await assert.rejects(call('exec', 'DeleteUnit', { id: leased }), /unit_not_deletable/);
+    await assert.rejects(call('exec', 'DeleteUnit', { id: junctioned }), /unit_not_deletable/);
+    await assert.rejects(call('exec', 'DeleteUnit', { id: clean }, outsider), /unit_not_found/);
+
+    await call('exec', 'DeleteUnit', { id: clean });
+    assert.equal(await getItem('Unit', { id: clean }), undefined);
+    assert.equal(await getItem('FileLink', { id: fileLink }), undefined);
+    assert.equal(await getItem('PublicListing', { id: clean }), undefined);
+    assert.equal(await getItem('Lock', { id: `UNIQ#unitcode#${building}#DEL1` }), undefined);
+
+    // The deletion freed the code again.
+    await call('exec', 'AddUnit', { object: { property_id: building, code: 'DEL1' } });
+  });
 });

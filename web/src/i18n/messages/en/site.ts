@@ -284,8 +284,8 @@ export const site = {
       soon: 'Online applications are coming soon.',
     },
     similar: {
-      title: 'Similar properties',
-      titleInCity: (city: string) => `Similar properties in ${city}`,
+      title: 'Recommended properties',
+      titleInCity: (city: string) => `Recommended properties in ${city}`,
       subtitle: 'A selection of properties close by location and price.',
       all: 'See all listings',
     },

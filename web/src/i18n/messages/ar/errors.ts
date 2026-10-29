@@ -8,6 +8,7 @@ export const errors: typeof fr = {
   ownershipOverlap: 'هذا المالك يملك هذه الوحدة مسبقًا خلال هذه الفترة.',
   endBeforeStart: 'يجب أن يكون تاريخ النهاية بعد تاريخ البداية.',
   invalidStorageFile: 'لا يمكن إرفاق هذا الملف. أعد إرساله.',
+  unitNotDeletable: 'هذه الوحدة مرتبطة بعقد إيجار أو مالك أو طلب: أرشفها بدلاً من حذفها.',
   unitCodeTaken: (code) => `المرجع ${code} موجود مسبقًا في هذا العقار.`,
   unitCodeTakenGeneric: 'هذا المرجع موجود مسبقًا في هذا العقار.',
   leaseOverlap: (lease) => `هذه الوحدة مُكتراة مسبقًا خلال هذه الفترة (العقد عدد ${lease}).`,

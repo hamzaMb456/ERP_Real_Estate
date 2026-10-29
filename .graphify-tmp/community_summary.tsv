@@ -1,0 +1,266 @@
+0	116	calendarOps: feed, appointments, participants, notification bell; OPS: merged operation registry by GraphQL op name; leaseOps: lease list, fiche, draft, lifecycle actions, documents; officeOps: requests, photos/documents
+1	116	page.tsx; AppearancePage(); appearance-settings.tsx; AppearanceSettings(); apply(); hintFor(); pickPalette(); reset()
+2	106	react-hook-form; sonner; /erp/administration/visites — visit settings route; page.tsx; VisitSettingsPage(); appointment-form-fields.tsx; AppointmentFormFields(); EndHint()
+3	105	/erp/baux/[id] — lease detail page with hash-tabs: apercu, loyers, documents, calendrier; /erp/baux/[id]/modifier — edit lease page; loads draft via DRAFT_QUERY, blocked unless status=draft; next; page.tsx; DraftLease; E
+4	102	restore(); toggleArchive(); update(); toggleArchive(); common-areas-list.tsx; submit(); CommonAreasList(); Editing
+5	101	dispatch.ts; AppSyncArgs; FIELD_KIND; index.ts; AppSyncEvent; calendar.ts; calendarOps; feedRows()
+6	97	page.tsx; PropertiesMapPage(); Row; page.tsx; IncompleteRecordsPage(); SECTIONS; page.tsx; ContactDetails
+7	94	server-only; POST /api/storage/delete — writer-only S3 DeleteObject + best-effort app_storage_files cleanup, write-freeze aware; POST /api/storage/presign — session-gated 300s presigned GET URL, scoped by data-layer owne
+8	90	/logement/[listingId] — public listing page (streamed behind skeleton, OG/Twitter metadata, similar listings); (site)/page — home page: hero, stats, rent/sale latest sections, how-it-works (prerenders even without backen
+9	84	page.tsx; LeasesPage(); page.tsx; BiensPage(); reset(); Property; StatusFilter; Unit
+10	67	ownedAppointment(); assertReferences(); deleteAppointment(); saveAppointment(); requireWriter(); contacts.ts; checkRoles(); CONTACT_RULES
+11	63	next-themes; next-themes@^0.4.6; layout.tsx; geistMono; geistSans; jakartaSans; metadata; notoArabic
+12	63	isIsoDate(); rangesOverlap(); lease-rules.ts; assertActivatable(); assertEndable(); assertNoOverlap(); assertRenewable(); assertRentAmounts()
+13	62	useClientSession(); booking.test.tsx; actions; fillContact(); LISTING; push; renderDialog(); listing-booking-card.tsx
+14	57	0001_foundation.sql; branches_set_updated_at; contact_roles_organization_id_idx; contacts_organization_id_idx; contacts_set_updated_at; organizations_set_updated_at; properties_branch_id_idx; properties_organization_id_i
+16	53	CalendarSync; DoorOpen; FileCheck; contact-leases.tsx; ContactRenterLeases(); LeaseRows(); Row; lease-actions.tsx
+18	53	@aws-sdk/s3-request-presigner; cmdk; date-fns; @fullcalendar/core; @fullcalendar/daygrid; @fullcalendar/interaction; @fullcalendar/list; @fullcalendar/react
+15	52	class-variance-authority; cn; radix-ui; react; Camera; ImageOff; theme-glyph.tsx; RAYS
+17	52	index.ts; handler(); appointments.ts; deleteMany(); dropReminders(); KINDS; PARTICIPANT_ROLES; ParticipantInput
+19	50	_vitest.config.ts; @testing-library/react; @testing-library/user-event; page.test.tsx; base; graphql; REQUESTS; UNIT
+21	50	copy(); InfoRow(); app-sidebar.tsx; AppSidebar(); initials(); NavEntry(); Bell; LogOut
+22	49	0003_leases.sql; lease_files_check_storage; lease_files_lease_id_idx; lease_files_organization_id_idx; lease_files_set_updated_at; lease_parties_contact_id_idx; lease_parties_draft_only_delete; lease_parties_ensure_rente
+20	48	BellOff; CheckIcon; Languages; Monitor; Moon; Palette; RotateCw; Sun
+23	47	page.tsx; NEXT_STEPS; RentalRequestsPage(); Step; page.tsx; VisitsPage(); Mail; Phone
+24	43	POST(); SignInPage(); SignUpPage(); page.tsx; metadata; SiteForgotPasswordPage(); page.tsx; metadata
+25	42	calendar-date.ts; dateFromIso(); isoFromDate(); calendar-toolbar.tsx; CalendarToolbar(); PICKER_LOCALES; Props; command-palette.tsx
+28	38	package.json; dependencies; jose@^6.2.13; description; devDependencies; @aws-amplify/backend@^1.25.1; @aws-amplify/graphql-api-construct@^1.22.3; aws-cdk@^2.1146.1
+26	37	claims.mjs; cacheSeconds(); PUBLIC_CONTEXT; STAFF_ROLES; claims.test.mjs; token(); toResolverContext(); index.ts
+30	34	reset-password-form.tsx; HEADING; ResetPasswordForm(); handleConfirm(); handleRequest(); handleResend(); reset-password-form.test.tsx; askForCode()
+29	33	@aws-sdk/client-appsync; dry-health.mjs; artifactizer; L; mailer; log-dump.mjs; l; seen
+33	32	setAppointmentStatusMutation(); appointment-sheet.tsx; AppointmentSheet(); appointment-sheet-content.tsx; AppointmentSheetContent(); changeStatus(); Props; Row()
+31	31	formatPercent(); page.tsx; FavoritesRoute(); metadata; BedDouble; Heart; Layers; MapPin
+35	31	0008_visitor_requests.sql; public.check_visitor_request(); public.notify_staff_of_request(); public.phone_digits(); public.public_taken_visit_slots; public.rental_requests; public.request_receipt; public.submit_rental_re
+37	31	route.ts; ACTIONS; Body; confirm(); forgot(); InvalidRequest; newPassword(); refresh()
+32	30	appointment-dialog.tsx; AppointmentDialog(); AppointmentForm(); onSubmit(); Props; StaffConflictWarning(); appointment-mutations.ts; AppointmentFields
+39	30	page.tsx; NewContactPage(); contact-form.tsx; ContactForm(); checkDuplicates(); onSubmit(); EMPTY; makeSchema()
+40	30	unit-dialog.tsx; asText(); EMPTY; FormValues; intBetween(); makeSchema(); optionalInt(); optionalNumber()
+36	29	leaflet; react-leaflet; index.tsx; LocationPicker; PropertiesMap; listings-map-inner.tsx; ListingMapPoint; ListingsMapInner()
+38	29	page.tsx; CalendarPage(); CalendarPageBody(); openEvent(); setQuery(); CalendarViewName; calendar-url.ts; dateFromParam()
+46	28	jsdom; tailwindcss; @tailwindcss/turbopack; @testing-library/dom; @testing-library/jest-dom; @types/leaflet; @types/react; @types/react-dom
+42	27	auth.user_roles; auth.users; 0004_calendar_notifications.sql; appointment_participants_contact_idx; appointment_participants_set_updated_at; appointments_check_staff; appointments_drop_stale_reminders; appointments_lease
+45	26	queryAll(); request-rules.ts; assertRentalTerms(); cleanContact; ContactInput; isThrottled(); normalizeVisitSlot(); phoneDigits()
+47	26	units.ts; filterUnits(); units.test.ts; all; base; UnitCardData; UnitFilters; unitHeading()
+51	26	package.json; dependencies; @aws-sdk/client-secrets-manager@^3.1156.0; nodemailer@^7.0.13; devDependencies; archiver@^7.0.1; esbuild@^0.24.0; @types/node@^20.19.43
+53	26	@playwright/test; calendar.spec.ts; core-records.spec.ts; PNG; front-office.spec.ts; archiveStaleBiens(); CACHE_WINDOW; PNG
+54	26	app-header.tsx; AppHeader(); ChevronLeftIcon; ChevronRightIcon; MoreHorizontalIcon; breadcrumb.tsx; Breadcrumb(); BreadcrumbEllipsis()
+55	26	auth-provider.tsx; AuthProvider(); AuthState; describeSignInError(); describeSignUpError(); PendingPasswordChange; toError(); session.ts
+50	25	listing-details.tsx; DOCUMENT_ICONS; ListingAmenities(); ListingConditions(); ListingDescription(); ListingDocuments(); ListingFeatures(); ListingLocation()
+56	25	appointment-details.ts; APPOINTMENT_QUERY; AppointmentDetails; detailsToInitial(); appointment-editor.tsx; AppointmentEditor(); Props; resendParticipantMutation()
+57	25	calendar.ts; calendar; dashboard.ts; dashboard; properties.ts; units.ts; units; calendar.ts
+58	24	ensureContactRole(); versionBump(); ownership-rules.ts; assertNoContactOverlap(); assertSharesCap(); currentOwners(); firstDayOverCap(); holds()
+59	24	backup.mjs; APP_BUCKETS; argv; backup(); canonical(); credentials; describe(); drill()
+41	23	next.config.ts; nextConfig; page.tsx; ErpForgotPasswordPage(); metadata; AuthSplitLayout(); run(); erp-paths.ts
+49	23	@aws-sdk/client-cloudformation@^3.1156.0; deploy.mjs; assertNotStuck(); ENVS; name; OUT; run(); stackName()
+61	22	components.json; aliases; components; hooks; lib; ui; utils; iconLibrary
+62	22	List; quick-filters.tsx; Quick; search-pagination.tsx; PageItem; search-results.tsx; ActiveChips(); Segment()
+63	21	Rental Requests Board (/erp/baux/demandes); Rental Requests Page Tests; Leases List (/erp/baux); New Lease Page (/erp/baux/nouveau); Archived Properties Page; Properties Map Page; Property Detail Page; Edit Property Page
+64	21	persistence-check.mjs; cfg; cfn; docker(); dockerQuiet(); dynamo; lambda; lambdaZip()
+67	20	use-calendar-feed.ts; FEED_COLUMNS; normalizeFeedRow(); RawFeedRow; toContactIds(); useCalendarFeed(); FeedRow; LeaseEventKind
+65	19	layout.tsx; AppLayout(); app-shell.tsx; AppShell(); PageTransition(); ScrollProgress(); ScrollStagger(); smooth-scroll.tsx
+66	19	appointment-dialog.test.tsx; baseProps; BUSY; disconnect(); observe(); STAFF; unobserve(); calendar-filters.test.tsx
+69	19	page.tsx; findKey(); PlaceholderPage(); ChartColumn; DollarSign; LayoutGrid; Package; Settings
+70	19	tsconfig.json; compilerOptions; allowJs; esModuleInterop; incremental; isolatedModules; jsx; lib
+72	18	handleSubmit(); normaliseBudget(); search-params.ts; all(); amount(); first(); parseCities(); parseDate()
+74	17	steps; steps; steps; unit-tests; steps; steps; continue-on-error; if
+80	17	requests.ts; requests; visit-settings.ts; visitSettings; requests.ts; requests; visit-settings.ts; visitSettings
+73	16	mailer.ts; createMailer(); Mailer; MailerConfig; MailMessage; smtpTransportOptions(); runtime.ts; CoreResult
+77	16	backup.int.test.mjs; apis; buckets; cfg; CORS; count(); dynamo; gsiTable()
+78	16	page.tsx; AcheterPage(); generateMetadata(); page.tsx; generateMetadata(); LouerPage(); Home; KeyRound
+79	16	ChevronDown; SlidersHorizontal; search-filters.tsx; cityChoices(); Field(); NativeSelect(); rawParamsOf(); ROOM_CHOICES
+81	16	Authorization Matrix (role x action x scope consolidation); Cahier 00 actor x domain orientation matrix (§16); D-010 - MVP réservé aux utilisateurs internes; D-011 - départements et rôles définis par chaque organisation;
+83	16	with; allow-licenses; cache; cache-dependency-path; category; fail-on-severity; fetch-depth; key
+84	16	mail-events.ts; Appointment; asRowChangeEvent(); ChangeRecord; loadAppointment(); logWriteError(); MailKind; markNotification()
+85	16	logs-metrics.mjs; errAll; firstE; groups; jsonPath; keyOf(); lam; lastE
+86	16	appointment-list.tsx; appointmentHref(); AppointmentList(); AppointmentListItem; Props; appointment-status-badge.tsx; AppointmentStatusBadge(); STATUS_CLASS
+82	15	appointment-decisions.ts; AppointmentAction; decideAppointmentAction(); decideParticipantAction(); ParticipantAction; ParticipantContext; sameValue(); event.ts
+87	15	@aws-sdk/client-cloudformation; @aws-sdk/client-s3; patch.mjs; clientConfig(); dropEmptyIdentityRegex(); fillPlaceholders(); main(); patchDir()
+89	15	ci.yml; name; needs; runs-on; timeout-minutes; concurrency; cancel-in-progress; group
+91	15	recharts; recharts@^3.8.0; chart.tsx; ChartConfig; ChartContainer(); ChartContext; ChartContextProps; ChartLegendContent()
+48	14	property_files one-target & bucket checks; Units-on-website public listing model; Unit detail columns reaching public view; stubs.sql; storage.buckets; storage.files; 0005_listings.sql; leases_close_rent_listings
+71	14	CV notes — measurable backend/PFE metrics and honest-scoping corrections; Timed deploy: cdk synth 95.0 s, idempotent redeploy 61.7 s (ERP/Deploy metrics); AWS resource inventory 2026-10-27 (23 CDK stacks, 20 DynamoDB tab
+92	14	getMessages(); AppointmentKind; appointments.ts; appointmentKindLabel(); appointmentKindLabels(); appointmentStatusLabels(); emailStatusLabel(); findStaffConflicts()
+95	14	load-test.mjs; call(); CONC; cw; env; lat; now; pick()
+96	14	metrics-kinesis.mjs; dashboard; deploy; inventory; kinesis; lamLogs; load; logsAudit
+98	13	web; command; depends_on; environment; image; init; ipc; network_mode
+99	13	description; options; required; type; environment; on; pull_request; push
+100	13	errors.ts; errors; index.ts; leases.ts; leases; properties; site.ts; site
+101	13	favorites.ts; EMPTY; listeners; MAX_FAVORITES; parseFavorites(); publish(); readStorage(); resetFavoritesCache()
+88	12	mail-templates.ts; absoluteLink(); APPOINTMENT_INTROS; APPOINTMENT_KINDS; APPOINTMENT_SUBJECTS; appointmentMail(); formatDate(); FORMATTER
+97	12	animated-icon.tsx; AnimatedIcon(); IconAnimation; IconProps; LucideIcon; makeIcon(); animated-icon.test.tsx; icon-data.ts
+102	12	tsconfig.json; compilerOptions; esModuleInterop; module; moduleResolution; noEmit; noUncheckedIndexedAccess; skipLibCheck
+103	12	appearance.ts; appearance; appearance.ts; appearance; errors.ts; errors; index.ts; properties
+104	12	notifications.ts; notifications; shell.ts; shell; notifications.ts; notifications; shell.ts; shell
+105	11	Acceptance Scenarios & Reference Dataset (golden workflows as Given/When/Then); D-012 - le client est une société immobilière qui possède des biens; Competitive reality check and research questions; Phase 0 produit - tra
+107	11	APPSYNC_URL; AUTH_COGNITO_URL; AUTH_JWKS_URL; AWS_ACCESS_KEY_ID; AWS_ENDPOINT_URL; AWS_REGION; AWS_SECRET_ACCESS_KEY; E2E_BASE_URL
+108	11	backend.ts; api; apiFn; backend; dailyFn; lambdaFn(); MAILED_MODELS; mailerFn
+109	11	motion; motion@^14.2.0; page.tsx; ConnexionForm(); ConnexionPage(); Eye; EyeOff; LockKeyhole
+110	11	calendar-empty-state.tsx; CalendarEmptyState(); Props; empty.tsx; Empty(); EmptyContent(); EmptyDescription(); EmptyHeader()
+94	10	resolveSecretEnv(); resolveMailer(); fromStreamRecord(); handleChange(); MailDeps; Mailer; .send(); index.ts
+111	10	Cahier des Charges Général (v0.7); D-001 - SaaS multi-tenant avec isolation logique stricte; D-002 - no AI / ML module; D-008 - deux modèles de vendeur, un seul workflow; D-009 - vente de base dans le MVP; Use cases UC-0
+113	10	docker-compose.yml; external; name; name; networks; floci; services; x-web-build
+114	10	APPSYNC_URL; AUTH_COGNITO_URL; AUTH_JWKS_URL; NEXT_WATCH_POLL_MS; web; environment; image; networks
+116	10	security-scan; permissions; attestations; contents; id-token; security-events; name; permissions
+117	10	environment; environment; if; name; runs-on; timeout-minutes; environment; name
+118	10	if; name; permissions; runs-on; timeout-minutes; deploy-prod; permissions; contents
+120	9	MapPinOff; ListingsMap; QuickFilters; search-map.tsx; SearchMap(); toMapPoints(); pageItems(); SearchPagination()
+121	9	Explicit AI / ML exclusion; D-007 - une même base métier pour location et vente; Diagrammes UML - version française (v1.2); Delete only if no leases and no payments; archive keeps history; UML Diagrams (v0.36, Mermaid, E
+124	9	deploy.yml; concurrency; cancel-in-progress; group; env; INFRA_DIR; NODE_VERSION; jobs
+125	9	scripts; build; dev; lint; start; test; test:coverage; test:e2e
+126	9	gaps.ts; GapEntity; GapGroup; gapLabel(); gapLink(); GapRow; groupGaps(); gaps.test.ts
+112	8	'Keep it simple, move fast to development' portfolio decision (2026-10-13); Emerald ERP design system (primary #047857, Inter, French UI); Gallery, viewer and empty-state Stitch screens (7 screens); Rotated Google API ke
+127	8	use-hash.ts; readHash(); serverHash(); subscribe(); use-hash.test.tsx; TABS; useHash(); useHashTab()
+128	8	Step 0-10 document writing order; Conceptual Financial Model (planned consolidation document); Documentation problems 1-17 found in Phase 0 and Cahier 00; Business rule - ownership effective-dated when a leased unit is s
+129	8	ownerships table — effective-dated share %, indivision, transfer; record_gaps view / fiches-incompletes page; Business rules live in the database (constraints, triggers, views); One self contact per organization (is_orga
+130	8	Competing buyers ruling: 48h pending reservation, first confirmed wins (R1); Four delivery slices (move/listings, accounts/applications, offers/sales, client space); Migration numbering 0005–0009 (replaces leases-spec nu
+131	8	steps; steps; steps; if; name; run; uses; working-directory
+132	8	with; aws-region; cache; cache-dependency-path; fetch-depth; node-version; role-to-assume; script
+134	8	@aws-sdk/client-dynamodb@^3.1156.0; seed.mjs; db; findApiId(); now; put(); stamp; @aws-sdk/client-dynamodb
+135	7	Cahier 00 candidate states (Lease, Work Order, Sales Listing, Invoice); Contacts page replaces Proprietaires screens (one contact, several roles, glossary N-09); Glossary reference document (N-xxx naming rules); Phase 0 
+137	7	BASE_IMAGE; args; context; build; build; build; args
+139	7	AWS_ACCESS_KEY_ID; AWS_ENDPOINT_URL; AWS_REGION; AWS_SECRET_ACCESS_KEY; ERP_COGNITO_POOL_ID; ERP_SECRET_NAME; env
+144	7	listing-skeleton.tsx; ListingSkeleton(); search-skeleton.tsx; SearchSkeleton(); SidebarMenuSkeleton(); skeleton.tsx; Skeleton()
+133	6	check_pdf_final.py; check_pdf_fr.py; extract_pfe.py; extract_pfe_images.py; Extract all raster images from the PFE report into a flat folder.; Extract full text + image inventory from the PFE report.
+143	6	components/motion/primitives ScrollStagger — scroll reveal wrapper shared by site and ERP shells; layout.tsx; metadata; SiteLayout(); config.ts; siteConfig
+148	6	interval; retries; start_period; test; timeout; healthcheck
+150	6	on; pull_request; push; workflow_dispatch; branches; branches
+152	6	eslint; eslint-config-next; eslint.config.mjs; eslintConfig; eslint@^9; eslint-config-next@16.4.0
+153	6	common.ts; common; common.ts; common; common.ts; common
+154	6	contacts.ts; contacts; contacts.ts; contacts; contacts.ts; contacts
+155	6	files.ts; files; files.ts; files; files.ts; files
+156	6	labels.ts; labels; labels.ts; labels; labels.ts; labels
+157	6	listings.ts; listings; listings.ts; listings; listings.ts; listings
+158	6	nav.ts; nav; nav.ts; nav; nav.ts; nav
+159	6	ownership.ts; ownership; ownership.ts; ownership; ownership.ts; ownership
+160	5	env_file; path; required; env_file; env_file
+161	5	test; command; image; profiles; volumes
+162	5	Documentation Map (index of all project documents); Backend cutover to Floci; Nhost/Hasura kept as history; Docker dev / unit test / Playwright E2E workflow; Floci local AWS-compatible backend (AppSync, DynamoDB, S3, Cog
+163	5	name; needs; runs-on; timeout-minutes; e2e-tests
+164	5	if; name; runs-on; timeout-minutes; deploy-dev
+167	5	db-local.sh; MSYS_NO_PATHCONV; PATH; run_sql(); db-local.sh script
+169	5	dates.ts; dayInTunis; daysBetween(); dates.test.ts; toUtcMs()
+168	4	not-found.tsx; SiteNotFoundPage(); EmptyState(); SiteNotFound()
+170	4	0013_storage_ownership.sql; public.app_storage_files; public.check_lease_file_storage(); public.check_property_file_storage()
+171	4	volumes; e2e-node-modules; web-next; web-node-modules
+172	4	name; runs-on; timeout-minutes; infra-tests
+173	4	lint; name; runs-on; timeout-minutes
+174	4	type-check; name; runs-on; timeout-minutes
+34	3	Ownerships no-overlap constraint; Ownerships shares cap (deferred ≤100% check); Client identity from session (REQUEST_LOGIN_REQUIRED)
+147	3	Floci local AWS backend (Cognito/JWKS, AppSync, Secrets Manager); docker compose web/test/e2e dev stack; authorizer
+180	3	0005_listings.test.sql; pg_temp.mk_lease(); pg_temp.mk_photo()
+182	3	French-only indexing, en/ar client-side switch (R8); One agency per deployment, NEXT_PUBLIC_AGENCY_ORG_ID (F5/R7); Task 5: public data layer — parseSearchParams, searchListings, pickSimilar
+183	3	Listings publishing rules (check_listing_publishable, LISTING_* codes); public_listings view & unauthenticated `public` role; Task 2: migration 0005_listings.sql (listings table, triggers, public views)
+185	3	Daily job + email Lambdas (lease-daily, notification/appointment e-mails); 7-day grace after lease end, then daily job expires it (D3); lease_rule(name) as single source of day thresholds (D10)
+181	2	check_docx_encoding.py; Locate exact mojibake markers in the docx text, encoding-independent output.
+190	2	Standard 19-section cahier des charges skeleton; Stable IDs documentation principle (D-xxx, UC-xxx, BR-xxx, AC-xxx)
+191	2	Archive instead of delete for biens/units/contacts; Only draft leases can be archived (D12, no hard delete)
+192	2	See biens on a map and place them precisely; Leaflet + OpenStreetMap + Nominatim (free, no key)
+193	2	0003_leases.test.sql; pg_temp.mk_lease()
+194	2	0006_units_on_website.test.sql; pg_temp.mk_photo()
+195	2	F8: public rent requests absorb leases-spec Plan C (source `web`); Rent requests (Demandes de location, Plan C)
+196	2	Stitch design system « Emerald Vitrine » (six screens, F3); Task 6: public shell (site header/footer, (site) layout)
+197	2	ERP moves under /erp, old URLs redirect (F1); Task 1: ERP under /erp — erpPath, legacyRedirects, safeNext
+200	2	tail_notes.py; Show tail of CV-notes (safely, ascii-escaped).
+27	1	Listing auto-close on lease activation (leased/unit_archived)
+44	1	Visit payment settings: method virtual/manual/none, remote-payment instructions shown to confirmed visitors
+60	1	fr as type-checked master dictionary (typeof fr contract)
+202	1	Common Areas Overview Page
+203	1	Login Page (/erp/connexion)
+204	1	Common areas and per-unit shares in thousandths (‰)
+205	1	property_files (photos/documents, is_cover, sort_order)
+207	1	0007_unit_details.sql
+208	1	0010_visit_fee.sql
+209	1	0011_visit_payment_method.sql
+210	1	0001_demo_data.sql
+211	1	0002_demo_core_records.sql
+212	1	0003_demo_leases.sql
+213	1	0004_demo_calendar.sql
+214	1	0005_listings.sql
+215	1	0006_units_on_website.sql
+216	1	0002_core_records.test.sql
+217	1	0004_calendar_notifications.test.sql
+218	1	0007_unit_details.test.sql
+219	1	0008_visitor_requests.test.sql
+220	1	0009_client_accounts.test.sql
+221	1	ERP App Layout (AppShell wrapper)
+222	1	lease_requests (renewal/notice R5, staff act via renew_lease/end_lease)
+230	1	organizations
+231	1	package.json
+232	1	Empty Root package.json Manifest
+233	1	units
+242	1	.hasPointerCapture()
+243	1	.releasePointerCapture()
+244	1	.scrollIntoView()
+245	1	.setPointerCapture()
+246	1	.hasPointerCapture()
+247	1	.releasePointerCapture()
+248	1	.scrollIntoView()
+249	1	.setPointerCapture()
+251	1	.hasPointerCapture()
+252	1	.releasePointerCapture()
+253	1	.scrollIntoView()
+254	1	.setPointerCapture()
+255	1	.hasPointerCapture()
+256	1	.releasePointerCapture()
+257	1	.scrollIntoView()
+258	1	.setPointerCapture()
+43	0	
+52	0	
+68	0	
+75	0	
+76	0	
+90	0	
+93	0	
+106	0	
+115	0	
+119	0	
+122	0	
+123	0	
+136	0	
+138	0	
+140	0	
+141	0	
+142	0	
+145	0	
+146	0	
+149	0	
+151	0	
+165	0	
+166	0	
+175	0	
+176	0	
+177	0	
+178	0	
+179	0	
+184	0	
+186	0	
+187	0	
+188	0	
+189	0	
+198	0	
+199	0	
+201	0	
+206	0	
+223	0	
+224	0	
+225	0	
+226	0	
+227	0	
+228	0	
+229	0	
+234	0	
+235	0	
+236	0	
+237	0	
+238	0	
+239	0	
+240	0	
+241	0	
+250	0	
+259	0	
+260	0	
+261	0	
+262	0	
+263	0	
+264	0	
+265	0	

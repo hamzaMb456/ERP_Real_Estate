@@ -8,6 +8,7 @@ export const errors = {
   ownershipOverlap: 'Ce propriétaire détient déjà cette unité sur cette période.',
   endBeforeStart: 'La date de fin doit suivre la date de début.',
   invalidStorageFile: 'Ce fichier ne peut pas être rattaché. Envoyez-le à nouveau.',
+  unitNotDeletable: 'Cette unité est rattachée à un bail, un propriétaire ou une demande : archivez-la au lieu de la supprimer.',
   unitCodeTaken: (code: string) => `La référence ${code} existe déjà dans ce bien.`,
   unitCodeTakenGeneric: 'Cette référence existe déjà dans ce bien.',
   leaseOverlap: (lease: string) => `Cette unité est déjà louée sur cette période (bail N° ${lease}).`,

@@ -8,7 +8,7 @@ import type { PublicListing } from '@/lib/site/listings-queries';
 import { SEARCH_PATH } from '@/lib/site/search-links';
 import { ListingCard } from './listing-card';
 
-/** « Biens similaires »: up to three cards close in place and price. Hidden when there are none. */
+/** « Biens recommandés »: jusqu'à trois annonces proches par le lieu et le prix. La section disparaît quand il n'y en a pas. */
 export function ListingSimilar({ listing, similar }: { listing: PublicListing; similar: PublicListing[] }) {
   const t = useT().site.listing.similar;
   if (similar.length === 0) return null;

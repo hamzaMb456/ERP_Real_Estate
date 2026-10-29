@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2 · Anti-abus des demandes | Prototypes Emerald Immobilier</title>
+<link rel="stylesheet" href="assets/demo.css">
+<style>
+  .def-grid { display:grid; grid-template-columns:1fr 320px; gap:1.2rem; align-items:start; }
+  @media (max-width: 900px) { .def-grid { grid-template-columns:1fr; } }
+  .defense-row { display:flex; justify-content:space-between; gap:.8rem; padding:.5rem .2rem; border-bottom:1px dashed var(--border); font-size:.85rem; }
+  .defense-row .state { font-weight:800; }
+  .state.on { color: var(--ok); } .state.off { color: var(--danger); }
+</style>
+</head>
+<body data-page="02-request-hardening.html">
+<header class="demo-header"></header>
+
+<main class="page">
+  <div class="hero-note">
+    <span class="pill pill-new">Sécurité 🛡️ hardening</span>
+    <span class="pill pill-src">Lacune connue depuis le 2026-10-23 (review) — endpoint données public</span>
+  </div>
+  <h1>Anti-abus des demandes de visite</h1>
+  <p class="page-intro">
+    Aujourd'hui, les règles anti-arme existent dans la couche de données (pas de IP) mais l'endpoint est public :
+    un attaquant peut appeler les 2 mutations directement. Ce prototype montre la <strong>série complète</strong> côté
+    visiteur : champ honeypot, jeton CAPTCHA, yeux sur les compteurs, en simulation <em>100 % locale</em>.
+  </p>
+
+  <div class="def-grid">
+    <!-- Formulaire -->
+    <div>
+      <div class="card">
+        <h2 style="margin-top:0">Demande de visite — « S+2 neuf avec terrasse » (REF 0007)</h2>
+
+        <form id="reqForm" novalidate>
+          <div class="field">
+            <label for="f-name">Nom et prénom</label>
+            <input id="f-name" type="text" autocomplete="name" placeholder="Ex. : Slim Ben Ali">
+            <p class="field-error">Ce champ est obligatoire</p>
+          </div>
+          <div class="field">
+            <label for="f-phone">Téléphone</label>
+            <input id="f-phone" type="tel" dir="ltr" autocomplete="tel" placeholder="+216 12 345 678">
+            <p class="field-error">Téléphone requis (les attaquants font tourner des numéros fictifs)</p>
+          </div>
+          <div class="field">
+            <label for="f-email">E-mail (facultatif)</label>
+            <input id="f-email" type="email" dir="ltr" placeholder="vous@exemple.tn">
+          </div>
+          <div class="field">
+            <label for="f-day">Jour de visite souhaité</label>
+            <select id="f-day">
+              <option value="">Choisir un jour…</option>
+              <option>Demain matin</option>
+              <option>Demain après-midi</option>
+              <option value="">Créneau libre jeudi</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-msg">Message (facultatif)</label>
+            <textarea id="f-msg" rows="3" placeholder="Une précision, une question…"></textarea>
+          </div>
+
+          <div class="field" id="hpWrap">
+            <!-- Honeypot : champ réel pour un humain, invisible et piège pour un bot -->
+            <label for="f-hp" style="visibility:absolute;position:absolute;left:-999px">Ne pas remplir</label>
+            <input id="f-hp" type="text" autocomplete="off" tabindex="-1" aria-hidden="true"
+                   style="position:absolute;left:-999px;width:1px;height:1px;opacity:0">
+          </div>
+
+          <!-- Captcha fictif simulant le rendu Cloudflare Turnstile -->
+          <div class="field">
+            <label>Vérification de sécurité</label>
+            <div class="turnstile" id="tsWidget">
+              <span class="box" id="tsBox" tabindex="0" role="checkbox" aria-checked="false" aria-label="Je ne suis pas un robot"></span>
+              <div style="flex:1">
+                <div id="tsLabel">Est-ce que vous êtes humain ? Cochez la case</div>
+                <div class="brandline">🔒 ANTIBOT DE DÉMO — en production : Cloudflare Turnstile</div>
+              </div>
+            </div>
+            <p class="field-error" id="tsError" style="display:none">Confirmez d'abord la vérification de sécurité.</p>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit" id="submitBtn">Envoyer la demande</button>
+          <p class="hint" style="margin-top:.5rem;font-size:.78rem;color:var(--muted)">
+            Sans engagement · l'agence vous répond sous 24 h
+          </p>
+        </form>
+
+        <!-- Confirmation -->
+        <div id="sentOk" class="hidden" style="text-align:center;padding:1rem">
+          <div style="font-size:2rem">✅</div>
+          <h3 style="margin:.4rem 0">Demande envoyée</h3>
+          <p id="sentText" style="font-size:.9rem;color:var(--muted)"></p>
+          <button class="btn btn-outline" id="resetDemo">Nouvelle demande</button>
+        </div>
+      </div>
+
+      <div class="box-note warn">
+        <strong>Démonstration « attaquant »</strong> : cochez «&nbsp;simuler un bot&nbsp;» à droite puis envoyez en rafale —
+        vous verrez chaque tentative refusée différemment (honeypot / jeton / limite IP / cap agence) selon
+        les boucliers <strong>activés</strong>.
+      </div>
+    </div>
+
+    <!-- Panneau armure -->
+    <div>
+      <div class="card">
+        <h2 style="margin-top:0">Boucliers simulés</h2>
+        <div class="row" style="margin-bottom:.6rem">
+          <label style="display:flex;gap:.45rem;align-items:center;font-size:.85rem">
+            <input type="checkbox" id="atkMode"> Bot en rafale (IP + nos numéros changeants chaque clic)
+          </label>
+        </div>
+        <div class="defense-row"><span>Honeypot (champ invisible)</span><span class="state on" id="stHp">ACTIF</span></div>
+        <div class="defense-row"><span>Jeton CAPTCHA vérifié serveur</span><span class="state on" id="stTs">ACTIF</span></div>
+        <div class="defense-row"><span>Limiteur par IP (5 / 10 min)</span>
+          <span class="state" id="stIp"><label style="font-size:.78rem;cursor:pointer"><input type="checkbox" id="ipShield" checked> ACTIF</label></span>
+        </div>
+        <div class="defense-row"><span>Cap organisation (réel : 30 / 10 min, démo: 10 / 10 min)</span>
+          <span class="state" id="stOrg"><label style="font-size:.78rem;cursor:pointer"><input type="checkbox" id="orgShield" checked> ACTIF</label></span>
+        </div>
+        <div class="defense-row" style="border:none">
+          <span>3 par téléphone / heure / type —</span>
+          <span style="font-size:.78rem;color:var(--muted)">déjà en production</span>
+        </div>
+
+        <h3 style="margin-bottom:.4rem">Compteurs</h3>
+        <div class="counter-row">
+          <span class="counter" id="cIp">IP vous<b>0/5</b></span>
+          <span class="counter quota" id="cOrg">Organisation<b>0/10</b></span>
+          <span class="counter" id="cPhone">Votre nº<b>0/3</b></span>
+        </div>
+
+        <div class="row mt">
+          <button class="btn btn-ghost" id="resetCounters">Réinitialiser les compteurs</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Trace des décisions</h2>
+        <div class="log" id="log" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="assets/demo.js"></script>
+<script>
+/* Réplique fidèle de la logique de protections — données uniquement en mémoire. */
+const $ = (id) => document.getElementById(id);
+const MAX_PER_IP = 5, MAX_PER_ORG = 10, MAX_PER_PHONE = 3; // démo (réels : 5 IP créés, 30/h, 3/téléphone)
+const t0 = Date.now();
+const requests = { ip: 0, org: 0, phones: {} }; // compteurs fenêtre 10 min
+
+let tsToken = null;
+let botAttempts = 0;
+
+function log(kind, msg) {
+  const el = $('log');
+  const cls = kind === 'ok' ? 'ok' : kind === 'refuse' ? 'refuse' : 'info';
+  const line = `<span class="${cls}">[${new Date().toLocaleTimeString('fr-TN')}] ${msg}</span>\n`;
+  el.insertAdjacentHTML('beforeend', line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function refreshCounters(phone) {
+  $('cIp').innerHTML = `IP vous<b>${requests.ip}/${MAX_PER_IP}</b>`;
+  const orgEl = $('cOrg');
+  orgEl.innerHTML = `Organisation<b>${requests.org}/${MAX_PER_ORG}</b>`;
+  orgEl.classList.toggle('exhausted', requests.org >= MAX_PER_ORG);
+  const used = phone && requests.phones[phone] ? requests.phones[phone].length : 0;
+  $('cPhone').innerHTML = `Votre nº<b>${used}/${MAX_PER_PHONE}</b>`;
+}
+
+// Captcha fictif : clic humain → vérification → jeton ; ou résolution automatisée (mode bot / ferme).
+function onTsClick() { resolveTurnstile(false); }
+$('tsWidget').addEventListener('click', onTsClick);
+$('tsWidget').addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') onTsClick(); });
+function resolveTurnstile(botFarm) {
+  if (tsToken) return;
+  const box = $('tsBox'), label = $('tsLabel');
+  box.innerHTML = '';
+  box.insertAdjacentHTML('afterbegin', '<span class="spinner"></span>');
+  label.textContent = 'Vérification en cours…';
+  log('info', botFarm ? 'Jeton demandé : le bot paie une ferme à CAPTCHA (réaliste)' : 'Jeton demandé au serveur CAPTCHA (challenge en cours de résolution)');
+  setTimeout(() => {
+    tsToken = 'TS-TK-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+    box.classList.add('success'); box.innerHTML = '✓'; box.setAttribute('aria-checked', 'true');
+    label.textContent = 'Vérifié — jeton à usage unique émis ✔';
+    $('tsWidget').classList.add('success');
+    $('tsError').style.display = 'none';
+    log('ok', 'Jeton CAPTCHA signé : ' + tsToken + ' (une seule soumission puis il brûle)');
+  }, 900);
+}
+
+$('reqForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('tsError').style.display = 'none';
+  const bot = $('atkMode').checked;
+  const name = bot ? 'Bot ' + Math.trunc(Math.random() * 9999) : $('f-name').value.trim();
+  const phone = bot ? '+216 ' + Math.trunc(Math.random() * 90000000 + 10000000) : $('f-phone').value.trim();
+  botAttempts++; // compteur de la campagne (pour le récit du bot naïf → évolué)
+
+  // 1) Honeypot : le 1er bot soumet donc le champ invisible (victoire gratuite)
+  if (bot && botAttempts === 1) { $('f-hp').value = 'http://spam.example'; }
+  if (!$('f-hp').value) $('f-hp').value = ''; // humain : le champ reste vide
+  if ($('f-hp').value) { $('f-hp').value = ''; refreshCounters(); return refuse('HONEYPOT', 'Le formulaire a soumis le champ invisible → bot repéré, rejeté'); }
+
+  // 2) Validations réelles (obligatoires, erreurs visibles)
+  let bad = false;
+  [['f-name', name], ['f-phone', phone]].forEach(([id, v]) => {
+    document.getElementById(id).classList.toggle('invalid', !v);
+    document.getElementById(id).parentElement.querySelector('.field-error').classList.toggle('show', !v);
+    if (!v) bad = true;
+  });
+  if (bad) return log('info', 'Formulaire incomplet : erreurs de validation affichées');
+
+  // 3) Jeton CAPTCHA côté "serveur". En mode bot : la « ferme à captchas » résout (réaliste) ;
+  //    en mode humain, il faut cocher manuellement.
+  if (!tsToken) {
+    if (bot) {
+      log('info', 'Le bot résout le CAPTCHA via une ferme à jetons (simulation 0,7 s)…');
+      await resolveTurnstile(true);
+    } else {
+      $('tsError').style.display = 'block';
+      return refuse('CAPTCHA', 'Jeton CAPTCHA absent → refus sans appeler la couche données');
+    }
+  }
+
+  // 4) Limiteur par IP (checked comme s'il tournait au bord / serveur action)
+  if (requests.ip >= MAX_PER_IP) return refuse('RATE-IP', `IP a déjà envoyé ${requests.ip} demandes / 10 min → refuse, « trop de demandes »`);
+
+  // 5) Cap organisation (fenêtre 10 min)
+  if (requests.org >= MAX_PER_ORG) return refuse('RATE-ORG', 'Cap agence atteint (30/10 min en prod) → bloque avant notifications staff');
+
+  // 6) Règles par téléphone (déjà en production)
+  requests.phones[phone] = requests.phones[phone] || [];
+  if (requests.phones[phone].length >= MAX_PER_PHONE) return refuse('RATE-PHONE', `Tél ${phone} a déjà soumis ${requests.phones[phone].length} demandes ↔ fenêtre 1 h`);
+
+  // Tout passe : on comptabilise et on brûle le jeton
+  requests.ip++; requests.org++;
+  requests.phones[phone].push(t0);
+  tsToken = null;
+  resetCaptchaWidget();
+  refreshCounters(phone);
+  $('reqForm').classList.add('hidden');
+  $('sentOk').classList.remove('hidden');
+  $('sentText').textContent = `Merci ${name}. L'agence vous appelle pour confirmer votre visite.`;
+  log('ok', `Demande enregistrée pour ${name} (${phone}) → dans les files de l'ERP`);
+  toast('Demande acceptée — les compteurs à droite ont avancé.');
+});
+
+function refuse(kind, msg) {
+  log('refuse', `${kind} — ${msg}`);
+  toast('Refusé : ' + msg, 4200);
+  if (kind !== 'CAPTCHA') refreshCounters();
+}
+
+function resetCaptchaWidget() {
+  const box = $('tsBox');
+  box.classList.remove('success'); box.innerHTML = ''; box.setAttribute('aria-checked', 'false');
+  $('tsLabel').textContent = 'Est-ce que vous êtes humain ? Cochez la case';
+  $('tsWidget').classList.remove('success');
+}
+
+// Bascule des boucliers côté UI (la vraie logique est ci-dessus)
+$('ipShield').addEventListener('change', (e) => {
+  $('stIp').innerHTML = `<label style="font-size:.78rem;cursor:pointer"><input type="checkbox" id="ipShield" ${e.target.checked ? 'checked' : ''}> ${e.target.checked ? 'ACTIF' : 'NÉANT'}</label>`;
+  $('stIp').className = 'state ' + (e.target.checked ? 'on' : 'off');
+  log('info', 'Limiteur IP ' + (e.target.checked ? 'activé' : 'désactivé') + ' — le flanc est ' + (e.target.checked ? 'fermé' : 'ouvert'));
+});
+$('orgShield').addEventListener('change', (e) => {
+  $('stOrg').innerHTML = `<label style="font-size:.78rem;cursor:pointer"><input type="checkbox" id="orgShield" ${e.target.checked ? 'checked' : ''}> ${e.target.checked ? 'ACTIF' : 'NÉANT'}</label>`;
+  $('stOrg').className = 'state ' + (e.target.checked ? 'on' : 'off');
+  log('info', 'Cap agence ' + (e.target.checked ? 'activé' : 'désactivé'));
+});
+
+$('resetDemo').addEventListener('click', () => {
+  $('sentOk').classList.add('hidden'); $('reqForm').classList.remove('hidden');
+  resetCaptchaWidget(); tsToken = null;
+});
+$('resetCounters').addEventListener('click', () => { requests.ip = requests.org = 0; requests.phones = {}; refreshCounters(); log('info', 'Compteurs remis (nouvelle fenêtre 10 min)'); });
+
+refreshCounters();
+log('info', 'Simulation démarrée — soumettez une demande « normale » puis ressayez en mode bot.');
+</script>
+</body>
+</html>

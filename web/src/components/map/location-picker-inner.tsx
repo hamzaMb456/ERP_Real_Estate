@@ -32,20 +32,22 @@ export function LocationPickerInner({
   className?: string;
 }) {
   const editable = onChange !== undefined;
+  // Only a finite position may reach Leaflet — a NaN/undefined coordinate crashes MapContainer.
+  const position = value && Number.isFinite(value.lat) && Number.isFinite(value.lon) ? value : null;
   return (
     <div dir="ltr" className={cn('isolate overflow-hidden rounded-lg border', className ?? 'h-64')}>
       <MapContainer
-        center={value ? [value.lat, value.lon] : TUNISIA_CENTER}
-        zoom={value ? DETAIL_ZOOM : TUNISIA_ZOOM}
+        center={position ? [position.lat, position.lon] : TUNISIA_CENTER}
+        zoom={position ? DETAIL_ZOOM : TUNISIA_ZOOM}
         scrollWheelZoom={editable}
         className="size-full"
       >
         <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
         {editable && <ClickToPlace onChange={onChange} />}
-        <Follow lat={value?.lat ?? null} lon={value?.lon ?? null} />
-        {value && (
+        <Follow lat={position?.lat ?? null} lon={position?.lon ?? null} />
+        {position && (
           <Marker
-            position={[value.lat, value.lon]}
+            position={[position.lat, position.lon]}
             icon={pinIcon('var(--primary)')}
             draggable={editable}
             eventHandlers={

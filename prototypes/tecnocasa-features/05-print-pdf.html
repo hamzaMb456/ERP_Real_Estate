@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 · Fiche imprimable / PDF | Prototypes Emerald Immobilier</title>
+<link rel="stylesheet" href="assets/demo.css">
+</head>
+<body data-page="05-print-pdf.html">
+<header class="demo-header"></header>
+
+<main class="page">
+  <div class="hero-note">
+    <span class="pill pill-todo">Long terme 🖨️</span>
+    <span class="pill pill-src">Tecnocasa : bouton print-pdf → pdf.medialabtc.it/estates/72437 (sous-domaine dédié)</span>
+  </div>
+  <h1>Fiche du bien prête à imprimer / PDF</h1>
+  <p class="page-intro">
+    Un document propre du bien, orienté client : photos, caractéristiques, description et contact agence.
+    En production ce serait une <code>route</code> Next.js dédiée ; ici, <strong>cliquez sur « Imprimer »</strong>
+    (ou Ctrl+P) — les règles d'impression CSS de cette page montrent le rendu papier voulu.
+  </p>
+
+  <div class="row no-print" style="margin-bottom:1.2rem">
+    <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
+    <a class="btn btn-outline" href="01-whatsapp-contact.html">Retour aux autres prototypes</a>
+    <span style="font-size:.8rem;color:var(--muted)">En-tête, barre de navigation et boutons disparaissent à l'impression.</span>
+  </div>
+
+  <div class="pdf-sheet" id="sheet">
+    <header style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+      <div>
+        <div style="font-weight:900;color:var(--primary-strong);font-size:1.15rem">EMERALD IMMOBILIER</div>
+        <div style="font-size:.8rem;color:var(--muted)">Agence immobilière agréée — Tunisie</div>
+      </div>
+      <div style="text-align:right;font-size:.85rem">
+        <div style="font-weight:800">RÉF. 0201 — S+2 EN VENTE</div>
+        <div style="color:var(--muted)">Grille tarifaire et visite : voir contact au bas de la fiche</div>
+      </div>
+    </header>
+
+    <h1>S+2 en vente — Aouina, 259 000 DT</h1>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem">
+      <span class="chip">À vendre</span><span class="chip">Aouina · Grand Tunis</span>
+      <span class="chip">3 pièces</span><span class="chip">111 m²</span>
+      <span class="chip">2ᵉ étage · ascenseur</span>
+    </div>
+
+    <div class="pdf-photo-grid" aria-label="Photos du bien (8 jeux simulés)">
+      <div class="ph"></div><div class="ph"></div><div class="ph"></div>
+      <div class="ph"></div><div class="ph"></div><div class="ph"></div>
+      <div class="ph"></div><div class="ph"></div>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted)">Les vraies photos viennent du stockage public/images du bien.</div>
+
+    <h2 style="margin-top:1.5rem">Caractéristiques principales</h2>
+    <div class="pdf-facts">
+      <div><span class="k">Prix de vente</span><b>259 000 DT</b></div>
+      <div><span class="k">Surface habitée</span><b>111 m²</b></div>
+      <div><span class="k">Type</span><b>S+2 (3 pièces)</b></div>
+      <div><span class="k">Type</span><b>Vente — immeuble neuf</b></div>
+      <div><span class="k">Étage</span><b>2ᵉ sur 5, avec ascenseur</b></div>
+      <div><span class="k">Parking</span><b>1 place</b></div>
+      <div><span class="k">Chauffage</span><b>Central (radiateurs)</b></div>
+      <div><span class="k">Climatisation</span><b>2 turbines split</b></div>
+      <div><span class="k">Statut</span><b>Disponible pour visite</b></div>
+      <div><span class="k">Réduction</span><b>269 000 → 259 000 DT (−4 %)</b></div>
+    </div>
+
+    <h2 style="margin-top:1.5rem">Description</h2>
+    <p style="text-align:justify;font-size:.95rem">
+      Appartement S+2 de 111 m² à Aouina, rue de la Muraille, au 2ᵉ étage avec ascenseur d'un immeuble
+      récent. Séjour lumineux ouvert sur balcon de 8 m², deux chambres avec placards intégrés, cuisine
+      équipée moderne, salle de bains avec double vasque et un parking en sous-sol inclus dans le prix.
+      Chauffage central et deux climatiseurs split. Proximité : écoles internationales, pôle médical,
+      commerces et accès autoroute à 10 minutes.
+    </p>
+
+    <h2 style="margin-top:1.5rem">Emplacement approximatif</h2>
+    <div style="height:150px;border-radius:8px;background:linear-gradient(120deg,#dfe9e2,#c4d7cb);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.85rem">
+      (carte statique du bien — direction Aouina, Grand Tunis)
+    </div>
+
+    <div class="pdf-footer">
+      <div>
+        <b>Contact agence</b><br>
+        Emerald Immobilier — 47 avenue des Ruelles, Les Berges du Lac 1053 Tunis<br>
+        Tél&nbsp;: <b>+216 71 000 000</b> · WhatsApp&nbsp;: <b>+216 55 340 210</b><br>
+        E-mail&nbsp;: contact@emerald-immobilier.tn
+      </div>
+      <div style="text-align:right">
+        <div>Généré le 28/10/2026 — réf. 0201</div>
+        <div style="color:#9aa39d;margin-top:.3rem">Document informatif — les caractéristiques donnent lieu à la visite.</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="assets/demo.js"></script>
+</body>
+</html>

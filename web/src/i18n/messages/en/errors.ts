@@ -8,6 +8,7 @@ export const errors: typeof fr = {
   ownershipOverlap: 'This owner already holds this unit over this period.',
   endBeforeStart: 'The end date must come after the start date.',
   invalidStorageFile: 'This file cannot be attached. Upload it again.',
+  unitNotDeletable: 'This unit is tied to a lease, an owner or a request: archive it instead of deleting it.',
   unitCodeTaken: (code) => `Reference ${code} already exists in this property.`,
   unitCodeTakenGeneric: 'This reference already exists in this property.',
   leaseOverlap: (lease) => `This unit is already rented over this period (lease No. ${lease}).`,

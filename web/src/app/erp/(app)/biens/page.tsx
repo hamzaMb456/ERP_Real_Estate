@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Building2, ChevronDown, Map as MapIcon, MapPin, Plus, Search, SearchX } from '@/components/icons';
+import { Archive, ArchiveRestore, Building2, ChevronDown, Map as MapIcon, MapPin, MoreHorizontalIcon, Pencil, Plus, Search, SearchX, Trash2 } from '@/components/icons';
+import { toast } from 'sonner';
 import { StatusBadge } from '@/components/domain/badges';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { StorageImage } from '@/components/files/storage-image';
 import { SkeletonList, Stagger, StaggerItem } from '@/components/motion/primitives';
 import { PageHeader } from '@/components/page-header';
@@ -11,13 +13,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { FieldHelp } from '@/components/field-help';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { toUserMessage } from '@/lib/errors';
 import { formatArea, formatTnd } from '@/lib/format';
+import { graphql } from '@/lib/graphql';
 import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 
@@ -75,11 +80,30 @@ type Property = {
   units: Unit[];
 };
 
+const SET_PROPERTY_ARCHIVED = `
+  mutation SetPropertyArchived($id: uuid!, $archived_at: timestamptz) {
+    update_properties_by_pk(pk_columns: { id: $id }, _set: { archived_at: $archived_at }) { id }
+  }
+`;
+
+const UPDATE_UNIT = `
+  mutation UpdateUnit($id: uuid!, $set: units_set_input!) {
+    update_units_by_pk(pk_columns: { id: $id }, _set: $set) { id }
+  }
+`;
+
+const DELETE_UNIT = `
+  mutation DeleteUnit($id: uuid!) {
+    delete_units_by_pk(pk_columns: { id: $id }) { id }
+  }
+`;
+
 type StatusFilter = 'all' | 'rented' | 'vacant' | 'for_sale' | 'under_maintenance';
 
 
 export default function BiensPage() {
   const t = useT();
+  const [reload, setReload] = useState(0);
   const chips: { value: StatusFilter; label: string }[] = [
     { value: 'all', label: t.properties.list.statusAll },
     { value: 'rented', label: t.properties.list.statusRented },
@@ -87,7 +111,7 @@ export default function BiensPage() {
     { value: 'for_sale', label: t.properties.list.statusForSale },
     { value: 'under_maintenance', label: t.properties.list.statusUnderMaintenance },
   ];
-  const result = useGraphql<{ properties: Property[] }>(PROPERTIES_QUERY);
+  const result = useGraphql<{ properties: Property[] }>(PROPERTIES_QUERY, undefined, reload);
   const [search, setSearch] = useState('');
   const [city, setCity] = useState('all');
   const [type, setType] = useState('all');
@@ -97,8 +121,41 @@ export default function BiensPage() {
   const [owner, setOwner] = useState('all');
   const canEdit = useCanEdit();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [deleting, setDeleting] = useState<Unit | null>(null);
 
   const properties = useMemo(() => (result.status === 'success' ? result.data.properties : []), [result]);
+  const refetch = () => setReload((value) => value + 1);
+
+  async function togglePropertyArchive(property: Property) {
+    try {
+      await graphql(SET_PROPERTY_ARCHIVED, { id: property.id, archived_at: property.archived_at ? null : new Date().toISOString() });
+      toast.success(property.archived_at ? t.properties.detail.restoredToast : t.properties.detail.archivedToast, { description: property.name });
+      refetch();
+    } catch (error) {
+      toast.error(t.properties.detail.actionFailed, { description: toUserMessage(error) });
+    }
+  }
+
+  async function toggleUnitArchive(unit: Unit) {
+    try {
+      await graphql(UPDATE_UNIT, { id: unit.id, set: { archived_at: unit.archived_at ? null : new Date().toISOString() } });
+      toast.success(unit.archived_at ? t.properties.unit.restoredToast : t.properties.unit.archivedToast, { description: unit.code });
+      refetch();
+    } catch (error) {
+      toast.error(t.properties.unit.updateFailed, { description: toUserMessage(error) });
+    }
+  }
+
+  // Backend is authoritative: it refuses a unit a lease, an owner or a request still references.
+  async function removeUnit(unit: Unit) {
+    try {
+      await graphql(DELETE_UNIT, { id: unit.id });
+      toast.success(t.properties.unit.deletedToast, { description: unit.code });
+      refetch();
+    } catch (error) {
+      toast.error(t.properties.unit.updateFailed, { description: toUserMessage(error) });
+    }
+  }
 
   const cities = [...new Set(properties.map((property) => property.city).filter((value): value is string => !!value))];
   const branches = [
@@ -366,6 +423,27 @@ export default function BiensPage() {
                           <p className="text-xs text-muted-foreground">{t.properties.list.monthlyRent}</p>
                         </div>
                         {occupancy !== null && <StatusBadge status="rented" label={t.properties.list.rentedPercent(occupancy)} />}
+                        {canEdit && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon-sm" aria-label={t.common.actions}>
+                                <MoreHorizontalIcon />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={'/erp/biens/' + property.id + '/modifier'}>
+                                  <Pencil />
+                                  {t.common.edit}
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => void togglePropertyArchive(property)}>
+                                {property.archived_at ? <ArchiveRestore /> : <Archive />}
+                                {property.archived_at ? t.properties.detail.restore : t.properties.detail.archive}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                         <CollapsibleTrigger asChild>
                           <Button variant="ghost" size="icon-sm" aria-label={open ? t.properties.list.collapse(property.name) : t.properties.list.expand(property.name)}>
                             <ChevronDown className={'transition-transform duration-200 ' + (open ? 'rotate-180' : '')} />
@@ -385,6 +463,7 @@ export default function BiensPage() {
                           <TableHead className="hidden sm:table-cell">{t.properties.list.colSurface}</TableHead>
                           <TableHead className="text-end">{t.properties.list.colRent}</TableHead>
                           <TableHead className="pe-4">{t.properties.list.colStatus}</TableHead>
+                          {canEdit && <TableHead className="pe-4"><span className="sr-only">{t.common.actions}</span></TableHead>}
                         </TableRow>
                       </TableHeader>
                       <tbody className="[&_tr:last-child]:border-0">
@@ -410,11 +489,43 @@ export default function BiensPage() {
                             <TableCell className="pe-4">
                               <StatusBadge status={unit.status} />
                             </TableCell>
+                            {canEdit && (
+                              <TableCell className="pe-4 text-end">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon-sm" aria-label={t.common.actions}>
+                                      <MoreHorizontalIcon />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem asChild>
+                                      <Link href={'/erp/biens/' + property.id + '/unites/' + unit.id + '#modifier'}>
+                                        <Pencil />
+                                        {t.common.edit}
+                                      </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => void toggleUnitArchive(unit)}>
+                                      {unit.archived_at ? <ArchiveRestore /> : <Archive />}
+                                      {unit.archived_at ? t.properties.detail.restore : t.properties.detail.archive}
+                                    </DropdownMenuItem>
+                                    {unit.status !== 'rented' && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem variant="destructive" onClick={() => setDeleting(unit)}>
+                                          <Trash2 />
+                                          {t.common.delete}
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))}
                         {units.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
+                            <TableCell colSpan={canEdit ? 8 : 7} className="py-8 text-center text-sm text-muted-foreground">
                               {t.properties.list.noUnits}
                             </TableCell>
                           </TableRow>
@@ -427,6 +538,16 @@ export default function BiensPage() {
             </StaggerItem>
           );
         })}
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={t.properties.unit.deleteTitle}
+        description={t.properties.unit.deleteBody(deleting?.code ?? '')}
+        onConfirm={async () => {
+          if (deleting) await removeUnit(deleting);
+        }}
+      />
     </Stagger>
   );
 }

@@ -1,0 +1,129 @@
+{
+  "nodes": [
+    {
+      "id": "tsconfig_pathAlias",
+      "label": "TypeScript '@/*' path alias to ./src",
+      "file_type": "code",
+      "source_file": "web/tsconfig.json",
+      "source_location": "compilerOptions.paths",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tsconfig_nextPlugin",
+      "label": "Next.js TypeScript plugin (next-env, .next types)",
+      "file_type": "code",
+      "source_file": "web/tsconfig.json",
+      "source_location": "compilerOptions.plugins / include",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "vitest_config_srcAlias",
+      "label": "Vitest resolve alias '@' -> ./src",
+      "file_type": "code",
+      "source_file": "web/vitest.config.ts",
+      "source_location": "resolve.alias",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "vitest_config_jsdomSetup",
+      "label": "jsdom test environment with src/test/setup.ts",
+      "file_type": "code",
+      "source_file": "web/vitest.config.ts",
+      "source_location": "test.environment / test.setupFiles",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "vitest_config_coverageTargets",
+      "label": "Coverage-guarded src/lib business logic and src/theme engine modules",
+      "file_type": "code",
+      "source_file": "web/vitest.config.ts",
+      "source_location": "test.coverage.include",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "vitest_config_coverageThresholds",
+      "label": "Global 80% coverage thresholds (lines/functions/branches/statements)",
+      "file_type": "code",
+      "source_file": "web/vitest.config.ts",
+      "source_location": "test.coverage.thresholds",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "vitest_config_srcAlias",
+      "target": "tsconfig_pathAlias",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "web/vitest.config.ts",
+      "source_location": "resolve.alias vs compilerOptions.paths",
+      "weight": 1.0
+    },
+    {
+      "source": "vitest_config_coverageTargets",
+      "target": "vitest_config_coverageThresholds",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "web/vitest.config.ts",
+      "source_location": "test.coverage",
+      "weight": 1.0
+    },
+    {
+      "source": "vitest_config_jsdomSetup",
+      "target": "vitest_config_coverageTargets",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "web/vitest.config.ts",
+      "source_location": "test block",
+      "weight": 1.0
+    },
+    {
+      "source": "tsconfig_nextPlugin",
+      "target": "tsconfig_pathAlias",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.6,
+      "source_file": "web/tsconfig.json",
+      "source_location": "compilerOptions",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "web_test_coverage_pipeline",
+      "label": "Web Vitest coverage enforcement pipeline (jsdom setup -> guarded lib/theme modules -> 80% thresholds)",
+      "nodes": [
+        "vitest_config_jsdomSetup",
+        "vitest_config_coverageTargets",
+        "vitest_config_coverageThresholds"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "web/vitest.config.ts"
+    }
+  ],
+  "input_tokens": 1200,
+  "output_tokens": 850
+}

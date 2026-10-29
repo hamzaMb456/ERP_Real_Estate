@@ -21,6 +21,7 @@ export function toUserMessage(error: unknown, context: ErrorContext = {}): strin
   if (message.includes('ownerships_no_overlap')) return t.ownershipOverlap;
   if (message.includes('ownerships_dates_check')) return t.endBeforeStart;
   if (message.includes('invalid_storage_file')) return t.invalidStorageFile;
+  if (message.includes('unit_not_deletable')) return t.unitNotDeletable;
   if (message.includes('units_property_id_code_key')) {
     return context.unitCode ? t.unitCodeTaken(context.unitCode) : t.unitCodeTakenGeneric;
   }

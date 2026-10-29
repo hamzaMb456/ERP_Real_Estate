@@ -1,0 +1,9 @@
+web/public/art/photos/content-tunis-skyline.webp
+web/public/art/photos/header-afdb-tunis.webp
+web/public/art/photos/sidebar-bvmt-tunis.webp
+web/public/file.svg
+web/public/globe.svg
+web/public/next.svg
+web/public/site/hero.svg
+web/public/vercel.svg
+web/public/window.svg

@@ -59,7 +59,9 @@ export function PropertyOverview({ property, units }: { property: PropertyDetail
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {address ? <p className="font-medium">{address}</p> : <p className="text-muted-foreground">{t.properties.overview.noAddress}</p>}
-            {property.latitude !== null && property.longitude !== null ? (
+            {/* A missing column arrives as `undefined` (dropped by JSON), not `null`; only a real,
+                parseable position may reach the map or Leaflet crashes on NaN. */}
+            {Number.isFinite(Number(property.latitude)) && Number.isFinite(Number(property.longitude)) ? (
               <LocationPicker value={{ lat: Number(property.latitude), lon: Number(property.longitude) }} className="h-48" />
             ) : (
               <Button asChild variant="outline" size="sm">

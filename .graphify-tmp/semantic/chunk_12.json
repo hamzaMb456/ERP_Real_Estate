@@ -1,0 +1,178 @@
+{
+  "nodes": [
+    {
+      "id": "hero_EmeraldImmobilierHeroIllustration",
+      "label": "Emerald Immobilier Hero Illustration (code-drawn SVG)",
+      "file_type": "image",
+      "source_file": "web/public/site/hero.svg",
+      "source_location": "svg root comment",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "content_tunis_skyline_Panorama",
+      "label": "Tunis Medina Skyline Panorama Photo",
+      "file_type": "image",
+      "source_file": "web/public/art/photos/content-tunis-skyline.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "header_afdb_tunis_BuildingPhoto",
+      "label": "African Development Bank (AfDB) Tunis Office Banner Photo",
+      "file_type": "image",
+      "source_file": "web/public/art/photos/header-afdb-tunis.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "sidebar_bvmt_tunis_StockExchangePhoto",
+      "label": "BVMT (Tunis Stock Exchange) Headquarters Photo",
+      "file_type": "image",
+      "source_file": "web/public/art/photos/sidebar-bvmt-tunis.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "file_svg_NextStarterIcon",
+      "label": "Next.js Starter File Icon (file.svg)",
+      "file_type": "image",
+      "source_file": "web/public/file.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "globe_svg_NextStarterIcon",
+      "label": "Next.js Starter Globe Icon (globe.svg)",
+      "file_type": "image",
+      "source_file": "web/public/globe.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "next_svg_NextLogo",
+      "label": "Next.js Wordmark Logo (next.svg)",
+      "file_type": "image",
+      "source_file": "web/public/next.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "vercel_svg_VercelLogo",
+      "label": "Vercel Triangle Logo (vercel.svg)",
+      "file_type": "image",
+      "source_file": "web/public/vercel.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "window_svg_NextStarterIcon",
+      "label": "Next.js Starter Window Icon (window.svg)",
+      "file_type": "image",
+      "source_file": "web/public/window.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "content_tunis_skyline_Panorama",
+      "target": "header_afdb_tunis_BuildingPhoto",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "web/public/art/photos/content-tunis-skyline.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "header_afdb_tunis_BuildingPhoto",
+      "target": "sidebar_bvmt_tunis_StockExchangePhoto",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "web/public/art/photos/header-afdb-tunis.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "content_tunis_skyline_Panorama",
+      "target": "sidebar_bvmt_tunis_StockExchangePhoto",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.7,
+      "source_file": "web/public/art/photos/content-tunis-skyline.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "hero_EmeraldImmobilierHeroIllustration",
+      "target": "content_tunis_skyline_Panorama",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.6,
+      "source_file": "web/public/site/hero.svg",
+      "source_location": "svg root comment",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "tunisia_site_branding_imagery",
+      "label": "Tunisia-Themed Site Branding Imagery",
+      "nodes": [
+        "hero_EmeraldImmobilierHeroIllustration",
+        "content_tunis_skyline_Panorama",
+        "header_afdb_tunis_BuildingPhoto",
+        "sidebar_bvmt_tunis_StockExchangePhoto"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "web/public/art/photos/content-tunis-skyline.webp"
+    },
+    {
+      "id": "nextjs_starter_placeholder_assets",
+      "label": "Next.js Starter Placeholder Assets",
+      "nodes": [
+        "file_svg_NextStarterIcon",
+        "globe_svg_NextStarterIcon",
+        "next_svg_NextLogo",
+        "vercel_svg_VercelLogo",
+        "window_svg_NextStarterIcon"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "web/public/next.svg"
+    }
+  ],
+  "input_tokens": 9500,
+  "output_tokens": 1400
+}

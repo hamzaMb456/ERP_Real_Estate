@@ -7,7 +7,7 @@ import { fail } from '../../domain/errors.ts';
 import { leaseOverview } from '../../domain/lease-overview.ts';
 import type { Lease } from '../../domain/lease-rules.ts';
 import {
-  createCommonArea, createProperty, createUnit, deleteCommonArea, saveShares, updateCommonArea, updateProperty, updateUnit,
+  createCommonArea, createProperty, createUnit, deleteCommonArea, deleteUnit, saveShares, updateCommonArea, updateProperty, updateUnit,
 } from '../../domain/places.ts';
 import { recordGaps } from '../../domain/record-gaps.ts';
 import { matches, sortRows } from '../query-eval.ts';
@@ -87,7 +87,7 @@ export const placeOps: Record<string, Op> = {
     return {
       property: {
         id: p.id, name: p.name, type: p.type, address_line: p.address_line, city: p.city, governorate: p.governorate,
-        postal_code: p.postal_code, latitude: p.latitude, longitude: p.longitude, archived_at: p.archived_at,
+        postal_code: p.postal_code, latitude: p.latitude ?? null, longitude: p.longitude ?? null, archived_at: p.archived_at,
         branch: branch ? { id: branch.id, name: branch.name } : null,
         owners: [...owners.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => {
           const contact = contacts.get(id);
@@ -200,6 +200,10 @@ export const placeOps: Record<string, Op> = {
   RestoreProperty: mutation(WRITERS, async (c, v) => ({ update_properties_by_pk: { id: (await updateProperty(c, str(v.id), { archived_at: null })).id } })),
   AddUnit: mutation(WRITERS, async (c, v) => ({ insert_units_one: { id: (await createUnit(c, v.object as Item)).id } })),
   UpdateUnit: mutation(WRITERS, async (c, v) => ({ update_units_by_pk: { id: (await updateUnit(c, str(v.id), v.set as Item)).id } })),
+  DeleteUnit: mutation(WRITERS, async (c, v) => {
+    await deleteUnit(c, str(v.id));
+    return { delete_units_by_pk: { id: str(v.id) } };
+  }),
   SetUnitVisibility: mutation(WRITERS, async (c, v) => ({ update_units_by_pk: { id: (await updateUnit(c, str(v.id), { show_on_website: Boolean(v.show) })).id } })),
   SaveShares: mutation(WRITERS, async (c, v) => {
     const updates = (v.updates as { where: { id: { _eq: string } }; _set: { common_share: number | null } }[]).map((u) => {

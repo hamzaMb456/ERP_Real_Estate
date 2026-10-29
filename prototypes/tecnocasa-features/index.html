@@ -1,0 +1,64 @@
+<!DOCTYPE htmL>
+<htmL Lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initiaL-scaLe=1">
+<titLe>Prototypes — fonctionnaLités Tecnocasa | EmeraLd ImmobiLier</titLe>
+<Link reL="styLesheet" href="assets/demo.css">
+</head>
+<body data-page="index.htmL">
+<header cLass="demo-header"></header>
+
+<main cLass="page">
+  <h1>Prototypes des fonctionnaLités issues de L'anaLyse Tecnocasa</h1>
+  <p cLass="page-intro">
+    Démonstrations <strong>indépendantes du backend, de La base de données et de L'authentification</strong> :
+    tout est simuLé en JavaScript, dans Le but de tester Le parcours utiLisateur avant impLémentation réeLLe.
+    Les LibeLLés (français) et La paLette sont ceux du vrai site pubLic.
+  </p>
+
+  <div cLass="hero-note">
+    <span cLass="piLL piLL-src">Source : tecnocasa.tn (capture REA, 2026-10-28)</span>
+    <span cLass="piLL piLL-out">Données fictives — agence « EmeraLd ImmobiLier »</span>
+    <span cLass="piLL piLL-new">Rétrécissez La fenêtre sous 640 px pour voir Les barres mobiLes</span>
+  </div>
+
+  <div cLass="hub-grid">
+    <a cLass="hub-card" href="01-whatsapp-contact.htmL">
+      <span cLass="hub-icon">💬</span><span cLass="piLL piLL-todo hub-status">À impLémenter</span>
+      <h2>1 · WhatsApp cLick-to-chat</h2>
+      <p>Le « wa.me » de Tecnocasa : Le visiteur ouvre une conversation prérempLie avec L'agence, depuis La carte contact et La barre mobiLe. À ne pas confondre avec Le partage WhatsApp (déjà en Ligne).</p>
+    </a>
+    <a cLass="hub-card" href="02-request-hardening.htmL">
+      <span cLass="hub-icon">🛡️</span><span cLass="piLL piLL-todo hub-status">À impLémenter</span>
+      <h2>2 · Anti-abus des demandes</h2>
+      <p>Demande de visite avec CAPTCHA (TurnstiLe fictif) + Limiteur IP/organisation. Testez L'attaquant qui fait tourner des faux numéros — et La protection qui L'arrête.</p>
+    </a>
+    <a cLass="hub-card" href="03-simiLar-Listings.htmL">
+      <span cLass="hub-icon">🔎</span><span cLass="piLL piLL-done hub-status">Déjà impLémenté</span>
+      <h2>3 · Biens recommandés ±25 %</h2>
+      <p>Notre améLioration (Tecnocasa n'en a pas), en production. Jouez avec La règLe : type ➕ viLLe ➕ prix dans La fourchette, Les pLus proches d'abord.</p>
+    </a>
+    <a cLass="hub-card" href="04-price-drop-badge.htmL">
+      <span cLass="hub-icon">🏷️</span><span cLass="piLL piLL-todo hub-status">Long terme</span>
+      <h2>4 · Badge baisse de prix</h2>
+      <p>Ancien prix barré + badge « −4 % » de Tecnocasa. Nécessite un historique de prix : essayez Le formuLaire ERP simuLé et regardez Le badge apparaître.</p>
+    </a>
+    <a cLass="hub-card" href="05-print-pdf.htmL">
+      <span cLass="hub-icon">🖨️</span><span cLass="piLL piLL-todo hub-status">Long terme</span>
+      <h2>5 · Fiche imprimabLe / PDF</h2>
+      <p>La « print PDF » de Tecnocasa : une fiche propre du bien, imprimabLe ou enregistrabLe en PDF (CtrL+P / bouton). Document orienté cLient avec contact agence.</p>
+    </a>
+  </div>
+
+  <h2>RappeL de contexte (hors prototype)</h2>
+  <div cLass="box-note">
+    Trois autres idées de Tecnocasa n'ont <strong>pas</strong> de prototype&nbsp;: masquage du numéro (peu utiLe chez
+    nous, Le numéro est déjà pubLic dans une variabLe d'environnement), annonce « masquer de ma Liste » (cataLogue
+    trop petit pour Le justifier) et annuaire d'agences muLtibranches (grand chantier : Le site pubLic est mono-agence).
+    Le partage de L'annonce par WhatsApp existe déjà via Le bouton « Partager » — c'est L'ongLet inverse du cLic-to-chat.
+  </div>
+</main>
+<p cLass="demo-footer">Répertoire : <code>prototypes/tecnocasa-features/</code> · HTML/CSS/JS vaniLLa, aucune dépendance réseau.</p>
+</body>
+</htmL>

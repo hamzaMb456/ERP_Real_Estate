@@ -1,0 +1,9 @@
+{
+  "excludes": [
+    ".graphify-tmp/",
+    ".graphify-tmp/**",
+    "ai-job-search/",
+    "ai-job-search/**"
+  ],
+  "gitignore": true
+}

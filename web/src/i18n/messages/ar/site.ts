@@ -285,8 +285,8 @@ export const site = {
       soon: 'تقديم الملف عبر الإنترنت قريبًا.',
     },
     similar: {
-      title: 'عقارات مشابهة',
-      titleInCity: (city: string) => `عقارات مشابهة في ${city}`,
+      title: 'عقارات موصى بها',
+      titleInCity: (city: string) => `عقارات موصى بها في ${city}`,
       subtitle: 'مختارات من المساكن القريبة من حيث الموقع والسعر.',
       all: 'عرض كل الإعلانات',
     },

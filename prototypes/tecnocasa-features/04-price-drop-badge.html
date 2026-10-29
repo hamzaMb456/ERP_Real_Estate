@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4 · Badge baisse de prix | Prototypes Emerald Immobilier</title>
+<link rel="stylesheet" href="assets/demo.css">
+<style>
+  .erp-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1.2rem; align-items:start; }
+  @media (max-width: 900px) { .erp-grid { grid-template-columns:1fr; } }
+  .sale-price-row { display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; }
+  .sale-price-row .new { font-size:1.9rem; font-weight:800; color:var(--primary); font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body data-page="04-price-drop-badge.html">
+<header class="demo-header"></header>
+
+<main class="page">
+  <div class="hero-note">
+    <span class="pill pill-todo">Long terme 🏷️</span>
+    <span class="pill pill-src">Tecnocasa : ancien prix barré 269 000 DT + badge « (-4 %) » avec flèche vers le bas</span>
+  </div>
+  <h1>Baisse de prix affichée comme un argument de vente</h1>
+  <p class="page-intro">
+    Tecnocasa transforme chaque réduction en argument : ancien prix barré + pourcentage remisé. Chez nous,
+    ce badge exige d'abord un <strong>historique de prix</strong> (table d'événements) — c'est la partie invisible,
+    là où se joue le travail réel. Regardez à droite le formulaire ERP simulé : notez un nouveau prix et les
+    deux côtés se mettent à jour.
+  </p>
+
+  <div class="erp-grid">
+    <!-- Site public : ce que voit le visiteur -->
+    <div>
+      <div class="card">
+        <h2 style="margin-top:0">Site public — ce que voit le visiteur</h2>
+        <div style="font-size:.72rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:.3rem">
+          REF 0201 · À vendre · Aouina
+        </div>
+        <div class="sale-price-row">
+          <span class="new" id="publicNew">259 000 DT</span>
+          <span id="publicOldWrap">
+            <span class="price-old" id="publicOld"></span>
+            <span class="price-drop-badge" id="publicBadge" hidden>▼ <b id="publicPct">0</b> %</span>
+          </span>
+        </div>
+        <div style="font-size:.78rem;color:var(--muted);margin:.4rem 0 1rem">S+2 · 111 m² · Rue de la Muraille, Aouina</div>
+
+        <h3>L'équivalent Tecnocasa</h3>
+        <p style="font-size:.88rem">
+          <span class="price-old" style="font-size:1rem">269 000 DT</span>
+          <span style="font-size:1.2rem;font-weight:800">259 000 DT</span>
+          <span class="price-drop-badge">▼ 4 %</span>
+          <span class="chip" style="margin-left:.4rem">Bas prix</span>
+        </p>
+        <div class="box-note">
+          Le badge n'apparaît <strong>que</strong> s'il existe un prix antérieur enregistré. Une annonce jamais
+          révisée ne montre rien de plus que son prix — <code>hidden</code> sur le badge ci-dessus.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Cartes de liste — où le badge se voit vraiment</h2>
+        <p style="font-size:.85rem;color:var(--muted);margin-top:0">
+          Sur le site réel, le visiteur passe surtout par les <em>grilles</em> / <em>vues catalogues</em> :
+          une réduction de prix est ainsi un aimant de clics.
+        </p>
+        <div class="cards-grid" id="cardsRow"></div>
+      </div>
+    </div>
+
+    <!-- ERP : le geste qui crée l'historique -->
+    <div>
+      <div class="card">
+        <h2 style="margin-top:0">ERP (simulé) — enregistrer une révision de prix</h2>
+        <p style="font-size:.85rem;color:var(--muted)">Phase invisible côté visiteur : l'agent met à jour le prix du bien, et chaque révision devient un événement d'historique.</p>
+        <div class="field">
+          <label for="np">Nouveau prix de vente (DT)</label>
+          <input type="text" id="np" inputmode="numeric" dir="ltr" value="259 000">
+          <p class="hint" id="npHint">Règle de garde en démo : le nouveau prix doit être différent du prix en ligne (une hausse reste possible en ERP, mais elle ne déclenche pas de badge — seulement un «&nbsp;re-prix&nbsp;»).</p>
+        </div>
+        <div class="row">
+          <button class="btn btn-primary" id="applyPrice">Enregistrer la révision</button>
+          <button class="btn btn-ghost" id="freshListing">Voir une annonce jamais révisée</button>
+          <button class="btn btn-ghost" id="rebaseline">Remettre à la mise en ligne</button>
+        </div>
+
+        <h3>Historique du bien (REF 0201)</h3>
+        <div class="timeline" id="hist"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Détail de l'implémentation</h2>
+        <table>
+          <tr><th>Ça touche quoi ?</th><th>Où</th></tr>
+          <tr><td>Nouvelle table d'historique</td><td>ex. <code>listing_price_events</code> (quand, prix, auteur, note)</td></tr>
+          <tr><td>Écriture</td><td>unité/administration ERP, à chaque changement de prix de la fiche</td></tr>
+          <tr><td>Lecture</td><td>fiche + grille publiques : ancien prix barré + % si révision à la baisse</td></tr>
+          <tr><td>Anti-gadget</td><td>un seul ancien prix affiché (le dernier «&nbsp;haut&nbsp;»), pas de gadget visuel</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="assets/demo.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let listing = STORE.find((l) => l.id === 'L-0201');
+  let events = listing.priceEvents.map((e) => ({ ...e }));
+
+  const fr = (n) => n.toLocaleString('fr-TN').replace(/,/g, ' ') + ' DT';
+
+  function renderPublic() {
+    const current = events.length ? events[events.length - 1].price : listing.oldPrice;
+    const previous = events.length > 1 ? events[events.length - 2].price : null;
+    $('publicNew').textContent = fr(current);
+    if (previous && previous > current) {
+      const pct = Math.round(((previous - current) / previous) * 100);
+      $('publicOld').textContent = fr(previous);
+      $('publicPct').textContent = pct;
+      $('publicBadge').hidden = false;
+    } else {
+      $('publicOld').textContent = '';
+      $('publicBadge').hidden = true;
+    }
+  }
+  function renderHistory() {
+    $('hist').innerHTML = events.length
+      ? events.slice().reverse().map((e) => `
+          <div class="event ${e.drop ? 'drop' : ''}">
+            <b>${e.label}</b> — ${fr(e.price)}
+            <span class="when">${e.when}</span>
+          </div>`).join('')
+      : '<p style="font-size:.85rem;color:var(--muted)">Aucun prix enregistré (fiche jamais révisée).</p>';
+  }
+  function renderCardsRow() {
+    const current = events.length ? events[events.length - 1].price : listing.oldPrice;
+    const previous = events.length > 1 ? events[events.length - 2].price : null;
+    $('cardsRow').innerHTML = [
+      `<article class="listing-card selected"><div class="listing-photo">PHOTOS REF 0201</div>
+        <div class="listing-body">
+          <span class="listing-kind">À vendre · Aouina</span>
+          <span class="listing-title">S+2 en vente</span>
+          <span class="listing-city">Aouina · 111 m² · 3 pièces</span>
+          <span class="chips">
+            ${previous && previous > current ? `<span class="price-old">${fr(previous)}</span><span class="listing-price" style="margin:0">${fr(current)}</span><span class="price-drop-badge">▼ ${Math.round(((previous - current) / previous) * 100)} %</span>` : `<span class="listing-price">${fr(current)}</span>`}
+          </span>
+        </div></article>`
+    ].join('');
+  }
+
+  $('applyPrice').addEventListener('click', () => {
+    const raw = $('np').value.replace(/[^\d]/g, '');
+    const value = Number(raw);
+    const current = events.length ? events[events.length - 1].price : listing.oldPrice;
+    if (!value) { $('np').classList.add('invalid'); return; }
+    $('np').classList.remove('invalid');
+    if (value === current) {
+      toast('Aucun changement : l\'ERP refuse un prix identique au prix en ligne.'); return;
+    }
+    const isDrop = value < current;
+    events.push({
+      when: new Date().toLocaleDateString('fr-TN'),
+      price: value,
+      label: isDrop ? 'Réduction' : 'Hausse',
+      drop: isDrop,
+    });
+    renderAll();
+    toast(isDrop
+      ? `Réduction enregistrée : badge « −${Math.round(((current - value) / current) * 100)} % » visible côté public.`
+      : 'Hausse enregistrée : pas de badge (le badge ne couvre que les baisses, comme chez Tecnocasa).');
+  });
+
+  $('freshListing').addEventListener('click', () => {
+    events = [{ when: '12/01/2026', price: 259000, label: 'Mise en ligne' }];
+    $('np').value = '259 000';
+    renderAll();
+    toast('Historique réduit au seul « mise en ligne » : l\'ancien prix barré disparaît.');
+  });
+  $('rebaseline').addEventListener('click', () => {
+    events = listing.priceEvents.map((e) => ({ ...e }));
+    $('np').value = '259 000';
+    renderAll();
+    toast('Historique restauré : 269 000 → 259 000, badge −4 %.');
+  });
+
+  function renderAll() { renderPublic(); renderHistory(); renderCardsRow(); }
+  renderAll();
+</script>
+</body>
+</html>

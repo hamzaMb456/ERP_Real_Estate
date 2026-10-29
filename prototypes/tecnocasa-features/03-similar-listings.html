@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3 · Biens similaires ±25 % | Prototypes Emerald Immobilier</title>
+<link rel="stylesheet" href="assets/demo.css">
+<style>
+  .rules { display:flex; gap:.4rem; flex-wrap:wrap; margin:.8rem 0; }
+  .band-visual { background:#fff; }
+  .scale { position:relative; height:64px; margin:1.4rem .4rem .2rem; border-radius:8px; background:linear-gradient(90deg,#eef4f1,#dff0e8 34%,#bfe3d2 50%,#dff0e8 66%,#eef4f1); }
+  .scale .zone-labels { position:absolute; top:100%; left:0; right:0; display:flex; justify-content:space-between; font-size:.72rem; color:var(--muted); padding-top:.3rem; }
+  .scale .base-mark { position:absolute; top:-10px; bottom:-6px; left:50%; width:2px; background:var(--primary); }
+  .scale .base-mark::after { content:''; position:absolute; top:-9px; left:-4px; border:5px solid transparent; border-top-color:var(--primary); }
+  .result-bar { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:.8rem; }
+</style>
+</head>
+<body data-page="03-similar-listings.html">
+<header class="demo-header"></header>
+
+<main class="page">
+  <div class="hero-note">
+    <span class="pill pill-done">En production ✅</span>
+    <span class="pill pill-out">Notre propre idée — Tecnocasa n'a PAS de biens similaires (observation négative §8)</span>
+  </div>
+  <h1>Biens similaires — la règle ±25 % en action</h1>
+  <p class="page-intro">
+    Sur chaque fiche, une section « Biens recommandés » montre des annonces du même type (louer/vendre), de la même ville et à prix proche.
+    Cliquez sur une annonce ci-dessous pour en faire la fiche consultée, et jouez sur la fourchette de prix pour
+    comprendre la règle. C'est une réplique fidèle du code réel (<code>web/src/lib/site/similar.ts</code>).
+  </p>
+
+  <div class="layout">
+    <div>
+      <div class="cards-grid" id="grid"></div>
+    </div>
+
+    <aside>
+      <div class="card band-visual">
+        <h2 style="margin-top:0">Règle appliquée</h2>
+        <div class="rules">
+          <span class="chip">✔ même type (louer/vendre)</span>
+          <span class="chip">✔ même ville (hors « ville inconnue »)</span>
+          <span class="chip">✔ prix dans ±<b id="bandPct">25</b>&nbsp;%</span>
+          <span class="chip">✔ jamais l'annonce elle-même</span>
+          <span class="chip">✔ les plus proches d'abord</span>
+          <span class="chip">✔ maximum 3</span>
+        </div>
+        <label style="font-size:.85rem;font-weight:700">Fourchette de prix : ±<b id="bandPct2">25</b> %
+          <input type="range" id="bandSlider" min="5" max="60" step="5" value="25" style="width:100%;accent-color:var(--primary)">
+        </label>
+
+        <div class="scale">
+          <div class="base-mark" id="baseMark"></div>
+        </div>
+        <div class="result-bar">
+          <span id="baseInfo" style="font-size:.85rem"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Résultat sur la fiche consultée</h2>
+        <p style="font-size:.85rem;color:var(--muted)">
+          Dans la vraie page <code>/logement/[id]</code>, ces annonces se retrouvent en bas de la fiche,
+          section «&nbsp;Biens recommandés à <em>{ville}</em>&nbsp;» — et l'échec de la requête ne casse jamais la fiche
+          (retour vide silencieux).
+        </p>
+        <div id="similarMini"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script src="assets/demo.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let baseId = STORE[0].id;   // annonce « consultée »
+  let band = 0.25;
+
+  function render() {
+    const base = STORE.find((x) => x.id === baseId);
+    const similarIds = new Set(pickSimilar(base, STORE, band, 3).map((x) => x.id));
+
+    $('grid').innerHTML = STORE.map((l) =>
+      listingCardHtml(l, l, {
+        selected: l.id === baseId,
+        similar: similarIds.has(l.id),
+        excluded: l.kind !== base.kind || !sameCity(l.city, base.city),
+      })
+    ).join('');
+
+    document.querySelectorAll('.listing-card').forEach((card) => {
+      card.addEventListener('click', () => { baseId = card.dataset.id; render(); });
+      card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); baseId = card.dataset.id; render(); } });
+    });
+
+    const kindFilter = STORE.filter((l) => l.kind === base.kind && sameCity(l.city, base.city) && l.id !== baseId);
+    const result = pickSimilar(base, STORE, band, 3);
+    $('baseInfo').innerHTML =
+      `Base : <b>${base.title}</b> (${tnd(base.price)}) — ${kindFilter.length} annonces du même type/ville, <b>${result.length} similaires</b>`;
+
+    $('similarMini').innerHTML = result.length
+      ? result.map((l) => `
+        <div style="display:flex;gap:.7rem;align-items:center;padding:.5rem 0;border-bottom:1px dashed var(--border);font-size:.85rem">
+          <span class="chip" style="background:var(--primary-soft)">${tnd(l.price)}${l.kind === 'rent' ? '/mois' : ''}</span>
+          <span style="flex:1"><b>${l.title}</b><br><span style="color:var(--muted)">${l.city} · ${l.surface} m²</span></span>
+        </div>`).join('')
+      : `<p style="font-size:.85rem;color:var(--muted)">Aucune annonce dans la fourchette : la section ne s'affiche pas (pas de «&nbsp;vide&nbsp;» laid).</p>`;
+
+    $('bandPct').textContent = Math.round(band * 100);
+    $('bandPct2').textContent = Math.round(band * 100);
+  }
+
+  $('bandSlider').addEventListener('input', (e) => { band = Number(e.target.value) / 100; render(); });
+  render();
+</script>
+</body>
+</html>

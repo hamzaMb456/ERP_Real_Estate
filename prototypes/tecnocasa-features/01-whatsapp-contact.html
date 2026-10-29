@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1 · WhatsApp click-to-chat | Prototypes Emerald Immobilier</title>
+<link rel="stylesheet" href="assets/demo.css">
+<style>
+  .fiche { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.4rem; align-items: start; }
+  @media (max-width: 900px) { .fiche { grid-template-columns: 1fr; } }
+  .fiche-photo { height: 260px; border-radius: var(--radius); background: linear-gradient(120deg, #9db8ac, #4d6c5c);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; letter-spacing: 2px; }
+  .facts { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+</style>
+</head>
+<body data-page="01-whatsapp-contact.html">
+<header class="demo-header"></header>
+
+<main class="page">
+  <div class="hero-note">
+    <span class="pill pill-new">Nouveau 💬 WhatsApp contact</span>
+    <span class="pill pill-src">Tecnocasa : &lt;a href="https://wa.me/+21628600115"&gt; dans .whatsapp</span>
+  </div>
+  <h1>WhatsApp click-to-chat avec l'agence</h1>
+  <p class="page-intro">
+    Sur la fiche d'un bien, une ligne « WhatsApp » s'ajoute au bloc contact (téléphone / e-mail) et un bouton
+    apparaît dans la barre collante mobile. Le clic ouvre une conversation <strong>préremplie</strong> avec l'agence.
+    C'est <strong>contact agent</strong> ; le <em>partage</em> de l'annonce (déjà en ligne) reste dans le menu « Partager ».
+  </p>
+
+  <div class="fiche">
+    <!-- Colonne gauche : fiche (contexte) -->
+    <div>
+      <div class="card">
+        <div class="fiche-photo">PHOTOS DU BIEN · REF 0007</div>
+        <div class="facts">
+          <span class="chip">À louer</span>
+          <span class="chip">Aouina</span>
+          <span class="chip">3 pièces</span>
+          <span class="chip">95 m²</span>
+          <span class="chip">Rangée neuve · meublé</span>
+        </div>
+        <h2 style="margin-top:.6rem">S+2 neuf avec terrasse</h2>
+        <p style="color:var(--muted);font-size:.9rem;margin:0">
+          Appartement S+2 neuf à Aouina : séjour lumineux, cuisine équipée, terrasse, parking.
+          Disponible dès décembre. Visite sous 48 h sur prise de rendez-vous.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top:0">Bloc contact — avec WhatsApp</h2>
+        <p style="font-size:.85rem;color:var(--muted);margin-top:0">
+          Le même bloc « Une question ? » que sur le site réel, + la troisième ligne.
+          <strong>Survolez / cliquez</strong> pour tester.
+        </p>
+        <div class="contact-links" id="contactBlock">
+          <a class="contact-link" href="tel:+21671000000">
+            <span class="icon">☐</span>
+            <span><span class="label">Téléphone&nbsp;: </span><span class="value" dir="ltr">+216 71 000 000</span></span>
+          </a>
+          <a class="contact-link" href="mailto:contact@emerald-immobilier.tn">
+            <span class="icon">✉</span>
+            <span><span class="label">E-mail&nbsp;: </span><span class="value">contact@emerald-immobilier.tn</span></span>
+          </a>
+          <a class="contact-link is-whatsapp" href="#" id="waContactLink" data-testid="whatsapp-contact">
+            <span class="icon"></span>
+            <span><span class="label">WhatsApp&nbsp;: </span><span class="value" dir="ltr">+216 55 340 210</span></span>
+          </a>
+        </div>
+
+        <h3>Mode dégradé (numéro non configuré)</h3>
+        <div class="row">
+          <label style="display:flex;gap:.5rem;align-items:center;font-size:.85rem">
+            <input type="checkbox" id="cfgToggle" checked>
+            <code>NEXT_PUBLIC_AGENCY_WHATSAPP</code> configurée
+          </label>
+        </div>
+        <p style="font-size:.8rem;color:var(--muted)">
+          Décochez pour voir le comportement sans la variable : la ligne WhatsApp disparaît, phone/e-mail restent.
+          (Alternative implémentable : retomber sur le numéro du téléphone, normalisé en chiffres.)
+        </p>
+      </div>
+    </div>
+
+    <!-- Colonne droite : carte booking -->
+    <div>
+      <div class="card">
+        <p class="price-like" style="font-size:1.7rem;font-weight:800;color:var(--primary)">
+          1 850 DT <small style="font-size:.8rem;color:var(--muted)">/ mois</small>
+        </p>
+        <p style="font-size:.78rem;color:var(--muted);margin:.1rem 0 1rem">+ 220 DT de charges</p>
+
+        <div class="stack-lg">
+          <button class="btn btn-primary btn-block">🗓 Demander une visite</button>
+          <div class="row">
+            <button class="btn btn-ghost" style="flex:1">🤍 Favoris</button>
+            <button class="btn btn-ghost" style="flex:1" id="shareBtn">↗ Partager</button>
+          </div>
+        </div>
+
+        <h3 style="margin-top:1.3rem">Une question ?</h3>
+        <p style="font-size:.82rem;color:var(--muted);margin:.2rem 0 .8rem">
+          Connectez-vous pour demander une visite
+        </p>
+        <div class="contact-links">
+          <a class="contact-link" href="tel:+21671000000"><span class="icon">☐</span><span dir="ltr">+216 71 000 000</span></a>
+          <a class="contact-link" href="mailto:contact@emerald-immobilier.tn"><span class="icon">✉</span><span class="truncate">contact@emerald-immobilier.tn</span></a>
+          <a class="contact-link is-whatsapp" href="#" id="waCardLink" data-testid="whatsapp-card">
+            <span class="icon"></span><span>Besoin d'aide ? <strong>WhatsApp</strong></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="box-note">
+        <strong>Pourquoi ce bouton&nbsp;?</strong> Sur tecnocasa.tn, c'est le canal de contact direct un clic après l'annonce
+        (<code class="mono">wa.me/+21628600115</code>, à côté du téléphone). Tunisie : WhatsApp est le canal nº 1 des
+        visiteurs — un e-mail court est rarement utilisé pour une première demande.
+      </div>
+    </div>
+  </div>
+
+  <!-- Barre mobile collante (visible < 640px) : chat WhatsApp + tel + CTA -->
+  <div class="mobile-bar" aria-label="Barre d'action mobile">
+    <span class="price">1 850 DT<small>/ mois</small></span>
+    <button class="icon-btn wa" id="waBarBtn" data-testid="whatsapp-mobile" title="WhatsApp l'agence"><span class="icon">☎</span></button>
+    <a class="icon-btn" href="tel:+21671000000" title="Appeler" style="color:var(--primary)">📞</a>
+    <button class="btn btn-primary" style="flex:1">Demander une visite</button>
+  </div>
+</main>
+
+<!-- Modale : conversation wa.me simulée -->
+<div class="modal-backdrop" id="waModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="waModalTitle">
+    <div class="modal-head">
+      <h2 id="waModalTitle">WhatsApp — conversation simulée</h2>
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
+    </div>
+    <div class="chat-panel">
+      <div class="chat-meta"><span>+216 55 340 210 · Emerald Immobilier</span><span>en ligne</span></div>
+      <div class="chat-bubble">Bonjour 👋<br>Je suis intéressé(e) par le bien «&nbsp;S+2 neuf avec terrasse&nbsp;» (REF 0007) à Aouina, 1 850 DT/mois.
+        <br><span class="mono" style="font-size:.7rem">→ lien : emerald-immobilier.tn/logement/L-0007</span></div>
+      <div class="chat-bubble" style="background:#fff">Bonjour ! Merci pour votre message 😊 Je suis Elia, conseillère chez Emerald Immobilier. Le bien est toujours disponible — souhaitez-vous le visiter cette semaine ?</div>
+    </div>
+    <div class="box-note" style="margin-top:1rem">
+      <strong>Ce que fait la vraie implémentation :</strong> ouvre
+      <code class="mono">https://wa.me/21655340210?text=&lt;message prérempli + lien de l'annonce&gt;</code>
+      dans un nouvel onglet (même motif que tecnocasa.tn). Aucun serveur WhatsApp, aucune API : un simple lien.
+    </div>
+    <div class="row">
+      <a class="btn btn-wa" href="#" id="waRealLink" target="_blank" rel="noopener noreferrer"><span class="icon">☎</span>&nbsp;Ouvrir WhatsApp (réel)</a>
+      <button class="btn btn-ghost" data-close>Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale : share (comparaison) -->
+<div class="modal-backdrop" id="shareModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+    <div class="modal-head">
+      <h2 id="shareTitle">Partager — <em>existant</em>, ne pas confondre</h2>
+      <button class="modal-close" data-close aria-label="Fermer">✕</button>
+    </div>
+    <p style="font-size:.88rem">Partager <strong>l'annonce</strong> (le destinataire choisit qui contacter chez lui) :
+      <code class="mono">wa.me/?text=Regarde cette annonce : … [url]</code>
+      — <strong>aucun numéro cible</strong> : c'est le visiteur qui choisit à qui l'envoyer (l'agence ne reçoit rien).</p>
+    <div class="chat-panel">
+      <div class="chat-bubble" style="background:#fff">Regarde cette annonce : S+2 neuf avec terrasse<br><em>[emerald-immobilier.tn/logement/L-0007]</em></div>
+    </div>
+    <div class="box-note warn">
+      <strong>Distinction projet :</strong> Contact WhatsApp = <em>wa.me/&lt;numéro agence&gt;?text=…</em> (l'agence reçoit).
+      Partage = <em>wa.me/?text=…</em> sans numéro (le contact reçoit). Tecnocasa n'a que le premier ; nous avons déjà le second.
+    </div>
+    <button class="btn btn-ghost btn-block" data-close>C'est compris, fermer</button>
+  </div>
+</div>
+
+<script src="assets/demo.js"></script>
+<script>
+  const l = STORE[0]; // REF 0007
+  const prefill = `Bonjour, je suis intéressé(e) par le bien « ${l.title} » (${l.ref}) à ${l.city} — ${tnd(l.price)}${l.kind === 'rent' ? ' par mois' : ''}.`;
+  const waUrl = waHref(prefill);
+
+  function openWa() { document.getElementById('waModal').classList.add('open'); }
+  ['waContactLink', 'waCardLink', 'waBarBtn'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', (e) => { e.preventDefault(); openWa(); });
+  });
+  document.getElementById('waRealLink').href = waUrl;
+
+  // Partage (existant)
+  document.getElementById('shareBtn').addEventListener('click', () => document.getElementById('shareModal').classList.add('open'));
+
+  // Bascule configuration
+  const cfg = document.getElementById('cfgToggle');
+  cfg.addEventListener('change', () => {
+    document.getElementById('waContactLink').classList.toggle('hidden', !cfg.checked);
+    document.getElementById('waCardLink').classList.toggle('hidden', !cfg.checked);
+    document.getElementById('waBarBtn').classList.toggle('hidden', !cfg.checked);
+    toast(cfg.checked
+      ? 'Numéro configuré : la 3ᵉ ligne de contact et le bouton mobile apparaissent.'
+      : 'Sans NEXT_PUBLIC_AGENCY_WHATSAPP : seul téléphone + e-mail restent.');
+  });
+</script>
+</body>
+</html>

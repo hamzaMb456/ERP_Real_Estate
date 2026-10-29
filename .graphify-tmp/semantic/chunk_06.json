@@ -1,0 +1,207 @@
+{
+  "nodes": [
+    {
+      "id": "p23_Im10_plan_execution_form",
+      "label": "Plan Creation Form - Taches d'Execution (Planning & Equipes)",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p23_Im10.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "p24_Im11_machine_ml_intelligence_tab",
+      "label": "Machine Detail - ML Intelligence Tab (sensor gauges, 8 neural models, Kalman/CUSUM, 73% fair score, 30-day survival)",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p24_Im11.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "p24_Im12_machine_intervention_history_tab",
+      "label": "Machine Detail - Historique Tab (Historique des Interventions, 14 entries)",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p24_Im12.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "p25_Im13_alert_triage_center",
+      "label": "Centre des Alertes - Three-Column Triage (System/Auto, ChefTech Triage, Technician Execution)",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p25_Im13.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "p26_Im14_predictive_alerts_list",
+      "label": "Predictive Alerts Page (/alerts) - ML RUL Alerts with KPIs and Create WO Actions",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p26_Im14.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "p26_Im15_machine_ml_metrics_parts_forecast",
+      "label": "Machine ML Metrics Panel - Failure Prob, 14-day RUL, Behavioral Anomaly Score, 24-Part 30-day Forecast",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p26_Im15.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "p27_Im16_admin_dashboard",
+      "label": "Admin Dashboard (Administration - Tableau de Bord) with KPI Cards and Donut Charts",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p27_Im16.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "p28_Im17_chef_technique_dashboard",
+      "label": "Chef Technique Dashboard (Validation Hub) with Same KPI Layout",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p28_Im17.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "p28_Im18_technician_dashboard",
+      "label": "Technician Dashboard (/technician/dashboard) with AI Daily Briefing and Priority Actions",
+      "file_type": "image",
+      "source_file": "infra/amplify-data/metrics/pfe-img/p28_Im18.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "p24_Im11_machine_ml_intelligence_tab",
+      "target": "p24_Im12_machine_intervention_history_tab",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p24_Im11.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "p24_Im11_machine_ml_intelligence_tab",
+      "target": "p26_Im15_machine_ml_metrics_parts_forecast",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p24_Im11.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "p25_Im13_alert_triage_center",
+      "target": "p26_Im14_predictive_alerts_list",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p25_Im13.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "p27_Im16_admin_dashboard",
+      "target": "p28_Im17_chef_technique_dashboard",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p28_Im17.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "p28_Im17_chef_technique_dashboard",
+      "target": "p28_Im18_technician_dashboard",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p28_Im18.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "p23_Im10_plan_execution_form",
+      "target": "p26_Im15_machine_ml_metrics_parts_forecast",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.6,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p26_Im15.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "p28_Im18_technician_dashboard",
+      "target": "p23_Im10_plan_execution_form",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p23_Im10.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cms1_l1_predictive_maintenance_flow",
+      "label": "Predictive Maintenance Workflow on CMS1-L1 Fleet (plan -> execute -> ML alert -> parts order)",
+      "nodes": [
+        "p23_Im10_plan_execution_form",
+        "p24_Im11_machine_ml_intelligence_tab",
+        "p25_Im13_alert_triage_center",
+        "p26_Im15_machine_ml_metrics_parts_forecast",
+        "p28_Im18_technician_dashboard"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p25_Im13.png"
+    },
+    {
+      "id": "role_based_dashboard_suite",
+      "label": "Role-Based Dashboard Suite (Admin, Chef Technique, Technicien)",
+      "nodes": [
+        "p27_Im16_admin_dashboard",
+        "p28_Im17_chef_technique_dashboard",
+        "p28_Im18_technician_dashboard"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.9,
+      "source_file": "infra/amplify-data/metrics/pfe-img/p28_Im17.png"
+    }
+  ],
+  "input_tokens": 9,
+  "output_tokens": 9
+}
