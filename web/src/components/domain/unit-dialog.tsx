@@ -225,6 +225,9 @@ function toFormValues(unit: UnitFormUnit): FormValues {
 
 export type PropertyOption = { id: string; name: string };
 
+/** Unit types that only exist as the single unit of a house or a plot, never inside a building. */
+const STANDALONE_UNIT_TYPES = new Set(['house', 'land']);
+
 type Props = {
   /** The bien the unit is added to. Omit it (with `propertyOptions`) to let the admin choose the bien in the form. */
   propertyId?: string;
@@ -352,7 +355,11 @@ function UnitForm({
   }
 
   const noneOption = { value: NONE, label: f.notSpecified };
-  const unitTypeOptions = Object.entries(t.labels.unitTypes).map(([value, label]) => ({ value, label }));
+  // A building holds apartments, offices, shops and parkings. House and land are properties of their own: their single
+  // unit is created with the property, so it is only offered while editing a unit that already has that type.
+  const unitTypeOptions = Object.entries(t.labels.unitTypes)
+    .filter(([value]) => !STANDALONE_UNIT_TYPES.has(value) || value === unit?.type)
+    .map(([value, label]) => ({ value, label }));
   const statusOptions = Object.entries(t.labels.unitStatuses).map(([value, label]) => ({ value, label }));
 
   const steps: FlowStep[] = [];
