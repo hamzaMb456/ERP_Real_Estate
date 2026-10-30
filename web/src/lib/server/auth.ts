@@ -40,6 +40,14 @@ export function requireWriter(session: SessionClaims): void {
   if (!WRITER_ROLES.has(session.role)) throw new Error('forbidden');
 }
 
+/** Roles that upload and remove photos and documents. Regional staff may; the data layer limits them to their agencies. */
+const FILE_EDITOR_ROLES = new Set(['org_admin', 'manager', 'staff']);
+
+/** Throws unless the session role may upload or remove files (the data layer still checks which ones). */
+export function requireFileEditor(session: SessionClaims): void {
+  if (!FILE_EDITOR_ROLES.has(session.role)) throw new Error('forbidden');
+}
+
 /** Roles that manage staff accounts. Never regional staff, never viewers. */
 const MANAGER_ROLES = new Set(['org_admin', 'manager']);
 

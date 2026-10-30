@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { requireSession, requireWriter, type SessionClaims } from '@/lib/server/auth';
+import { requireFileEditor, requireSession, type SessionClaims } from '@/lib/server/auth';
 import { registerStorageFile } from '@/lib/server/storage-registry';
 import { s3 } from '@/lib/server/s3-client';
 import { ALLOWED_BUCKETS, isStorageKey } from '@/lib/storage-buckets';
@@ -12,7 +12,7 @@ export async function POST(request: Request): Promise<Response> {
   let session: SessionClaims;
   try {
     session = await requireSession(request.headers.get('authorization'));
-    requireWriter(session);
+    requireFileEditor(session);
   } catch {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }

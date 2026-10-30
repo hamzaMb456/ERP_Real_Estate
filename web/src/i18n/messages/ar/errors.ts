@@ -11,6 +11,7 @@ export const errors: typeof fr = {
     out_of_scope: 'هذا العنصر لا ينتمي إلى وكالاتك.',
     branch_change_forbidden: 'المدير وحده يستطيع نقل عقار إلى وكالة أخرى.',
     price_change_forbidden: 'المدير وحده يستطيع تعديل الأسعار والمصاريف والضمانات.',
+    file_delete_forbidden: 'المدير وحده يستطيع حذف مستند. يمكن تعديل الصور.',
     approval_forbidden: 'مخصص للمدير.',
     approval_not_found: 'الطلب غير موجود.',
     approval_not_pending: 'تمت معالجة هذا الطلب من قبل.',

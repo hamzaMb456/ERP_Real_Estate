@@ -11,6 +11,7 @@ export const errors = {
     out_of_scope: 'Cet élément n’appartient pas à vos agences.',
     branch_change_forbidden: 'Seul le gestionnaire peut déplacer un bien vers une autre agence.',
     price_change_forbidden: 'Seul le gestionnaire peut modifier les prix, frais et cautions.',
+    file_delete_forbidden: 'Seul le gestionnaire peut supprimer un document. Les photos restent modifiables.',
     approval_forbidden: 'Réservé au gestionnaire.',
     approval_not_found: 'Demande introuvable.',
     approval_not_pending: 'Cette demande a déjà été traitée.',

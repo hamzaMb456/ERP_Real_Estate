@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import type { Caller } from './auth.ts';
 import { fileTargetVisible } from './access.ts';
-import { requireEditor, requireWriter } from './auth.ts';
+import { MANAGER_ROLES, requireEditor } from './auth.ts';
 import { fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
 import { doc, getItem, pick, table, transact } from './db.ts';
@@ -176,10 +176,15 @@ export async function unlinkFile(caller: Caller, id: string): Promise<Item> {
  * the link that pointed to it.
  */
 export async function forgetStorageFile(caller: Caller, storageFileId: string): Promise<void> {
-  requireWriter(caller, FORBIDDEN);
+  requireEditor(caller, FORBIDDEN);
   if (!(await canAccessStorageFile(caller, storageFileId))) fail('invalid_storage_file');
   const lock = await getItem('Lock', { id: uniqueLockId(storageFileId) });
-  if (lock?.file_id) await unlinkFile(caller, lock.file_id);
+  if (lock?.file_id) {
+    // Regional staff manage photos; signed leases, IDs and plans can only be removed by a manager.
+    const link = await getItem('FileLink', { id: lock.file_id });
+    if (link?.kind === 'document' && !MANAGER_ROLES.has(caller.role)) fail('file_delete_forbidden');
+    await unlinkFile(caller, lock.file_id);
+  }
   await transact([{ Delete: { TableName: table('StorageFile'), Key: { id: storageFileId } } }]);
 }
 

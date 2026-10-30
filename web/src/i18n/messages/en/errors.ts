@@ -11,6 +11,7 @@ export const errors: typeof fr = {
     out_of_scope: 'This item does not belong to your agencies.',
     branch_change_forbidden: 'Only the manager can move a property to another agency.',
     price_change_forbidden: 'Only the manager can change prices, fees and deposits.',
+    file_delete_forbidden: 'Only the manager can delete a document. Photos can still be changed.',
     approval_forbidden: 'Reserved for the manager.',
     approval_not_found: 'Request not found.',
     approval_not_pending: 'This request has already been handled.',

@@ -147,7 +147,7 @@ export const officeOps: Record<string, Op> = {
     await registerStorageFile(c.userId, str(v.key), str(v.bucket) as Bucket);
     return { insert_app_storage_files_one: { id: str(v.key) } };
   }),
-  ForgetStorageFile: mutation(WRITERS, async (c, v) => {
+  ForgetStorageFile: mutation(EDITORS, async (c, v) => {
     await forgetStorageFile(c, str(v.key));
     return { delete_app_storage_files_by_pk: { id: str(v.key) } };
   }),
