@@ -88,6 +88,16 @@ export const publicOps: Record<string, Op> = {
       })),
     };
   }),
+  /** The signed-in client's own rental requests, newest first. A closed one carries how it ended (accepted or rejected). */
+  MyRentalRequests: query(CLIENT, async (caller) => {
+    const rows = await queryAll('RentalRequest', { index: 'byClient', key: 'client_user_id', value: caller.userId });
+    return {
+      rental_requests: sortRows(rows, { created_at: 'desc' }).map((r) => ({
+        id: r.id, unit_id: r.unit_id, start_date: r.start_date, duration_months: r.duration_months, status: r.status,
+        closed_outcome: r.closed_outcome ?? null, created_at: r.created_at,
+      })),
+    };
+  }),
   /** Whether the signed-in client already has a rental or visit request for this unit (the booking card disables those buttons so they cannot resubmit). */
   MyUnitRequests: query(CLIENT, async (caller, v) => {
     const unitId = text(v.unit);

@@ -9,11 +9,10 @@ import type { Item, TxItem } from './db.ts';
 import { getItem, pick, queryAll, table, transact, versionBump } from './db.ts';
 import { insertNotification } from './notifications.ts';
 import type { ContactInput } from './request-rules.ts';
-import { assertRentalTerms, cleanContact, isThrottled, normalizeVisitSlot } from './request-rules.ts';
+import { assertRentalTerms, cleanContact, closedOutcome, isThrottled, normalizeVisitSlot, requestRecipients } from './request-rules.ts';
 
 const ATTEMPTS = 3;
 const HOUR_MS = 3_600_000;
-const STAFF_ROLES = new Set(['org_admin', 'manager']);
 const RENTAL_STATUSES = new Set(['new', 'contacted', 'accepted', 'declined', 'closed']);
 const VISIT_STATUSES = new Set(['new', 'confirmed', 'declined', 'done', 'cancelled']);
 
@@ -44,14 +43,22 @@ async function listingFor(unitId: string): Promise<Item> {
   return listing;
 }
 
-/** Every staff member of the organization hears about a new request in the bell. */
+/**
+ * The managers and the regional staff of the unit's branch hear about a new request in the bell; the mailer then sends
+ * each bell notice by e-mail to its recipient.
+ */
 async function notifyStaff(kind: Kind, request: Item): Promise<void> {
   const [staff, unit] = await Promise.all([
     queryAll('StaffMember', { index: 'byOrg', key: 'organization_id', value: request.organization_id }),
     getItem('Unit', { id: request.unit_id }),
   ]);
+  const property = unit?.property_id ? await getItem('Property', { id: unit.property_id }) : undefined;
+  const assigned = property?.branch_id
+    ? await queryAll('StaffAssignment', { index: 'byBranch', key: 'branch_id', value: property.branch_id })
+    : [];
+  const branchStaff = new Set(assigned.filter((a) => a.organization_id === request.organization_id).map((a) => String(a.user_id)));
   const notice = STAFF_NOTICE[kind];
-  for (const s of staff.filter((m) => STAFF_ROLES.has(m.role))) {
+  for (const s of requestRecipients(staff as { id: string; role: string }[], branchStaff)) {
     await insertNotification({
       organization_id: request.organization_id, user_id: s.id, kind: notice.kind, title: notice.title,
       body: `${request.full_name} - ${unit?.code ?? ''}`, link: notice.link, dedupe_key: `${notice.kind}:${request.id}`,
@@ -152,7 +159,10 @@ export async function updateRentalRequest(caller: Caller, id: string, patch: { s
   const orgId = requireEditor(caller, 'permission_denied');
   if (patch.status !== undefined && !RENTAL_STATUSES.has(patch.status)) fail('rental_requests_status_check');
   const current = await loadRequest('rental', orgId, id);
-  const next = { ...current, ...pick(patch, ['status', 'staff_note']), updated_at: new Date().toISOString() };
+  const next: Item = { ...current, ...pick(patch, ['status', 'staff_note']), updated_at: new Date().toISOString() };
+  // The client only sees pending, accepted or rejected: remember how a closed request ended.
+  if (patch.status === 'closed') next.closed_outcome = closedOutcome(current.status, current.closed_outcome);
+  else if (patch.status !== undefined && current.closed_outcome !== undefined) next.closed_outcome = null;
   await transact([{ Put: { TableName: table('RentalRequest'), Item: next, ConditionExpression: 'updated_at = :seen', ExpressionAttributeValues: { ':seen': current.updated_at } } }]);
   return next;
 }

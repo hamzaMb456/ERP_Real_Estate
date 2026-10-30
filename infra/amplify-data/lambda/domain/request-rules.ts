@@ -75,3 +75,31 @@ export function isThrottled(recent: { phone_digits: string; created_at: string }
   const lastTenMinutes = recent.filter((r) => Date.parse(r.created_at) > t - TEN_MINUTES_MS).length;
   return lastHourSamePhone >= REQUEST_LIMITS.per_phone_per_hour || lastTenMinutes >= REQUEST_LIMITS.per_org_per_10_minutes;
 }
+
+const MANAGER_ROLES = new Set(['org_admin', 'manager']);
+
+interface Member {
+  id: string;
+  role: string;
+  confirmed_at?: unknown;
+  disabled_at?: unknown;
+}
+
+/**
+ * Who hears about a new request in the bell (and by e-mail): the managers, and the regional staff assigned to the branch of
+ * the unit. A locked account never does, and neither does regional staff who has not finished activating.
+ */
+export function requestRecipients<T extends Member>(staff: T[], branchStaffIds: Set<string>): T[] {
+  return staff.filter((m) => {
+    if (m.disabled_at) return false;
+    if (MANAGER_ROLES.has(m.role)) return true;
+    return m.role === 'staff' && Boolean(m.confirmed_at) && branchStaffIds.has(m.id);
+  });
+}
+
+/** What a closed rental request ended as, so the client sees « accepted » or « rejected »: only an accepted one stays accepted. */
+export function closedOutcome(previousStatus: string, previousOutcome: string | null | undefined): 'accepted' | 'rejected' {
+  if (previousStatus === 'accepted') return 'accepted';
+  if (previousStatus === 'closed' && previousOutcome === 'accepted') return 'accepted';
+  return 'rejected';
+}

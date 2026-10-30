@@ -17,6 +17,8 @@ const PROPERTY = randomUUID();
 const client = (id = randomUUID()) => ({ role: 'user', userId: id, orgId: '' });
 const anonymous = { role: 'public', userId: '', orgId: '' };
 const manager = { role: 'manager', userId: STAFF, orgId: ORG };
+const HERE = randomUUID();
+const ELSEWHERE = randomUUID();
 const NOW = new Date('2026-05-04T08:00:00Z'); // a Monday
 
 const put = (model: string, item: Record<string, unknown>) =>
@@ -36,6 +38,10 @@ before(async () => {
   if (!ready) return;
   await put('Organization', { id: ORG, name: 'Agence', visit_payment_method: 'manual' });
   await put('StaffMember', { id: STAFF, organization_id: ORG, display_name: 'Staff', role: 'manager' });
+  await put('StaffMember', { id: HERE, organization_id: ORG, display_name: 'Here', role: 'staff', confirmed_at: '2026-10-30T10:00:00Z', disabled_at: null });
+  await put('StaffMember', { id: ELSEWHERE, organization_id: ORG, display_name: 'Elsewhere', role: 'staff', confirmed_at: '2026-10-30T10:00:00Z', disabled_at: null });
+  await put('StaffAssignment', { id: randomUUID(), organization_id: ORG, user_id: HERE, branch_id: 'B', role: 'staff' });
+  await put('StaffAssignment', { id: randomUUID(), organization_id: ORG, user_id: ELSEWHERE, branch_id: 'OTHER', role: 'staff' });
   await put('Property', { id: PROPERTY, organization_id: ORG, branch_id: 'B', name: 'Résidence', city: 'Tunis' });
   await put('Unit', { id: UNIT, organization_id: ORG, property_id: PROPERTY, code: 'A1', status: 'vacant', rent_amount: 900, show_on_website: true });
   await put('FileLink', { id: randomUUID(), organization_id: ORG, target_key: `unit#${UNIT}`, unit_id: UNIT, storage_file_id: 'f1', kind: 'photo', title: 'p', sort_order: 1 });
@@ -59,6 +65,12 @@ test('website listing and visitor requests', { skip: !ready && 'Floci dev tables
     assert.deepEqual([stored?.status, stored?.phone_digits, stored?.client_user_id], ['new', '21671123456', renter.userId]);
     const bell = await queryAll('Notification', { index: 'byUser', key: 'user_id', value: STAFF });
     assert.ok(bell.some((n) => n.kind === 'rental_request' && n.body === 'Sana Ben Ali - A1'));
+    const hereBell = await queryAll('Notification', { index: 'byUser', key: 'user_id', value: HERE });
+    assert.ok(hereBell.some((n) => n.kind === 'rental_request'), 'the staff member of the unit branch is notified');
+    assert.equal((await queryAll('Notification', { index: 'byUser', key: 'user_id', value: ELSEWHERE })).length, 0, 'staff of another branch is not');
+    assert.equal((await requests.updateRentalRequest(manager, receipt.id, { status: 'accepted' })).closed_outcome, undefined);
+    assert.equal((await requests.updateRentalRequest(manager, receipt.id, { status: 'closed' })).closed_outcome, 'accepted');
+    assert.equal((await requests.updateRentalRequest(manager, receipt.id, { status: 'new' })).closed_outcome, null);
     assert.equal(await code(requests.submitRentalRequest(renter, rental(), NOW)), 'REQUEST_DUPLICATE');
     await requests.submitRentalRequest(renter, rental({ duration_months: 24 }), NOW);
     await requests.submitRentalRequest(renter, rental({ duration_months: 36 }), NOW);

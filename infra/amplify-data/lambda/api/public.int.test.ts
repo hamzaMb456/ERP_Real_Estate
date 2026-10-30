@@ -85,6 +85,20 @@ test('website operations', { skip: !ready && 'Floci dev tables not reachable' },
     await assert.rejects(run('MyUnitRequests', { unit: 'L1' }, anonymous), /permission_denied/);
   });
 
+  await t.test('MyRentalRequests: only this client, newest first, with the outcome of a closed request', async () => {
+    const put = (item: Record<string, unknown>) =>
+      doc.send(new PutCommand({ TableName: table('RentalRequest'), Item: { __typename: 'RentalRequest', organization_id: ORG, full_name: 'C', phone: '71000000', start_date: '2026-11-01', duration_months: 6, ...item } }));
+    const other = randomUUID();
+    await put({ id: 'rr-old', client_user_id: client.userId, unit_id: 'L2', status: 'closed', closed_outcome: 'accepted', created_at: '2026-09-01T00:00:00Z' });
+    await put({ id: 'rr-new', client_user_id: client.userId, unit_id: 'L2', status: 'contacted', created_at: '2026-10-05T00:00:00Z' });
+    await put({ id: 'rr-other', client_user_id: other, unit_id: 'L2', status: 'new', created_at: '2026-10-06T00:00:00Z' });
+
+    const mine = (await run('MyRentalRequests', {}, client)).rental_requests as { id: string; status: string; closed_outcome: string | null; unit_id: string }[];
+    assert.deepEqual(mine.filter((r) => r.unit_id === 'L2').map((r) => [r.id, r.status, r.closed_outcome]), [['rr-new', 'contacted', null], ['rr-old', 'closed', 'accepted']]);
+    assert.ok(!mine.some((r) => r.id === 'rr-other'));
+    await assert.rejects(run('MyRentalRequests', {}, anonymous), /permission_denied/);
+  });
+
   await t.test('ListingsFor: fee and payment instructions for the client to see once confirmed', async () => {
     const data = await run('ListingsFor', { ids: ['L1', 'L4'] }, client);
     assert.deepEqual(data.public_listings.find((l: { unit_id: string }) => l.unit_id === 'L1'), {
