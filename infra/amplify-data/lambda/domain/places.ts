@@ -2,7 +2,7 @@
 // unit code among active units, and the single unit a house or a plot gets automatically.
 import { randomUUID } from 'node:crypto';
 import type { Caller } from './auth.ts';
-import { requireWriter } from './auth.ts';
+import { requireEditor, requireWriter } from './auth.ts';
 import { isIsoDate } from './dates.ts';
 import { fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
@@ -47,14 +47,10 @@ export const UNIT_RULES: Record<string, Rule> = {
   property_condition: { enum: ['new', 'excellent', 'good', 'to_refresh', 'to_renovate'] },
   deposit_months: { int: true, min: 0, max: 12 }, pets_allowed: { bool: true },
   legal_status: { enum: ['titled', 'collective_title', 'untitled'] }, virtual_tour_url: { url: true },
-  orientation: { subset: ORIENTATIONS }, outdoor_area_m2: { gt: 0 }, energy_class: { enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
+  orientation: { subset: ORIENTATIONS }, balcony_m2: { gt: 0 }, terrace_m2: { gt: 0 }, garden_m2: { gt: 0 }, energy_class: { enum: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
   min_lease_months: { int: true, min: 1, max: 120 }, charges_included: { subset: CHARGES_INCLUDED },
-  reservation_deposit: { min: 0 }, reservation_days: { int: true, min: 1, max: 90 }, common_share: { int: true, min: 0, max: 1000 },
+  reservation_deposit: { min: 0 }, reservation_days: { int: true, min: 1, max: 90 },
   visit_fee: { min: 0 }, archived_at: { timestamp: true },
-};
-
-const AREA_RULES: Record<string, Rule> = {
-  name: { text: true, nonEmpty: true }, kind: { enum: ['stairs', 'lift', 'garden', 'roof', 'parking', 'other'] }, notes: { text: true },
 };
 
 function valid(rule: Rule, v: unknown): boolean {
@@ -117,7 +113,7 @@ async function loadOwned(model: string, orgId: string, id: string, missing: stri
 
 /** A house or a plot gets its single unit (create_single_unit). */
 export async function createProperty(caller: Caller, object: Item): Promise<Item> {
-  const orgId = requireWriter(caller, 'permission_denied');
+  const orgId = requireEditor(caller, 'permission_denied');
   const type = object.type ?? 'building';
   if (!['building', 'house', 'plot'].includes(type)) fail('properties_type_check');
   const { type: _type, ...rest } = object;
@@ -142,7 +138,7 @@ export async function createProperty(caller: Caller, object: Item): Promise<Item
 
 /** Any column but the type (a building never becomes a house). */
 export async function updateProperty(caller: Caller, id: string, set: Item): Promise<Item> {
-  const orgId = requireWriter(caller, 'permission_denied');
+  const orgId = requireEditor(caller, 'permission_denied');
   const current = await loadOwned('Property', orgId, id, 'property_not_found');
   const columns = checkColumns('properties', PROPERTY_RULES, set);
   if (columns.branch_id && columns.branch_id !== current.branch_id) await loadOwned('Branch', orgId, columns.branch_id, 'branch_not_found');
@@ -156,7 +152,7 @@ export async function updateProperty(caller: Caller, id: string, set: Item): Pro
 // ------------------------------------------------------------------ units
 
 export async function createUnit(caller: Caller, object: Item): Promise<Item> {
-  const orgId = requireWriter(caller, 'permission_denied');
+  const orgId = requireEditor(caller, 'permission_denied');
   const { property_id: propertyId, ...rest } = object;
   await loadOwned('Property', orgId, propertyId, 'property_not_found');
   const columns = checkColumns('units', UNIT_RULES, rest);
@@ -173,7 +169,7 @@ export async function createUnit(caller: Caller, object: Item): Promise<Item> {
 
 /** units_property_id_code_key holds among active units only: archiving frees the code. */
 export async function updateUnit(caller: Caller, id: string, set: Item): Promise<Item> {
-  const orgId = requireWriter(caller, 'permission_denied');
+  const orgId = requireEditor(caller, 'permission_denied');
   const current = await loadOwned('Unit', orgId, id, 'unit_not_found');
   const next = { ...current, ...checkColumns('units', UNIT_RULES, set), updated_at: now() };
   const wasActive = !current.archived_at;
@@ -224,52 +220,4 @@ export async function deleteUnit(caller: Caller, id: string): Promise<void> {
     { Delete: { TableName: table('Lock'), Key: { id: codeLockId(unit.property_id as string, unit.code as string) } } },
   ];
   await transact(items);
-}
-
-/** update_units_many for the syndic shares table: common_share only. */
-export async function saveShares(caller: Caller, updates: { id: string; common_share: number | null }[]): Promise<number> {
-  const orgId = requireWriter(caller, 'permission_denied');
-  if (updates.length > 90) fail('units_too_many_updates');
-  const at = now();
-  await transact(updates.map((u) => {
-    checkColumns('units', UNIT_RULES, { common_share: u.common_share });
-    return {
-      Update: {
-        TableName: table('Unit'),
-        Key: { id: u.id },
-        UpdateExpression: 'SET common_share = :s, updated_at = :now',
-        ConditionExpression: 'organization_id = :org',
-        ExpressionAttributeValues: { ':s': u.common_share, ':now': at, ':org': orgId },
-      },
-    } as TxItem;
-  }), 'unit_not_found');
-  return updates.length;
-}
-
-// ------------------------------------------------------------------ common areas
-
-export async function createCommonArea(caller: Caller, object: Item): Promise<Item> {
-  const orgId = requireWriter(caller, 'permission_denied');
-  const { property_id: propertyId, ...rest } = object;
-  await loadOwned('Property', orgId, propertyId, 'property_not_found');
-  const columns = checkColumns('common_areas', AREA_RULES, rest);
-  if (!columns.name) fail('common_areas_name_check');
-  const at = now();
-  const area = { id: randomUUID(), organization_id: orgId, property_id: propertyId, kind: 'other', ...columns, created_at: at, updated_at: at };
-  await transact([putIfUnchanged('CommonArea', area)]);
-  return area;
-}
-
-export async function updateCommonArea(caller: Caller, id: string, set: Item): Promise<Item> {
-  const orgId = requireWriter(caller, 'permission_denied');
-  const current = await loadOwned('CommonArea', orgId, id, 'common_area_not_found');
-  const next = { ...current, ...checkColumns('common_areas', AREA_RULES, set), updated_at: now() };
-  await transact([putIfUnchanged('CommonArea', next, current.updated_at)]);
-  return next;
-}
-
-export async function deleteCommonArea(caller: Caller, id: string): Promise<void> {
-  const orgId = requireWriter(caller, 'permission_denied');
-  await loadOwned('CommonArea', orgId, id, 'common_area_not_found');
-  await transact([{ Delete: { TableName: table('CommonArea'), Key: { id }, ConditionExpression: 'organization_id = :org', ExpressionAttributeValues: { ':org': orgId } } }]);
 }

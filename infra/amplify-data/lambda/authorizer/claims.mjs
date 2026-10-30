@@ -1,4 +1,5 @@
-const STAFF_ROLES = new Set(['org_admin', 'manager', 'viewer']);
+// `staff_pending` (account created, activation not finished) is left out on purpose: the API refuses it.
+const STAFF_ROLES = new Set(['org_admin', 'manager', 'viewer', 'staff']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_CACHE_SECONDS = 300;
 

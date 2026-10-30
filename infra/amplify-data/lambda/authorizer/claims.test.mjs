@@ -38,3 +38,15 @@ test('rejects staff without an org, unknown roles and missing claims', () => {
   assert.equal(toResolverContext({ sub: 'x' }), null);
   assert.equal(toResolverContext(undefined), null);
 });
+
+test('staff with an organization acts as staff', () => {
+  assert.deepEqual(toResolverContext(token({ 'custom:role': 'staff', 'custom:org_id': ORG1 }, 'u1')), { role: 'staff', userId: 'u1', orgId: ORG1 });
+});
+
+test('staff without an organization is refused', () => {
+  assert.equal(toResolverContext(token({ 'custom:role': 'staff' })), null);
+});
+
+test('staff_pending (activation not finished) is refused', () => {
+  assert.equal(toResolverContext(token({ 'custom:role': 'staff_pending', 'custom:org_id': ORG1 })), null);
+});

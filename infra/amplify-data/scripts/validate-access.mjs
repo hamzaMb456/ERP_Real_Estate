@@ -235,8 +235,8 @@ async function crossTenant(fn, items, orgId, fakeOrg, secrets) {
     limit: 50, offset: 0, orderBy: [], today: day, dayStart: '2000-01-01', dayEnd: '2100-01-01', from: '2000-01-01', to: '2100-01-01',
   });
   const plain = bundle(P, U, C, L, A);
-  // A second bundle built from rows that have links (leased unit, tenant, property with common areas).
-  const linked = bundle(items.CommonArea?.[0]?.property_id ?? P, items.LeaseUnit?.[0]?.unit_id ?? U, items.LeaseParty?.[0]?.contact_id ?? C, items.LeaseUnit?.[0]?.lease_id ?? L, A);
+  // A second bundle built from rows that have links (leased unit, tenant).
+  const linked = bundle(P,items.LeaseUnit?.[0]?.unit_id ?? U, items.LeaseParty?.[0]?.contact_id ?? C, items.LeaseUnit?.[0]?.lease_id ?? L, A);
   const idsOf = (b) => [b.propertyId, b.unitId, b.contactId, b.leaseId, b.appointmentId, first('Ownership'), first('RentalRequest'), first('VisitRequest')].filter(Boolean);
   // Every id kind in turn as `id`, plus where-filters by target for the file / document queries.
   const varSets = [plain, linked].flatMap((b, n) => [

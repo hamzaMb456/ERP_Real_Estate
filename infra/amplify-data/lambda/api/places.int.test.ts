@@ -56,19 +56,6 @@ test('batch 1: biens, units, common areas, dashboard', { skip: !ready && 'Floci 
     assert.deepEqual((await call('run', 'Branches', {})).branches, [{ id: BRANCH, name: 'Siège', city: 'Tunis' }]);
   });
 
-  await t.test('common areas and syndic shares', async () => {
-    const area = (await call('exec', 'AddArea', { object: { property_id: building, name: 'Escalier', kind: 'stairs' } })).insert_common_areas_one.id;
-    await call('exec', 'UpdateArea', { id: area, set: { notes: 'Bloc A' } });
-    assert.deepEqual((await call('run', 'CommonAreas', { propertyId: building })).common_areas, [{ id: area, name: 'Escalier', kind: 'stairs', notes: 'Bloc A' }]);
-    const units = (await call('run', 'Property', { id: building })).property.units as { id: string; archived_at: string | null }[];
-    const live = units.filter((u) => !u.archived_at);
-    await call('exec', 'SaveShares', { updates: live.map((u) => ({ where: { id: { _eq: u.id } }, _set: { common_share: 1000 } })) });
-    assert.equal((await getItem('Unit', { id: live[0].id }))?.common_share, 1000);
-    const overview = await call('run', 'CommonAreasOverview', {});
-    assert.equal(overview.properties[0].common_areas_aggregate.aggregate.count, 1);
-    await call('exec', 'DeleteArea', { id: area });
-  });
-
   await t.test('dashboard counts', async () => {
     const d = await call('run', 'Dashboard', { today: '2026-10-24', dayStart: '2026-10-23T23:00:00Z', dayEnd: '2026-10-24T23:00:00Z' });
     assert.equal(d.properties.length, 1);

@@ -31,12 +31,6 @@ export function recordGaps(properties: Item[], units: Item[], contacts: Item[]):
   for (const u of activeUnits) if (u.rent_amount == null && (u.status === 'vacant' || u.status === 'rented')) unitGap(u, 'no_rent');
   for (const p of activeProperties.values()) if (blank(p.address_line) || blank(p.city)) propertyGap(p, 'no_address');
   for (const p of activeProperties.values()) if (p.latitude == null || p.longitude == null) propertyGap(p, 'no_position');
-  for (const p of activeProperties.values()) {
-    if (p.type !== 'building') continue;
-    const own = units.filter((u) => u.property_id === p.id && !u.archived_at);
-    const total = own.reduce((sum, u) => sum + (u.common_share ?? 0), 0);
-    if (own.length >= 2 && total !== 1000) propertyGap(p, 'shares_total');
-  }
   for (const c of contacts) {
     if (!c.archived_at && !c.is_organization && blank(c.email) && blank(c.phone)) {
       gaps.push({ organization_id: c.organization_id, entity_type: 'contact', entity_id: c.id, property_id: null, entity_label: c.full_name, property_label: null, gap_code: 'no_contact_info' });

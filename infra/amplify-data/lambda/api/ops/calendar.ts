@@ -2,17 +2,19 @@
 import type { Caller } from '../../domain/auth.ts';
 import { resendInvitation, saveAppointment } from '../../domain/appointments.ts';
 import type { AppointmentInput, ParticipantInput } from '../../domain/appointments.ts';
+import { contactIdsInScope, contactVisible, unitIdsInScope, unitVisible } from '../../domain/access.ts';
 import { addDays } from '../../domain/dates.ts';
 import type { Item } from '../../domain/db.ts';
 import { batchGet, getItem, queryAll } from '../../domain/db.ts';
 import { fail } from '../../domain/errors.ts';
 import { LEASE_RULES } from '../../domain/lease-rules.ts';
+import { branchScope, scopedRows } from '../../domain/scope.ts';
 import { markNotificationsRead } from '../../domain/notifications.ts';
 import type { Where } from '../query-eval.ts';
 import { matches, page, sortRows } from '../query-eval.ts';
 import { active, byOrg, contactsById, count } from '../org-data.ts';
 import type { Op } from '../registry.ts';
-import { STAFF, WRITERS, mutation, query } from '../registry.ts';
+import { EDITORS, REGIONAL, mutation, query } from '../registry.ts';
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 /** Midnight in Tunis (UTC+1, no daylight saving), as an instant. */
@@ -67,6 +69,53 @@ async function ownedAppointment(caller: Caller, id: string): Promise<Item> {
   return a;
 }
 
+/** True when every unit of the lease is in the set (a lease with no unit is never in scope). */
+async function leaseInUnits(units: Set<string>, leaseId: unknown): Promise<boolean> {
+  if (typeof leaseId !== 'string') return false;
+  const ids = ((await getItem('Lease', { id: leaseId }))?.unit_ids as string[] | undefined) ?? [];
+  return ids.length > 0 && ids.every((id) => units.has(id));
+}
+
+/** An appointment is visible on its unit, or on the units of its lease; with neither it belongs to whoever is assigned to it. */
+async function appointmentVisible(caller: Caller, units: Set<string> | null, a: Item): Promise<boolean> {
+  if (units === null) return true;
+  if (a.unit_id) return units.has(a.unit_id);
+  if (a.lease_id) return leaseInUnits(units, a.lease_id);
+  return a.assigned_user_id === caller.userId;
+}
+
+/** The appointment the caller may change; one outside their branches is refused as out of scope. */
+async function writableAppointment(caller: Caller, id: string): Promise<Item> {
+  const a = await ownedAppointment(caller, id);
+  if (!(await appointmentVisible(caller, await unitIdsInScope(caller), a))) fail('appointment_not_found');
+  return a;
+}
+
+/** The calendar rows the caller may see: appointments and lease events on their units. */
+async function scopedFeed(caller: Caller, rows: Item[]): Promise<Item[]> {
+  const units = await unitIdsInScope(caller);
+  if (units === null) return rows;
+  const leases = new Map((await byOrg('Lease', caller.orgId)).map((l) => [l.id as string, l]));
+  const leaseOk = (id: string) => {
+    const ids = (leases.get(id)?.unit_ids as string[] | undefined) ?? [];
+    return ids.length > 0 && ids.every((u) => units.has(u));
+  };
+  return rows.filter((r) => (r.unit_id ? units.has(r.unit_id) : r.lease_id ? leaseOk(r.lease_id) : r.assigned_user_id === caller.userId));
+}
+
+/** A new or changed appointment must sit on a unit or lease in scope and only invite contacts the caller can see. */
+async function assertAppointmentTargets(caller: Caller, fields: Item, contactIds: string[]): Promise<void> {
+  const units = await unitIdsInScope(caller);
+  if (units === null) return;
+  if (fields.unit_id) {
+    if (!units.has(fields.unit_id)) fail('out_of_scope');
+  } else if (!(await leaseInUnits(units, fields.lease_id))) {
+    fail('out_of_scope');
+  }
+  const contacts = await contactIdsInScope(caller, units);
+  if (contactIds.some((id) => !(contacts && contacts.has(id)))) fail('out_of_scope');
+}
+
 /** Full input for saveAppointment from the stored appointment plus changed columns. */
 function mergedInput(current: Item, set: Item, participants?: ParticipantInput[]): AppointmentInput {
   const next = { ...current, ...set };
@@ -78,23 +127,24 @@ function mergedInput(current: Item, set: Item, participants?: ParticipantInput[]
 }
 
 export const calendarOps: Record<string, Op> = {
-  CalendarFeed: query(STAFF, async (c, v) => {
-    const rows = (await feedRows(c.orgId, str(v.to))).filter((r) => matches(r, { starts_at: { _lte: v.to }, ends_at: { _gte: v.from } }));
+  CalendarFeed: query(REGIONAL, async (c, v) => {
+    const rows = (await scopedFeed(c, await feedRows(c.orgId, str(v.to)))).filter((r) => matches(r, { starts_at: { _lte: v.to }, ends_at: { _gte: v.from } }));
     return { calendar_feed: page(sortRows(rows, [{ starts_at: 'asc' }]), 1000) };
   }),
-  CalendarFeedRows: query(STAFF, async (c, v) => ({
-    calendar_feed: page(sortRows((await feedRows(c.orgId)).filter((r) => matches(r, v.where as Where)), [{ starts_at: 'desc' }]), 500),
+  CalendarFeedRows: query(REGIONAL, async (c, v) => ({
+    calendar_feed: page(sortRows((await scopedFeed(c, await feedRows(c.orgId))).filter((r) => matches(r, v.where as Where)), [{ starts_at: 'desc' }]), 500),
   })),
-  CalendarLookups: query(STAFF, async (c) => {
+  CalendarLookups: query(REGIONAL, async (c) => {
     const [staff, branches] = await Promise.all([byOrg('StaffMember', c.orgId), byOrg('Branch', c.orgId)]);
     return {
       staff_members: sortRows(staff, [{ display_name: 'asc' }]).map((s) => ({ user_id: s.id, display_name: s.display_name, email: s.email, role: s.role })),
-      branches: sortRows(branches, [{ name: 'asc' }]).map((b) => ({ id: b.id, name: b.name })),
+      branches: sortRows(scopedRows(await branchScope(c), branches, (b) => b.id), [{ name: 'asc' }]).map((b) => ({ id: b.id, name: b.name })),
     };
   }),
-  Appointment: query(STAFF, async (c, v) => {
+  Appointment: query(REGIONAL, async (c, v) => {
     const a = await getItem('Appointment', { id: str(v.id) });
     if (a?.organization_id !== c.orgId) return { appointment: null };
+    if (!(await appointmentVisible(c, await unitIdsInScope(c), a))) return { appointment: null };
     const [staff, unit, lease, participants] = await Promise.all([
       a.assigned_user_id ? getItem('StaffMember', { id: a.assigned_user_id }) : undefined,
       a.unit_id ? getItem('Unit', { id: a.unit_id }) : undefined,
@@ -116,36 +166,43 @@ export const calendarOps: Record<string, Op> = {
       },
     };
   }),
-  AppointmentUnits: query(STAFF, async (c) => {
+  AppointmentUnits: query(REGIONAL, async (c) => {
     const [units, properties] = await Promise.all([byOrg('Unit', c.orgId), byOrg('Property', c.orgId)]);
+    const unitSet = await unitIdsInScope(c);
     const live = new Map(active(properties).map((p) => [p.id as string, p]));
-    const rows = active(units).filter((u) => live.has(u.property_id)).map((u) => ({ id: u.id, code: u.code, property: { name: live.get(u.property_id)!.name } }));
+    const rows = active(units).filter((u) => live.has(u.property_id) && unitVisible(unitSet, u.id)).map((u) => ({ id: u.id, code: u.code, property: { name: live.get(u.property_id)!.name } }));
     return { units: sortRows(rows, [{ property: { name: 'asc' } }, { code: 'asc' }]) };
   }),
-  ContactAppointments: query(STAFF, async (c, v) => {
+  ContactAppointments: query(REGIONAL, async (c, v) => {
     const contact = await getItem('Contact', { id: str(v.contactId) });
     if (contact?.organization_id !== c.orgId) return { appointment_participants: [] };
+    const units = await unitIdsInScope(c);
+    if (!contactVisible(await contactIdsInScope(c, units), contact)) return { appointment_participants: [] };
     const rows = await queryAll('AppointmentParticipant', { index: 'byContact', key: 'contact_id', value: contact.id });
     const appointments = new Map((await batchGet('Appointment', rows.map((r) => r.appointment_id))).map((a) => [a.id as string, a]));
-    const joined = rows.filter((r) => appointments.has(r.appointment_id)).map((r) => {
+    const visibleIds = new Set<string>();
+    for (const a of appointments.values()) if (await appointmentVisible(c, units, a)) visibleIds.add(a.id as string);
+    const joined = rows.filter((r) => visibleIds.has(r.appointment_id)).map((r) => {
       const a = appointments.get(r.appointment_id)!;
       return { role: r.role, email_status: r.email_status, appointment: { id: a.id, title: a.title, kind: a.kind, status: a.status, starts_at: a.starts_at, ends_at: a.ends_at, location: a.location, unit_id: a.unit_id, lease_id: a.lease_id } };
     });
     return { appointment_participants: page(sortRows(joined, [{ appointment: { starts_at: 'desc' } }]), 200) };
   }),
 
-  InsertAppointment: mutation(WRITERS, async (c, v) => {
+  InsertAppointment: mutation(EDITORS, async (c, v) => {
     const a = (v.appointment ?? {}) as Item;
     const participants = ((v.participants as Item[]) ?? []).map((p) => ({ contact_id: p.contact_id, role: p.role }));
     const { id, ...fields } = a;
+    await assertAppointmentTargets(c, fields, participants.map((p) => p.contact_id as string));
     const saved = await saveAppointment(c, { ...(fields as AppointmentInput), create_id: id, participants });
     return { insert_appointments_one: { id: saved.id }, insert_appointment_participants: { affected_rows: participants.length } };
   }),
   /** Built dynamically by the web: any of $set, $remove (contact ids), $add (participant rows). */
-  UpdateAppointment: mutation(WRITERS, async (c, v) => {
-    const current = await ownedAppointment(c, str(v.id));
+  UpdateAppointment: mutation(EDITORS, async (c, v) => {
+    const current = await writableAppointment(c, str(v.id));
     const remove = new Set((v.remove as string[] | undefined) ?? []);
     const add = ((v.add as Item[] | undefined) ?? []).map((p) => ({ contact_id: p.contact_id, role: p.role }));
+    await assertAppointmentTargets(c, { ...current, ...((v.set ?? {}) as Item) }, add.map((p) => p.contact_id as string));
     const changesParticipants = remove.size > 0 || add.length > 0;
     let participants: ParticipantInput[] | undefined;
     if (changesParticipants) {
@@ -159,18 +216,19 @@ export const calendarOps: Record<string, Op> = {
       ...(add.length ? { insert_appointment_participants: { affected_rows: add.length } } : {}),
     };
   }),
-  SetAppointmentStatus: mutation(WRITERS, async (c, v) => {
-    const current = await ownedAppointment(c, str(v.id));
+  SetAppointmentStatus: mutation(EDITORS, async (c, v) => {
+    const current = await writableAppointment(c, str(v.id));
     await saveAppointment(c, mergedInput(current, { status: v.status }));
     return { update_appointments_by_pk: { id: current.id } };
   }),
-  ResendParticipant: mutation(WRITERS, async (c, v) => {
+  ResendParticipant: mutation(EDITORS, async (c, v) => {
+    await writableAppointment(c, str(v.appointmentId));
     await resendInvitation(c, str(v.appointmentId), str(v.contactId));
     return { update_appointment_participants_by_pk: { appointment_id: str(v.appointmentId) } };
   }),
 
   /** The bell: the caller's own notifications. */
-  Notifications: query(STAFF, async (c) => {
+  Notifications: query(REGIONAL, async (c) => {
     const rows = await queryAll('Notification', { index: 'byUser', key: 'user_id', value: c.userId });
     const mine = rows.filter((n) => n.organization_id === c.orgId);
     return {
@@ -178,9 +236,9 @@ export const calendarOps: Record<string, Op> = {
       notifications_aggregate: count(mine.filter((n) => !n.read_at).length),
     };
   }),
-  MarkNotificationRead: mutation(STAFF, async (c, v) => {
+  MarkNotificationRead: mutation(REGIONAL, async (c, v) => {
     await markNotificationsRead(c, [str(v.id)]);
     return { update_notifications_by_pk: { id: str(v.id) } };
   }),
-  MarkAllNotificationsRead: mutation(STAFF, async (c) => ({ update_notifications: { affected_rows: await markNotificationsRead(c) } })),
+  MarkAllNotificationsRead: mutation(REGIONAL, async (c) => ({ update_notifications: { affected_rows: await markNotificationsRead(c) } })),
 };

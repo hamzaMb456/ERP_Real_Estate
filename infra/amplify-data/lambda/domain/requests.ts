@@ -2,7 +2,7 @@
 // db/migrations/0008_visitor_requests.sql and 0009_client_accounts.sql.
 import { randomUUID } from 'node:crypto';
 import type { Caller } from './auth.ts';
-import { requireWriter } from './auth.ts';
+import { requireEditor } from './auth.ts';
 import { todayTunis } from './dates.ts';
 import { DomainError, fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
@@ -149,7 +149,7 @@ async function loadRequest(kind: Kind, orgId: string, id: string): Promise<Item>
 
 /** Staff handle a rental request: status and note only. */
 export async function updateRentalRequest(caller: Caller, id: string, patch: { status?: string; staff_note?: string | null }): Promise<Item> {
-  const orgId = requireWriter(caller, 'permission_denied');
+  const orgId = requireEditor(caller, 'permission_denied');
   if (patch.status !== undefined && !RENTAL_STATUSES.has(patch.status)) fail('rental_requests_status_check');
   const current = await loadRequest('rental', orgId, id);
   const next = { ...current, ...pick(patch, ['status', 'staff_note']), updated_at: new Date().toISOString() };
@@ -166,7 +166,7 @@ export async function updateVisitRequest(
   id: string,
   patch: { status?: string; staff_note?: string | null; appointment_id?: string | null },
 ): Promise<Item> {
-  const orgId = requireWriter(caller, 'permission_denied');
+  const orgId = requireEditor(caller, 'permission_denied');
   if (patch.status !== undefined && !VISIT_STATUSES.has(patch.status)) fail('visit_requests_status_check');
   const current = await loadRequest('visit', orgId, id);
   if (patch.appointment_id) {

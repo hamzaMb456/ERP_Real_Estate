@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import type { Caller } from './auth.ts';
-import { requireWriter } from './auth.ts';
+import { requireEditor } from './auth.ts';
 import { isIsoDateTime, tunisDayOf } from './dates.ts';
 import { fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
@@ -89,7 +89,7 @@ async function dropReminders(orgId: string, appointmentId: string, startsAt: str
 
 /** Create or update an appointment (and optionally its participants) in one transaction. */
 export async function saveAppointment(caller: Caller, input: AppointmentInput): Promise<Item> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   validateAppointment(input);
   const existing = input.id ? await getItem('Appointment', { id: input.id }) : undefined;
   if (input.id && existing?.organization_id !== orgId) fail('appointment_not_found');
@@ -160,7 +160,7 @@ export async function saveAppointment(caller: Caller, input: AppointmentInput): 
 
 /** Re-send an invitation: the e-mail pipeline picks participants back up when they turn pending. */
 export async function resendInvitation(caller: Caller, appointmentId: string, contactId: string): Promise<void> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   const updated = await updateIfCondition({
     model: 'AppointmentParticipant',
     Key: { appointment_id: appointmentId, contact_id: contactId },
@@ -173,7 +173,7 @@ export async function resendInvitation(caller: Caller, appointmentId: string, co
 
 /** Delete an appointment with its participants and reminders (the cascades in SQL). */
 export async function deleteAppointment(caller: Caller, id: string): Promise<void> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   const existing = await getItem('Appointment', { id });
   if (existing?.organization_id !== orgId) fail('appointment_not_found');
   const participants = await queryAll('AppointmentParticipant', { key: 'appointment_id', value: id });

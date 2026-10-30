@@ -82,3 +82,21 @@ export function appointmentMail(
   lines.push('', 'Ceci est un message automatique.');
   return { subject: `${APPOINTMENT_SUBJECTS[kind]} : ${a.title}`, text: lines.join('\n') };
 }
+
+/** The invitation a manager's new regional staff member receives: one link, 24 hours, no password in the mail. */
+export function staffInvitationMail(name: string, link: string): MailContent {
+  return {
+    subject: 'Activez votre compte ERP',
+    text: [
+      `Bonjour ${name},`,
+      '',
+      'Un compte vient de vous être créé. Pour l’activer, ouvrez ce lien :',
+      link,
+      '',
+      'Le lien est valable 24 heures et ne peut être utilisé qu’une seule fois.',
+      'Vous choisirez votre mot de passe, puis vous configurerez une application d’authentification sur votre téléphone.',
+      '',
+      'Si vous n’attendiez pas ce message, ignorez-le.',
+    ].join('\n'),
+  };
+}

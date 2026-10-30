@@ -1,5 +1,6 @@
-// Contacts and ownerships.
+// Contacts and ownerships. Regional staff see the contacts linked to their branches and only change ownerships of their units.
 import type { Caller } from '../../domain/auth.ts';
+import { contactIdsInScope, contactVisible, unitIdsInScope, unitVisible } from '../../domain/access.ts';
 import { createContact, updateContact } from '../../domain/contacts.ts';
 import { todayTunis } from '../../domain/dates.ts';
 import type { Item } from '../../domain/db.ts';
@@ -14,7 +15,7 @@ import type { Where } from '../query-eval.ts';
 import { matches, page, sortRows } from '../query-eval.ts';
 import { byOrg, contactsById, count, groupBy } from '../org-data.ts';
 import type { Op } from '../registry.ts';
-import { STAFF, WRITERS, mutation, query } from '../registry.ts';
+import { EDITORS, REGIONAL, mutation, query } from '../registry.ts';
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 const rolesOf = (c: Item) => ((c.roles as string[] | undefined) ?? []).map((role) => ({ role }));
@@ -22,6 +23,21 @@ const rolesOf = (c: Item) => ((c.roles as string[] | undefined) ?? []).map((role
 async function ownedContact(caller: Caller, id: string): Promise<Item | null> {
   const c = await getItem('Contact', { id });
   return c?.organization_id === caller.orgId ? c : null;
+}
+
+/** A contact the caller may see: linked to their branches, or created by them (the manager sees all). */
+async function visibleContact(caller: Caller, id: string): Promise<Item | null> {
+  const contact = await ownedContact(caller, id);
+  if (!contact) return null;
+  return contactVisible(await contactIdsInScope(caller, await unitIdsInScope(caller)), contact) ? contact : null;
+}
+
+/** Writes on a contact the caller cannot see are refused as out of scope. */
+async function writableContact(caller: Caller, id: string): Promise<Item> {
+  // Missing, foreign or outside the caller's branches all look the same: not found.
+  const contact = await visibleContact(caller, id);
+  if (!contact) fail('contact_not_found');
+  return contact;
 }
 
 /** current_ownerships_aggregate per contact: how many units list the contact as a current owner. */
@@ -50,36 +66,53 @@ async function ownedOwnerships(caller: Caller, ids: string[]): Promise<Ownership
   return rows;
 }
 
+/** An ownership change touches only units the caller may use, and only contacts they may see. */
+async function assertOwnershipScope(caller: Caller, unitIds: string[], contactIds: string[]): Promise<void> {
+  const units = await unitIdsInScope(caller);
+  if (unitIds.some((id) => !unitVisible(units, id))) fail('out_of_scope');
+  const contacts = await contactIdsInScope(caller, units);
+  if (contactIds.some((id) => !(contacts === null || contacts.has(id)))) fail('out_of_scope');
+}
+
 export const peopleOps: Record<string, Op> = {
-  Contacts: query(STAFF, async (c) => {
-    const [contacts, counts] = await Promise.all([byOrg('Contact', c.orgId), ownedUnitCounts(c.orgId)]);
+  Contacts: query(REGIONAL, async (c) => {
+    const [contacts, counts, visible] = await Promise.all([byOrg('Contact', c.orgId), ownedUnitCounts(c.orgId), contactIdsInScope(c, await unitIdsInScope(c))]);
+    const shown = visible === null ? contacts : contacts.filter((x) => visible.has(x.id as string));
     return {
-      contacts: sortRows(contacts, { full_name: 'asc' }).slice(0, 500).map((x) => ({
+      contacts: sortRows(shown, { full_name: 'asc' }).slice(0, 500).map((x) => ({
         id: x.id, kind: x.kind, full_name: x.full_name, email: x.email, phone: x.phone, archived_at: x.archived_at,
         is_organization: x.is_organization, roles: rolesOf(x), current_ownerships_aggregate: count(counts.get(x.id) ?? 0),
       })),
     };
   }),
-  Contact: query(STAFF, async (c, v) => {
-    const x = await ownedContact(c, str(v.id));
+  Contact: query(REGIONAL, async (c, v) => {
+    const x = await visibleContact(c, str(v.id));
     return { contact: x ? { ...x, roles: rolesOf(x) } : null };
   }),
-  ContactForEdit: query(STAFF, async (c, v) => {
-    const x = await ownedContact(c, str(v.id));
+  ContactForEdit: query(REGIONAL, async (c, v) => {
+    const x = await visibleContact(c, str(v.id));
     if (!x) return { contact: null };
     const counts = await ownedUnitCounts(c.orgId);
     return { contact: { ...x, roles: rolesOf(x), current_ownerships_aggregate: count(counts.get(x.id) ?? 0) } };
   }),
-  ContactOptions: query(STAFF, async (c) => ({
-    contacts: sortRows((await byOrg('Contact', c.orgId)).filter((x) => !x.archived_at), [{ is_organization: 'desc' }, { full_name: 'asc' }])
-      .map((x) => ({ id: x.id, full_name: x.full_name, kind: x.kind, is_organization: x.is_organization })),
-  })),
-  ContactDuplicates: query(STAFF, async (c, v) => ({
-    contacts: page((await byOrg('Contact', c.orgId)).filter((x) => matches(x, v.where as Where)), 10)
-      .map((x) => ({ id: x.id, full_name: x.full_name, national_id: x.national_id, email: x.email, phone: x.phone })),
-  })),
-  ContactLeases: query(STAFF, async (c, v) => {
-    const contact = await ownedContact(c, str(v.id));
+  ContactOptions: query(REGIONAL, async (c) => {
+    const visible = await contactIdsInScope(c, await unitIdsInScope(c));
+    const contacts = (await byOrg('Contact', c.orgId)).filter((x) => !x.archived_at && (visible === null || visible.has(x.id as string)));
+    return {
+      contacts: sortRows(contacts, [{ is_organization: 'desc' }, { full_name: 'asc' }])
+        .map((x) => ({ id: x.id, full_name: x.full_name, kind: x.kind, is_organization: x.is_organization })),
+    };
+  }),
+  ContactDuplicates: query(REGIONAL, async (c, v) => {
+    const visible = await contactIdsInScope(c, await unitIdsInScope(c));
+    const contacts = (await byOrg('Contact', c.orgId)).filter((x) => visible === null || visible.has(x.id as string));
+    return {
+      contacts: page(contacts.filter((x) => matches(x, v.where as Where)), 10)
+        .map((x) => ({ id: x.id, full_name: x.full_name, national_id: x.national_id, email: x.email, phone: x.phone })),
+    };
+  }),
+  ContactLeases: query(REGIONAL, async (c, v) => {
+    const contact = await visibleContact(c, str(v.id));
     if (!contact) return { lease_parties: [] };
     const parties = (await queryAll('LeaseParty', { index: 'byContact', key: 'contact_id', value: contact.id })).filter((p) => p.role === v.role);
     const leases = (await batchGet('Lease', parties.map((p) => p.lease_id))) as Lease[];
@@ -102,18 +135,22 @@ export const peopleOps: Record<string, Op> = {
     };
   }),
 
-  AddContact: mutation(WRITERS, async (c, v) => {
+  AddContact: mutation(EDITORS, async (c, v) => {
     const { roles, ...object } = (v.object ?? {}) as Item;
     const nested = (roles as { data?: { role: string }[] } | undefined)?.data?.map((r) => r.role) ?? [];
     return { insert_contacts_one: { id: (await createContact(c, object, nested)).id } };
   }),
-  AddContactRoles: mutation(WRITERS, async (c, v) => {
+  AddContactRoles: mutation(EDITORS, async (c, v) => {
     const objects = (v.objects as { contact_id: string; role: string }[]) ?? [];
     const byContact = groupBy(objects as Item[], 'contact_id');
-    for (const [contactId, rows] of byContact) await updateContact(c, contactId, {}, [], rows.map((r) => r.role));
+    for (const [contactId, rows] of byContact) {
+      await writableContact(c, contactId);
+      await updateContact(c, contactId, {}, [], rows.map((r) => r.role));
+    }
     return { insert_contact_roles: { affected_rows: objects.length } };
   }),
-  UpdateContact: mutation(WRITERS, async (c, v) => {
+  UpdateContact: mutation(EDITORS, async (c, v) => {
+    await writableContact(c, str(v.id));
     const added = ((v.added as { role: string }[]) ?? []).map((r) => r.role);
     await updateContact(c, str(v.id), (v.set ?? {}) as Item, (v.removed as string[]) ?? [], added);
     return {
@@ -122,11 +159,14 @@ export const peopleOps: Record<string, Op> = {
       insert_contact_roles: { affected_rows: added.length },
     };
   }),
-  SetContactArchived: mutation(WRITERS, async (c, v) => ({ update_contacts_by_pk: { id: (await updateContact(c, str(v.id), { archived_at: v.archived_at ?? null })).id } })),
+  SetContactArchived: mutation(EDITORS, async (c, v) => {
+    await writableContact(c, str(v.id));
+    return { update_contacts_by_pk: { id: (await updateContact(c, str(v.id), { archived_at: v.archived_at ?? null })).id } };
+  }),
 
-  UnitOwnerships: query(STAFF, async (c, v) => {
+  UnitOwnerships: query(REGIONAL, async (c, v) => {
     const unit = await getItem('Unit', { id: str(v.unitId) });
-    if (unit?.organization_id !== c.orgId) return { ownerships: [] };
+    if (unit?.organization_id !== c.orgId || !unitVisible(await unitIdsInScope(c), unit.id)) return { ownerships: [] };
     const rows = await queryAll('Ownership', { index: 'byUnit', key: 'unit_id', value: unit.id });
     const contacts = await contactsById(rows.map((r) => r.contact_id));
     return {
@@ -139,10 +179,11 @@ export const peopleOps: Record<string, Op> = {
       }),
     };
   }),
-  ContactOwnerships: query(STAFF, async (c, v) => {
-    const contact = await ownedContact(c, str(v.contactId));
+  ContactOwnerships: query(REGIONAL, async (c, v) => {
+    const contact = await visibleContact(c, str(v.contactId));
     if (!contact) return { ownerships: [] };
-    const rows = await queryAll('Ownership', { index: 'byContact', key: 'contact_id', value: contact.id });
+    const units0 = await unitIdsInScope(c);
+    const rows = (await queryAll('Ownership', { index: 'byContact', key: 'contact_id', value: contact.id })).filter((r) => unitVisible(units0, r.unit_id));
     const units = new Map((await batchGet('Unit', rows.map((r) => r.unit_id))).map((u) => [u.id as string, u]));
     const properties = new Map((await batchGet('Property', [...units.values()].map((u) => u.property_id))).map((p) => [p.id as string, p]));
     return {
@@ -157,27 +198,30 @@ export const peopleOps: Record<string, Op> = {
     };
   }),
 
-  AddOwnership: mutation(WRITERS, async (c, v) => {
+  AddOwnership: mutation(EDITORS, async (c, v) => {
     const o = v.object as Item;
+    await assertOwnershipScope(c, [str(o.unit_id)], [str(o.contact_id)]);
     const after = await changeOwnerships(c, str(o.unit_id), { upsert: [toInput({ ...o, id: undefined })] });
     const created = after.find((r) => r.contact_id === o.contact_id && r.starts_on === o.starts_on);
     return { insert_ownerships_one: { id: created?.id ?? null } };
   }),
   /** End the current owners and start the new ones as one change (a transfer passes the 100 % cap). */
-  TransferOwnership: mutation(WRITERS, async (c, v) => {
+  TransferOwnership: mutation(EDITORS, async (c, v) => {
     const ended = await ownedOwnerships(c, (v.endIds as string[]) ?? []);
     const objects = (v.objects as Item[]) ?? [];
     const unitId = singleUnit([...ended.map((r) => r.unit_id), ...objects.map((o) => str(o.unit_id))]);
+    await assertOwnershipScope(c, [unitId], objects.map((o) => str(o.contact_id)));
     await changeOwnerships(c, unitId, {
       upsert: [...ended.map((r) => toInput({ ...r, ends_on: v.endOn })), ...objects.map((o) => toInput({ ...o, id: undefined }))],
     });
     return { update_ownerships: { affected_rows: ended.length }, insert_ownerships: { affected_rows: objects.length } };
   }),
   /** Delete one ownership and reopen the ones it had closed, as one change. */
-  DeleteOwnership: mutation(WRITERS, async (c, v) => {
+  DeleteOwnership: mutation(EDITORS, async (c, v) => {
     const [target] = await ownedOwnerships(c, [str(v.id)]);
     const reopened = await ownedOwnerships(c, (v.reopen as string[]) ?? []);
     singleUnit([target.unit_id, ...reopened.map((r) => r.unit_id)]);
+    await assertOwnershipScope(c, [target.unit_id], []);
     await changeOwnerships(c, target.unit_id, { remove: [target.id], upsert: reopened.map((r) => toInput({ ...r, ends_on: null })) });
     return { delete_ownerships_by_pk: { id: target.id }, update_ownerships: { affected_rows: reopened.length } };
   }),

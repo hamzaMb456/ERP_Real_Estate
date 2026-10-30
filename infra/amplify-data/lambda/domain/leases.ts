@@ -5,17 +5,18 @@
 // anything that changes which leases occupy a unit). A lost race surfaces as `concurrent_update`.
 import { randomUUID } from 'node:crypto';
 import type { Caller } from './auth.ts';
-import { requireWriter } from './auth.ts';
+import { requireEditor } from './auth.ts';
 import { ensureContactRole } from './contacts.ts';
 import { addDays, todayTunis } from './dates.ts';
 import { fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
 import { batchGet, getItem, pick, queryAll, scanAll, table, transact, versionBump } from './db.ts';
 import { syncPublicListing } from './public-listings.ts';
-import type { DraftInput, Lease, LeaseRent, LeaseTerm, PartyInput, RentInput } from './lease-rules.ts';
+import type { DraftInput, Lease, LeaseRent, LeaseTerm, PartyInput, RentInput, UnitDeposit } from './lease-rules.ts';
 import {
   LEASE_RULES,
   RECORD_FIELDS_AFTER_DRAFT,
+  activationGaps,
   assertActivatable,
   assertEndable,
   assertNoOverlap,
@@ -27,6 +28,7 @@ import {
 } from './lease-rules.ts';
 
 const FORBIDDEN = 'lease_forbidden';
+const MANAGERS = new Set(['org_admin', 'manager']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CREATE_ATTEMPTS = 3;
 
@@ -176,7 +178,7 @@ function linkDiff<T>(current: T[], wanted: T[], key: (x: T) => string): { remove
  * New leases take the next per-organization number (assign_lease_number).
  */
 export async function saveDraftLease(caller: Caller, input: DraftInput): Promise<Lease> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   validateDraft(input);
 
   const [units, contacts] = await Promise.all([
@@ -292,7 +294,7 @@ export async function updateLeaseRecord(
   id: string,
   patch: Partial<Pick<Lease, 'payment_day' | 'deposit_amount' | 'registered_at' | 'registration_receipt' | 'archived_at'>>,
 ): Promise<Lease> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   const lease = await loadLease(orgId, id);
   const safe = pick(patch, [...RECORD_FIELDS_AFTER_DRAFT, 'archived_at']);
   if (lease.status !== 'draft' && Object.keys(safe).some((f) => !RECORD_FIELDS_AFTER_DRAFT.has(f))) fail('lease_not_draft');
@@ -308,7 +310,7 @@ export async function updateLeaseRecord(
  * nobody can leave a lease that is not a draft.
  */
 export async function addLeaseGuarantor(caller: Caller, leaseId: string, contactId: string): Promise<void> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   const [lease, contact] = await Promise.all([loadLease(orgId, leaseId), getItem('Contact', { id: contactId })]);
   if (!contact || contact.organization_id !== orgId) fail('lease_contact_not_found');
   const party: PartyInput = { contact_id: contactId, role: 'guarantor' };
@@ -321,14 +323,22 @@ export async function addLeaseGuarantor(caller: Caller, leaseId: string, contact
 
 // ------------------------------------------------------------------ lifecycle
 
-/** draft -> active: needs a renter, a unit and a first rent per unit; no overlap. */
+/** Categories of the files attached to a lease (FileLink.category). */
+async function leaseDocumentCategories(leaseId: string): Promise<string[]> {
+  const links = await queryAll('FileLink', { index: 'byTarget', key: 'target_key', value: `lease#${leaseId}` });
+  return links.map((link) => String(link.category ?? ''));
+}
+
+/** draft -> active: needs a renter, a unit and a first rent per unit; no overlap. Staff need the deposit and documents on file. */
 export async function activateLease(caller: Caller, id: string, signedOn?: string, today = todayTunis()): Promise<Lease> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   const lease = await loadLease(orgId, id);
   const [unitIds, parties] = await Promise.all([leaseUnitIds(id), leaseParties(id)]);
   assertActivatable(lease, unitIds, parties, signedOn, today);
   const ctx = await loadUnitContext(orgId, unitIds);
   assertNoOverlap(otherLeases(ctx), lease.id, lease.start_date, lease.end_date);
+  const gaps = activationGaps(lease, [...ctx.units.values()] as UnitDeposit[], await leaseDocumentCategories(id));
+  if (gaps.length > 0 && !MANAGERS.has(caller.role)) fail(`lease_activation_needs_approval:${gaps.join(',')}`);
   const now = nowIso();
   return commitOccupancyChange(ctx, {
     ...lease,
@@ -348,7 +358,7 @@ export async function renewLease(
   note?: string,
   today = todayTunis(),
 ): Promise<Lease> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   const lease = await loadLease(orgId, id);
   assertRenewable(lease, newEnd, today);
   const unitIds = await leaseUnitIds(id);
@@ -374,7 +384,7 @@ export async function renewLease(
 
 /** active -> ended, on a day between the start and today. */
 export async function endLease(caller: Caller, id: string, endedOn: string, reason?: string, today = todayTunis()): Promise<Lease> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   const lease = await loadLease(orgId, id);
   const finalReason = assertEndable(lease, endedOn, reason, today);
   const ctx = await loadUnitContext(orgId, await leaseUnitIds(id));
@@ -391,7 +401,7 @@ export async function endLease(caller: Caller, id: string, endedOn: string, reas
 
 /** A rent change on an active lease: a new rent row for one of its units. */
 export async function changeRent(caller: Caller, id: string, rent: RentInput): Promise<Lease> {
-  const orgId = requireWriter(caller, FORBIDDEN);
+  const orgId = requireEditor(caller, FORBIDDEN);
   const lease = await loadLease(orgId, id);
   if (lease.status !== 'active') fail('lease_not_active');
   if (!(await leaseUnitIds(id)).includes(rent.unit_id)) fail('lease_unit_not_found');

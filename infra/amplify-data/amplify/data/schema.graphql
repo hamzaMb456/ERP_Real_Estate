@@ -21,6 +21,60 @@ type Branch @table {
   organization_id: ID! @index(name: "byOrg", sortKeyFields: ["name"])
   name: String!
   city: String
+  "Public agency page: /agences/{slug}. Unique per organization."
+  slug: String
+  region: String
+  address: String
+  phone: String
+}
+
+"Which branches a regional staff member works in. A manager or org_admin has no rows: they see every branch."
+type StaffAssignment @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["user_id"])
+  user_id: ID! @index(name: "byUser", sortKeyFields: ["branch_id"])
+  branch_id: ID! @index(name: "byBranch")
+  role: String!
+}
+
+"A regional staff member's request to activate a lease that is not complete (deposit or documents). A manager approves or rejects it."
+type LeaseApproval @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["requested_at"])
+  lease_id: ID! @index(name: "byLease")
+  status: String!
+  requested_by_user_id: ID!
+  requested_at: AWSDateTime!
+  signed_on: AWSDate
+  missing: [String]
+  decided_by_user_id: ID
+  decided_at: AWSDateTime
+  decision_note: String
+}
+
+"One invitation link for a new regional staff member. The link itself is signed, not stored: this row holds only id, expiry and marks."
+type StaffInvitation @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["created_at"])
+  user_id: ID! @index(name: "byUser", sortKeyFields: ["created_at"])
+  email: String!
+  display_name: String!
+  expires_at: AWSDateTime!
+  used_at: AWSDateTime
+  revoked_at: AWSDateTime
+  created_by_user_id: ID!
+  created_at: AWSDateTime!
+}
+
+"What happened to a staff account: created, invited, resent, activated, disabled, authenticator reset, agencies changed."
+type StaffActivity @table {
+  id: ID!
+  organization_id: ID! @index(name: "byOrg", sortKeyFields: ["created_at"])
+  user_id: ID!
+  kind: String!
+  actor_user_id: ID!
+  created_at: AWSDateTime!
+  detail: String
 }
 
 type Property @table {
@@ -56,7 +110,6 @@ type Unit @table {
   sale_price: Float
   charges: Float
   visit_fee: Float
-  common_share: Int
   title: String
   description: String
   available_from: AWSDate
@@ -72,7 +125,9 @@ type Unit @table {
   legal_status: String
   virtual_tour_url: String
   orientation: [String]
-  outdoor_area_m2: Float
+  balcony_m2: Float
+  terrace_m2: Float
+  garden_m2: Float
   energy_class: String
   min_lease_months: Int
   charges_included: [String]
@@ -87,15 +142,6 @@ type OwnerShare {
   contact_id: ID!
   full_name: String
   share_percent: Float
-}
-
-type CommonArea @table {
-  id: ID!
-  organization_id: ID!
-  property_id: ID! @index(name: "byProperty", sortKeyFields: ["name"])
-  name: String!
-  kind: String
-  notes: String
 }
 
 # ---------------------------------------------------------------- people
@@ -114,6 +160,8 @@ type Contact @table {
   notes: String
   is_organization: Boolean
   archived_at: AWSDateTime
+  "The staff member who created the contact: they keep seeing it while it is not linked to a unit or lease of their branches."
+  created_by_user_id: ID
 }
 
 "n:n unit x contact over time; share cap and no-overlap enforced by the ownership Lambda."
@@ -139,6 +187,10 @@ type StaffMember @table {
   display_name: String!
   email: String
   role: String!
+  "Set when the person finished activation (password and authenticator code)."
+  confirmed_at: AWSDateTime
+  "Set by the kill switch: the account is locked and has no agencies."
+  disabled_at: AWSDateTime
 }
 
 # ---------------------------------------------------------------- files
@@ -351,7 +403,9 @@ type PublicListing @table {
   pets_allowed: Boolean
   legal_status: String
   orientation: [String]
-  outdoor_area_m2: Float
+  balcony_m2: Float
+  terrace_m2: Float
+  garden_m2: Float
   energy_class: String
   min_lease_months: Int
   charges_included: [String]
