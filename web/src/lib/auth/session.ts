@@ -49,13 +49,19 @@ async function call<T>(action: string, body: Record<string, unknown>): Promise<T
   return data;
 }
 
-export type SignInResult = { kind: 'signed-in' } | { kind: 'new-password'; email: string; challengeSession: string };
+export type SignInResult =
+  | { kind: 'signed-in' }
+  | { kind: 'new-password'; email: string; challengeSession: string }
+  | { kind: 'mfa'; email: string; challengeSession: string; challengeUserId: string };
 
 export async function signIn(email: string, password: string): Promise<SignInResult> {
-  const data = await call<{ session?: AuthSession; challenge?: string; email?: string; challengeSession?: string }>(
+  const data = await call<{ session?: AuthSession; challenge?: string; email?: string; challengeSession?: string; challengeUserId?: string }>(
     'signin',
     { email, password },
   );
+  if (data.challenge === 'mfa' && data.email && data.challengeSession && data.challengeUserId) {
+    return { kind: 'mfa', email: data.email, challengeSession: data.challengeSession, challengeUserId: data.challengeUserId };
+  }
   if (data.challenge === 'new-password' && data.email && data.challengeSession) {
     return { kind: 'new-password', email: data.email, challengeSession: data.challengeSession };
   }
@@ -66,6 +72,12 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 
 export async function completeNewPassword(email: string, newPassword: string, challengeSession: string): Promise<void> {
   const data = await call<{ session: AuthSession }>('newpassword', { email, newPassword, challengeSession });
+  setSession(data.session);
+}
+
+/** Second step for regional staff: the 6-digit code from their authenticator app. */
+export async function completeMfa(email: string, code: string, challengeSession: string, challengeUserId: string): Promise<void> {
+  const data = await call<{ session: AuthSession }>('mfa', { email, code, challengeSession, challengeUserId });
   setSession(data.session);
 }
 

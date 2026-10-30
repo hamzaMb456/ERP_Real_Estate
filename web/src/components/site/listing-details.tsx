@@ -40,7 +40,7 @@ export function ListingDescription({ listing }: { listing: PublicListing }) {
   );
 }
 
-/** « Caractéristiques détaillées »: condition, year built, floors, outdoor area, orientation, energy class (only what is filled). */
+/** « Caractéristiques détaillées »: condition, year built, floors, balcony, terrace, garden, orientation, energy class (only what is filled). */
 export function ListingFeatures({ listing }: { listing: PublicListing }) {
   const t = useT();
   const copy = t.site.listing.features;
@@ -52,7 +52,9 @@ export function ListingFeatures({ listing }: { listing: PublicListing }) {
     listing.propertyCondition && listing.propertyCondition in conditions ? { label: copy.condition, value: conditions[listing.propertyCondition] } : null,
     listing.yearBuilt !== null ? { label: copy.yearBuilt, value: String(listing.yearBuilt) } : null,
     listing.floorsCount !== null ? { label: copy.floors, value: formatNumber(listing.floorsCount, 0) } : null,
-    listing.outdoorAreaM2 !== null ? { label: copy.outdoorArea, value: formatArea(listing.outdoorAreaM2) } : null,
+    listing.balconyM2 !== null ? { label: copy.balcony, value: formatArea(listing.balconyM2) } : null,
+    listing.terraceM2 !== null ? { label: copy.terrace, value: formatArea(listing.terraceM2) } : null,
+    listing.gardenM2 !== null ? { label: copy.garden, value: formatArea(listing.gardenM2) } : null,
     sides.length > 0 ? { label: copy.orientation, value: sides.join(' · ') } : null,
     energy ? { label: copy.energyClass, value: energy } : null,
   ].filter((item): item is { label: string; value: string } => item !== null);

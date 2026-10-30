@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Archive, ArchiveRestore, ArrowLeft, Loader2, Pencil, Plus, SearchX } from '@/components/icons';
 import { toast } from 'sonner';
-import { CommonAreasTab } from '@/components/common-areas/common-areas-tab';
 import { UnitDialog } from '@/components/domain/unit-dialog';
 import { DocumentList } from '@/components/files/document-list';
 import { PhotoGallery } from '@/components/files/photo-gallery';
@@ -31,7 +30,7 @@ const PROPERTY_QUERY = `
       branch { id name }
       owners(order_by: { units_count: desc }) { units_count contact { id full_name is_organization } }
       units(order_by: { code: asc }) {
-        id code type floor rooms surface_m2 rent_amount status archived_at common_share
+        id code type floor rooms surface_m2 rent_amount status archived_at
         ownerships { id unit_id contact_id share_percent starts_on ends_on }
         current_owners { share_percent contact { id full_name } }
       }
@@ -45,7 +44,7 @@ const SET_ARCHIVED = `
   }
 `;
 
-const PROPERTY_TABS = ['apercu', 'unites', 'photos', 'documents', 'parties-communes'] as const;
+const PROPERTY_TABS = ['apercu', 'unites', 'photos', 'documents'] as const;
 type PropertyTab = (typeof PROPERTY_TABS)[number];
 
 function BackLink() {
@@ -183,7 +182,6 @@ export default function PropertyDetailPage() {
             <TabsTrigger value="unites">{t.properties.detail.tabUnits(units.length)}</TabsTrigger>
             <TabsTrigger value="photos">{t.properties.detail.tabPhotos}</TabsTrigger>
             <TabsTrigger value="documents">{t.properties.detail.tabDocuments}</TabsTrigger>
-            {current.type === 'building' && <TabsTrigger value="parties-communes">{t.properties.detail.tabCommonAreas}</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="apercu" className="pt-4">
@@ -198,11 +196,6 @@ export default function PropertyDetailPage() {
           <TabsContent value="documents" className="pt-4">
             <DocumentList target={{ propertyId: current.id }} />
           </TabsContent>
-          {current.type === 'building' && (
-            <TabsContent value="parties-communes" className="pt-4">
-              <CommonAreasTab propertyId={current.id} units={units} onUnitsChanged={refresh} />
-            </TabsContent>
-          )}
         </Tabs>
       </StaggerItem>
     </Stagger>

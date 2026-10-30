@@ -16,7 +16,6 @@ describe('gapLink', () => {
     expect(gapLink(unitGap('no_surface'))).toBe('/erp/biens/p1/unites/u1#modifier');
     const property = { entity_type: 'property', entity_id: 'p1', property_id: 'p1', entity_label: 'Résidence', property_label: null } as const;
     expect(gapLink({ ...property, gap_code: 'no_position' })).toBe('/erp/biens/p1/modifier');
-    expect(gapLink({ ...property, gap_code: 'shares_total' })).toBe('/erp/biens/p1#parties-communes');
     expect(
       gapLink({ entity_type: 'contact', entity_id: 'c1', property_id: null, entity_label: 'X', property_label: null, gap_code: 'no_contact_info' }),
     ).toBe('/erp/contacts/c1/modifier');

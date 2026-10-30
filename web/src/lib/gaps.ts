@@ -26,7 +26,7 @@ export function gapLink(row: GapRow): string {
       return row.gap_code === 'no_owner' ? base + '#proprietaires' : base + '#modifier';
     }
     case 'property':
-      return row.gap_code === 'shares_total' ? `/erp/biens/${row.entity_id}#parties-communes` : `/erp/biens/${row.entity_id}/modifier`;
+      return `/erp/biens/${row.entity_id}/modifier`;
     case 'contact':
       return `/erp/contacts/${row.entity_id}/modifier`;
   }

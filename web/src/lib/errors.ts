@@ -31,6 +31,8 @@ export function toUserMessage(error: unknown, context: ErrorContext = {}): strin
   if (lease) return t.lease[lease];
   const appointment = (Object.keys(t.appointment) as (keyof typeof t.appointment)[]).find((needle) => message.includes(needle));
   if (appointment) return t.appointment[appointment];
+  const access = (Object.keys(t.access) as (keyof typeof t.access)[]).find((needle) => message.includes(needle));
+  if (access) return t.access[access];
   if (NETWORK.test(message)) return t.network;
   if (PERMISSION.test(message)) return t.permission;
   return message || t.unknown;

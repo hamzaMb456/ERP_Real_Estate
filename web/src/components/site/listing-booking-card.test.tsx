@@ -34,7 +34,9 @@ function makeListing(overrides: Partial<PublicListing> = {}): PublicListing {
 
 function renderSignedIn(listing: PublicListing) {
   render(
-    <AuthContext.Provider value={{ session: SESSION, ready: true, pendingPasswordChange: null, signIn: vi.fn(), completePasswordChange: vi.fn(), signOut: vi.fn(), signUp: vi.fn(), confirmSignUp: vi.fn() }}>
+    <AuthContext.Provider value={{ session: SESSION, ready: true, pendingPasswordChange: null,
+  pendingMfa: null,
+  completeMfa: vi.fn(), signIn: vi.fn(), completePasswordChange: vi.fn(), signOut: vi.fn(), signUp: vi.fn(), confirmSignUp: vi.fn() }}>
       <ListingBookingCard listing={listing} />
     </AuthContext.Provider>,
   );

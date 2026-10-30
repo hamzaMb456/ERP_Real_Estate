@@ -1,6 +1,36 @@
 import type { leases as fr } from '../fr/leases';
 
 export const leases: typeof fr = {
+  approvals: {
+    rejectReason: 'Reason for rejection (optional)',
+    status: { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' },
+    banner: {
+      pending: 'Activation waiting for the manager\'s approval.',
+      approved: (date: string) => `Activation approved on ${date}.`,
+      rejected: 'Activation rejected by the manager. The lease stays a draft.',
+      note: 'Reason',
+    },
+    mineTitle: 'My activation requests',
+    mineIntro: 'Follow the leases you asked to activate.',
+    mineEmpty: 'You have not sent any request.',
+    decidedOn: 'Decided on',
+    title: 'Lease approvals',
+    intro: 'Activations asked for by regional staff. Approving activates the lease; rejecting leaves it a draft.',
+    empty: 'No request waiting.',
+    lease: (n: number | string | null) => (n ? `Lease No. ${n}` : 'Lease'),
+    requestedOn: 'Requested on',
+    missing: 'Missing',
+    approve: 'Approve and activate',
+    reject: 'Reject',
+    done: 'Request handled.',
+    forbidden: 'Reserved for the manager.',
+    missingItems: {
+      deposit: 'Lease deposit',
+      unitDeposit: 'Deposit months of the unit',
+      unitReservation: 'Reservation amount of the unit',
+      doc: { signed_lease: 'Signed lease', id_document: 'Renter ID document', registration_receipt: 'Registration receipt' },
+    },
+  },
   number: (number) => `Lease No. ${number}`,
   statuses: {
     draft: 'Draft',
@@ -133,6 +163,8 @@ export const leases: typeof fr = {
     activateDescription: 'The lease becomes “Active” and the units are marked rented. Enter the signing date.',
     activateSubmit: 'Activate the lease',
     activated: 'Lease activated',
+
+    approvalRequested: 'Request sent to the manager for approval.',
     signedOn: 'Signing date',
     signedOnHelp: 'Date the lease was signed by the parties. It is used to work out the registration deadline.',
     renewTitle: 'Renew the lease',

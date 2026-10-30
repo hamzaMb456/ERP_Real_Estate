@@ -23,7 +23,7 @@ import { WebsiteCard } from '@/components/website/website-card';
 import { toUserMessage } from '@/lib/errors';
 import { formatArea, formatTnd } from '@/lib/format';
 import { graphql } from '@/lib/graphql';
-import { useCanEdit } from '@/lib/use-can-edit';
+import { useCanEdit, useCanManage } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 import { useHash, useHashTab } from '@/lib/use-hash';
 
@@ -33,7 +33,7 @@ const UNIT_QUERY = `
     unit: units_by_pk(id: $id) {
       id code type floor rooms surface_m2 rent_amount status archived_at
       title description sale_price charges available_from furnished amenities show_on_website
-      bedrooms bathrooms parking_spaces property_condition orientation outdoor_area_m2 energy_class deposit_months
+      bedrooms bathrooms parking_spaces property_condition orientation balcony_m2 terrace_m2 garden_m2 energy_class deposit_months
       min_lease_months pets_allowed charges_included legal_status reservation_deposit reservation_days virtual_tour_url
       property { id name archived_at }
       photos: files_aggregate(where: { kind: { _eq: "photo" } }) { aggregate { count } }
@@ -84,6 +84,7 @@ export default function UnitDetailPage() {
   const router = useRouter();
   const { id, unitId } = useParams<{ id: string; unitId: string }>();
   const canEdit = useCanEdit();
+  const canManage = useCanManage();
   const [hash, setHash] = useHash();
   const [tab, setTab] = useHashTab(UNIT_TABS, 'apercu');
   const [reload, setReload] = useState(0);
@@ -214,7 +215,7 @@ export default function UnitDetailPage() {
                     )}
                     {archived ? t.properties.detail.restore : t.properties.detail.archive}
                   </Button>
-                  {current.status !== 'rented' && (
+                  {canManage && current.status !== 'rented' && (
                     <Button variant="outline" className="text-destructive hover:bg-destructive/10" disabled={saving} onClick={() => setDeleteOpen(true)}>
                       <Trash2 data-icon="inline-start" />
                       {t.common.delete}

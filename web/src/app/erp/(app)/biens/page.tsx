@@ -23,7 +23,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { toUserMessage } from '@/lib/errors';
 import { formatArea, formatTnd } from '@/lib/format';
 import { graphql } from '@/lib/graphql';
-import { useCanEdit } from '@/lib/use-can-edit';
+import { useCanEdit, useCanManage } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 
 import { getIntlLocale } from '@/i18n/store';
@@ -120,6 +120,7 @@ export default function BiensPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [owner, setOwner] = useState('all');
   const canEdit = useCanEdit();
+  const canManage = useCanManage();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [deleting, setDeleting] = useState<Unit | null>(null);
 
@@ -508,7 +509,7 @@ export default function BiensPage() {
                                       {unit.archived_at ? <ArchiveRestore /> : <Archive />}
                                       {unit.archived_at ? t.properties.detail.restore : t.properties.detail.archive}
                                     </DropdownMenuItem>
-                                    {unit.status !== 'rented' && (
+                                    {canManage && unit.status !== 'rented' && (
                                       <>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem variant="destructive" onClick={() => setDeleting(unit)}>

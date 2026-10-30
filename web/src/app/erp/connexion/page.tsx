@@ -25,7 +25,7 @@ export default function ConnexionPage() {
 }
 
 function ConnexionForm() {
-  const { session, ready, signIn, pendingPasswordChange, completePasswordChange } = useAuth();
+  const { session, ready, signIn, pendingPasswordChange, completePasswordChange, pendingMfa, completeMfa } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
   const destination = safeNext(params.get('next'));
@@ -33,6 +33,7 @@ function ConnexionForm() {
   const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +49,9 @@ function ConnexionForm() {
     setError(null);
     setSubmitting(true);
     try {
-      if (pendingPasswordChange) {
+      if (pendingMfa) {
+        await completeMfa(code.trim());
+      } else if (pendingPasswordChange) {
         if (newPassword !== confirmNewPassword) throw new Error(t.shell.login.newPasswordMismatch);
         if (!STRONG_PASSWORD.test(newPassword)) throw new Error(t.shell.login.newPasswordWeak);
         await completePasswordChange(newPassword);
@@ -70,10 +73,10 @@ function ConnexionForm() {
           <Building2 className="size-5" />
         </span>
         <h1 className="text-2xl font-semibold tracking-tight">
-          {pendingPasswordChange ? t.shell.login.newPasswordTitle : t.shell.login.title}
+          {pendingMfa ? t.shell.login.mfaTitle : pendingPasswordChange ? t.shell.login.newPasswordTitle : t.shell.login.title}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {pendingPasswordChange ? t.shell.login.newPasswordSubtitle : t.shell.login.subtitle}
+          {pendingMfa ? t.shell.login.mfaSubtitle : pendingPasswordChange ? t.shell.login.newPasswordSubtitle : t.shell.login.subtitle}
         </p>
       </div>
 
@@ -85,7 +88,20 @@ function ConnexionForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <FieldGroup>
-          {pendingPasswordChange ? (
+          {pendingMfa ? (
+            <Field>
+              <FieldLabel htmlFor="mfa-code">{t.shell.login.mfaCode}</FieldLabel>
+              <Input
+                id="mfa-code"
+                inputMode="numeric"
+                required
+                autoComplete="one-time-code"
+                dir="ltr"
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+              />
+            </Field>
+          ) : pendingPasswordChange ? (
             <>
               <Field>
                 <FieldLabel htmlFor="new-password">{t.shell.login.newPassword}</FieldLabel>
@@ -176,7 +192,7 @@ function ConnexionForm() {
 
         <Button type="submit" size="lg" className="w-full" disabled={submitting}>
           {submitting && <Loader2 data-icon="inline-start" />}
-          {submitting ? t.shell.login.submitting : pendingPasswordChange ? t.shell.login.newPasswordSubmit : t.shell.login.submit}
+          {submitting ? t.shell.login.submitting : pendingMfa ? t.shell.login.mfaSubmit : pendingPasswordChange ? t.shell.login.newPasswordSubmit : t.shell.login.submit}
         </Button>
       </form>
 

@@ -17,7 +17,7 @@ function getJwks(): ReturnType<typeof createRemoteJWKSet> {
   return jwks;
 }
 
-export type SessionClaims = { userId: string; role: string; token: string };
+export type SessionClaims = { userId: string; role: string; token: string; orgId: string };
 
 /** Verifies a Cognito ID token from an Authorization header. Throws if missing or invalid. */
 export async function requireSession(authHeader: string | null): Promise<SessionClaims> {
@@ -31,10 +31,19 @@ export async function requireSession(authHeader: string | null): Promise<Session
   const role = typeof payload['custom:role'] === 'string' ? payload['custom:role'] : '';
   const userId = typeof payload.sub === 'string' ? payload.sub : '';
   if (!userId) throw new Error('unauthorized');
-  return { userId, role, token };
+  const orgId = typeof payload['custom:org_id'] === 'string' ? payload['custom:org_id'] : '';
+  return { userId, role, token, orgId };
 }
 
 /** Throws unless the session role may write storage files. */
 export function requireWriter(session: SessionClaims): void {
   if (!WRITER_ROLES.has(session.role)) throw new Error('forbidden');
+}
+
+/** Roles that manage staff accounts. Never regional staff, never viewers. */
+const MANAGER_ROLES = new Set(['org_admin', 'manager']);
+
+/** Throws unless the session is a manager or org_admin with an organization. */
+export function requireManager(session: SessionClaims): void {
+  if (!MANAGER_ROLES.has(session.role) || !session.orgId) throw new Error('forbidden');
 }

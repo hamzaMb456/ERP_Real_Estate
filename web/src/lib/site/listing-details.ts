@@ -14,7 +14,9 @@ export type ListingDetails = {
   petsAllowed: boolean | null;
   legalStatus: string | null;
   orientation: string[];
-  outdoorAreaM2: number | null;
+  balconyM2: number | null;
+  terraceM2: number | null;
+  gardenM2: number | null;
   energyClass: string | null;
   minLeaseMonths: number | null;
   chargesIncluded: string[];
@@ -33,7 +35,9 @@ export type ListingDetailsRow = {
   pets_allowed: boolean | null;
   legal_status: string | null;
   orientation: string[] | null;
-  outdoor_area_m2: NumberLike;
+  balcony_m2: NumberLike;
+  terrace_m2: NumberLike;
+  garden_m2: NumberLike;
   energy_class: string | null;
   min_lease_months: NumberLike;
   charges_included: string[] | null;
@@ -51,7 +55,9 @@ export const NO_DETAILS: ListingDetails = {
   petsAllowed: null,
   legalStatus: null,
   orientation: [],
-  outdoorAreaM2: null,
+  balconyM2: null,
+  terraceM2: null,
+  gardenM2: null,
   energyClass: null,
   minLeaseMonths: null,
   chargesIncluded: [],
@@ -69,7 +75,9 @@ export const NO_DETAILS_ROW: ListingDetailsRow = {
   pets_allowed: null,
   legal_status: null,
   orientation: [],
-  outdoor_area_m2: null,
+  balcony_m2: null,
+  terrace_m2: null,
+  garden_m2: null,
   energy_class: null,
   min_lease_months: null,
   charges_included: [],
@@ -81,7 +89,7 @@ export const NO_DETAILS_ROW: ListingDetailsRow = {
 
 /** The columns the public queries select for the details. */
 export const DETAIL_FIELDS = `
-  bedrooms bathrooms parking_spaces property_condition pets_allowed legal_status orientation outdoor_area_m2
+  bedrooms bathrooms parking_spaces property_condition pets_allowed legal_status orientation balcony_m2 terrace_m2 garden_m2
   energy_class min_lease_months charges_included year_built floors_count neighbourhood_description visit_fee
 `;
 
@@ -101,7 +109,9 @@ export function toListingDetails(row: ListingDetailsRow): ListingDetails {
     petsAllowed: row.pets_allowed,
     legalStatus: row.legal_status,
     orientation: row.orientation ?? [],
-    outdoorAreaM2: toNumber(row.outdoor_area_m2),
+    balconyM2: toNumber(row.balcony_m2),
+    terraceM2: toNumber(row.terrace_m2),
+    gardenM2: toNumber(row.garden_m2),
     energyClass: row.energy_class,
     minLeaseMonths: toNumber(row.min_lease_months),
     chargesIncluded: row.charges_included ?? [],

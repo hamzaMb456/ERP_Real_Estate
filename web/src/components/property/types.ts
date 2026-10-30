@@ -10,7 +10,6 @@ export type PropertyUnit = {
   rent_amount: number | string | null;
   status: string;
   archived_at: string | null;
-  common_share: number | null;
   ownerships: OwnershipRow[];
   current_owners: { share_percent: number | string; contact: { id: string; full_name: string } }[];
 };

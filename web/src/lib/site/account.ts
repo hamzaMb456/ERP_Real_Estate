@@ -1,7 +1,7 @@
 // Client accounts of the public site: a client is an ordinary Cognito user with the default role "user"; staff have one of
 // the ERP roles. Helpers shared by the sign-in and sign-up pages, the gates and the ERP guard.
 
-export const STAFF_ROLES: readonly string[] = ['org_admin', 'manager', 'viewer'];
+export const STAFF_ROLES: readonly string[] = ['org_admin', 'manager', 'viewer', 'staff'];
 export const SIGN_IN_PATH = '/compte/connexion';
 export const SIGN_UP_PATH = '/compte/inscription';
 export const FORGOT_PASSWORD_PATH = '/compte/mot-de-passe-oublie';

@@ -87,7 +87,9 @@ function makeSchema(m: Messages['properties']['unitForm']) {
   parking_spaces: intBetween(m.countInvalid, 0, 50, true),
   property_condition: orNone(CONDITIONS),
   orientation: z.array(z.enum(ORIENTATIONS)),
-  outdoor_area_m2: optionalNumber(m.outdoorAreaInvalid, true),
+  balcony_m2: optionalNumber(m.outdoorAreaInvalid, true),
+  terrace_m2: optionalNumber(m.outdoorAreaInvalid, true),
+  garden_m2: optionalNumber(m.outdoorAreaInvalid, true),
   energy_class: orNone(ENERGY_CLASSES),
   deposit_months: intBetween(m.depositMonthsInvalid, 0, 12, false),
   min_lease_months: intBetween(m.minLeaseInvalid, 1, 120, true),
@@ -125,7 +127,9 @@ export type UnitFormUnit = {
   parking_spaces: number | null;
   property_condition: string | null;
   orientation: string[];
-  outdoor_area_m2: number | string | null;
+  balcony_m2: number | string | null;
+  terrace_m2: number | string | null;
+  garden_m2: number | string | null;
   energy_class: string | null;
   deposit_months: number;
   min_lease_months: number | null;
@@ -160,7 +164,9 @@ const EMPTY: FormValues = {
   parking_spaces: '',
   property_condition: NONE,
   orientation: [],
-  outdoor_area_m2: '',
+  balcony_m2: '',
+  terrace_m2: '',
+  garden_m2: '',
   energy_class: NONE,
   deposit_months: '2',
   min_lease_months: '',
@@ -199,7 +205,9 @@ function toFormValues(unit: UnitFormUnit): FormValues {
     parking_spaces: asText(unit.parking_spaces),
     property_condition: unit.property_condition ?? NONE,
     orientation: unit.orientation.filter((value): value is FormValues['orientation'][number] => (ORIENTATIONS as readonly string[]).includes(value)),
-    outdoor_area_m2: asText(unit.outdoor_area_m2),
+    balcony_m2: asText(unit.balcony_m2),
+    terrace_m2: asText(unit.terrace_m2),
+    garden_m2: asText(unit.garden_m2),
     energy_class: unit.energy_class ?? NONE,
     deposit_months: String(unit.deposit_months),
     min_lease_months: asText(unit.min_lease_months),
@@ -646,7 +654,7 @@ function UnitForm({
       id: 'outdoor',
       title: q.outdoor,
       help: q.outdoorHelp,
-      fields: ['outdoor_area_m2'],
+      fields: ['balcony_m2', 'terrace_m2', 'garden_m2'],
       optional: true,
       children: (
         <div className="space-y-5">
@@ -668,9 +676,25 @@ function UnitForm({
               )}
             />
           </div>
-          <QuestionField id="unit-outdoor" label={f.outdoorArea} help={f.outdoorAreaHelp} error={errors.outdoor_area_m2}>
+          <QuestionField id="unit-balcony" label={f.balcony} help={f.balconyHelp} error={errors.balcony_m2}>
             <InputGroup className="sm:max-w-48">
-              <InputGroupInput id="unit-outdoor" inputMode="decimal" placeholder="12" aria-invalid={!!errors.outdoor_area_m2} {...register('outdoor_area_m2')} />
+              <InputGroupInput id="unit-balcony" inputMode="decimal" placeholder="6" aria-invalid={!!errors.balcony_m2} {...register('balcony_m2')} />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText>{t.common.squareMeters}</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+          </QuestionField>
+          <QuestionField id="unit-terrace" label={f.terrace} help={f.terraceHelp} error={errors.terrace_m2}>
+            <InputGroup className="sm:max-w-48">
+              <InputGroupInput id="unit-terrace" inputMode="decimal" placeholder="20" aria-invalid={!!errors.terrace_m2} {...register('terrace_m2')} />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText>{t.common.squareMeters}</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+          </QuestionField>
+          <QuestionField id="unit-garden" label={f.garden} help={f.gardenHelp} error={errors.garden_m2}>
+            <InputGroup className="sm:max-w-48">
+              <InputGroupInput id="unit-garden" inputMode="decimal" placeholder="50" aria-invalid={!!errors.garden_m2} {...register('garden_m2')} />
               <InputGroupAddon align="inline-end">
                 <InputGroupText>{t.common.squareMeters}</InputGroupText>
               </InputGroupAddon>
@@ -817,7 +841,9 @@ function toUnitFields(values: FormValues) {
     parking_spaces: toNumberOrNull(values.parking_spaces),
     property_condition: values.property_condition === NONE ? null : values.property_condition,
     orientation: ORIENTATIONS.filter((side) => values.orientation.includes(side)),
-    outdoor_area_m2: toNumberOrNull(values.outdoor_area_m2),
+    balcony_m2: toNumberOrNull(values.balcony_m2),
+    terrace_m2: toNumberOrNull(values.terrace_m2),
+    garden_m2: toNumberOrNull(values.garden_m2),
     energy_class: values.energy_class === NONE ? null : values.energy_class,
     deposit_months: Number(values.deposit_months),
     min_lease_months: toNumberOrNull(values.min_lease_months),

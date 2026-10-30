@@ -67,10 +67,10 @@ describe('ListingFeatures', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the condition, year, floors, outdoor area, orientation and energy class', () => {
+  it('shows the condition, year, floors, balcony, garden, orientation and energy class, each outdoor space on its own line', () => {
     show(
       makeListing(
-        details({ propertyCondition: 'good', yearBuilt: 2018, floorsCount: 6, outdoorAreaM2: 12.5, orientation: ['south', 'east'], energyClass: 'C' }),
+        details({ propertyCondition: 'good', yearBuilt: 2018, floorsCount: 6, balconyM2: 12.5, gardenM2: 40, orientation: ['south', 'east'], energyClass: 'C' }),
       ),
       'features',
     );
@@ -79,7 +79,9 @@ describe('ListingFeatures', () => {
     expect(text).toContain('Bon état');
     expect(text).toContain('2018');
     expect(text).toContain('Étages de l’immeuble6');
-    expect(text).toContain('12,5');
+    expect(text).toContain('Balcon12,5');
+    expect(text).toContain('Jardin40');
+    expect(text).not.toContain('Terrasse');
     expect(text).toContain('Sud · Est');
     expect(text).toContain('Classe énergétique');
   });

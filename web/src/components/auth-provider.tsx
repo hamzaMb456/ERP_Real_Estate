@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { getMessages } from '@/i18n/store';
 import {
   AuthError,
+  completeMfa as completeMfaSignIn,
   completeNewPassword,
   confirmSignUp as confirmAccount,
   currentSession,
@@ -17,13 +18,16 @@ import type { AuthSession } from '@/lib/auth/types';
 import { accountErrorKey } from '@/lib/site/account';
 
 type PendingPasswordChange = { email: string; challengeSession: string };
+type PendingMfa = { email: string; challengeSession: string; challengeUserId: string };
 
 type AuthState = {
   session: AuthSession | null;
   ready: boolean;
   pendingPasswordChange: PendingPasswordChange | null;
+  pendingMfa: PendingMfa | null;
   signIn: (email: string, password: string) => Promise<void>;
   completePasswordChange: (newPassword: string) => Promise<void>;
+  completeMfa: (code: string) => Promise<void>;
   signOut: () => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<'verify'>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
@@ -63,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [ready, setReady] = useState(false);
   const [pending, setPending] = useState<PendingPasswordChange | null>(null);
+  const [pendingMfa, setPendingMfa] = useState<PendingMfa | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -88,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (result.kind === 'new-password') {
         setPending({ email: result.email, challengeSession: result.challengeSession });
       }
+      if (result.kind === 'mfa') {
+        setPendingMfa({ email: result.email, challengeSession: result.challengeSession, challengeUserId: result.challengeUserId });
+      }
     } catch (error) {
       throw toError(error, describeSignInError);
     }
@@ -104,6 +112,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     [pending],
+  );
+
+  const completeMfa = useCallback(
+    async (code: string) => {
+      if (!pendingMfa) throw new Error(getMessages().shell.auth.noSession);
+      try {
+        await completeMfaSignIn(pendingMfa.email, code, pendingMfa.challengeSession, pendingMfa.challengeUserId);
+        setPendingMfa(null);
+      } catch (error) {
+        // A refused code is the common case: say so, instead of the generic sign-in failure.
+        if (error instanceof AuthError) throw new Error(getMessages().shell.login.mfaWrong);
+        throw toError(error, describeSignInError);
+      }
+    },
+    [pendingMfa],
   );
 
   const signUp = useCallback(async (name: string, email: string, password: string): Promise<'verify'> => {
@@ -128,8 +151,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ session, ready, pendingPasswordChange: pending, signIn, completePasswordChange, signOut, signUp, confirmSignUp }),
-    [session, ready, pending, signIn, completePasswordChange, signOut, signUp, confirmSignUp],
+    () => ({ session, ready, pendingPasswordChange: pending, pendingMfa, signIn, completePasswordChange, completeMfa, signOut, signUp, confirmSignUp }),
+    [session, ready, pending, pendingMfa, signIn, completePasswordChange, completeMfa, signOut, signUp, confirmSignUp],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

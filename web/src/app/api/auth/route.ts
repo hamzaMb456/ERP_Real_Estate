@@ -11,16 +11,49 @@ function text(body: Body, key: string): string {
   return value;
 }
 
+/**
+ * A session for a regional staff login may only come out of the authenticator-code step. If Cognito hands one out after
+ * the password alone (the person switched their second step off), it is refused here.
+ */
+function sessionWithoutCode(result: AuthenticationResult): Record<string, unknown> {
+  const session = toSession(result);
+  if (session.user.defaultRole === 'staff') throw new CognitoError('NotAuthorizedException');
+  return { session };
+}
+
 async function signIn(body: Body): Promise<Record<string, unknown>> {
   const email = text(body, 'email');
   const password = text(body, 'password');
-  const result = await cognito<{ ChallengeName?: string; Session?: string; AuthenticationResult?: AuthenticationResult }>(
+  const result = await cognito<{
+    ChallengeName?: string;
+    Session?: string;
+    ChallengeParameters?: Record<string, string>;
+    AuthenticationResult?: AuthenticationResult;
+  }>(
     'InitiateAuth',
     { ClientId: clientId(), AuthFlow: 'USER_PASSWORD_AUTH', AuthParameters: { USERNAME: email, PASSWORD: password } },
   );
   if (result.ChallengeName === 'NEW_PASSWORD_REQUIRED' && result.Session) {
     return { challenge: 'new-password', email, challengeSession: result.Session };
   }
+  // Regional staff are asked for the authenticator code. Cognito wants its own user id back with the code, not the email.
+  if (result.ChallengeName === 'SOFTWARE_TOKEN_MFA' && result.Session) {
+    return { challenge: 'mfa', email, challengeSession: result.Session, challengeUserId: result.ChallengeParameters?.USER_ID_FOR_SRP ?? email };
+  }
+  if (!result.AuthenticationResult) throw new CognitoError('NotAuthorizedException');
+  return sessionWithoutCode(result.AuthenticationResult);
+}
+
+async function mfa(body: Body): Promise<Record<string, unknown>> {
+  const code = text(body, 'code');
+  const session = text(body, 'challengeSession');
+  const userId = text(body, 'challengeUserId');
+  const result = await cognito<{ AuthenticationResult?: AuthenticationResult }>('RespondToAuthChallenge', {
+    ClientId: clientId(),
+    ChallengeName: 'SOFTWARE_TOKEN_MFA',
+    Session: session,
+    ChallengeResponses: { USERNAME: userId, SOFTWARE_TOKEN_MFA_CODE: code },
+  });
   if (!result.AuthenticationResult) throw new CognitoError('NotAuthorizedException');
   return { session: toSession(result.AuthenticationResult) };
 }
@@ -36,7 +69,7 @@ async function newPassword(body: Body): Promise<Record<string, unknown>> {
     ChallengeResponses: { USERNAME: email, NEW_PASSWORD: newPassword },
   });
   if (!result.AuthenticationResult) throw new CognitoError('NotAuthorizedException');
-  return { session: toSession(result.AuthenticationResult) };
+  return sessionWithoutCode(result.AuthenticationResult);
 }
 
 async function signUp(body: Body): Promise<Record<string, unknown>> {
@@ -103,6 +136,7 @@ async function signOut(body: Body): Promise<Record<string, unknown>> {
 const ACTIONS: Record<string, (body: Body) => Promise<Record<string, unknown>>> = {
   signin: signIn,
   newpassword: newPassword,
+  mfa,
   signup: signUp,
   confirm,
   forgot,

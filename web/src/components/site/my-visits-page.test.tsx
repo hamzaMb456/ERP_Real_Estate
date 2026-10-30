@@ -13,7 +13,9 @@ const SESSION = { user: { displayName: 'Amine', email: 'amine@example.tn' }, acc
 
 function renderSignedIn() {
   return render(
-    <AuthContext.Provider value={{ session: SESSION, ready: true, pendingPasswordChange: null, signIn: vi.fn(), completePasswordChange: vi.fn(), signOut: vi.fn(), signUp: vi.fn(), confirmSignUp: vi.fn() }}>
+    <AuthContext.Provider value={{ session: SESSION, ready: true, pendingPasswordChange: null,
+  pendingMfa: null,
+  completeMfa: vi.fn(), signIn: vi.fn(), completePasswordChange: vi.fn(), signOut: vi.fn(), signUp: vi.fn(), confirmSignUp: vi.fn() }}>
       <MyVisitsPage />
     </AuthContext.Provider>,
   );
@@ -43,7 +45,9 @@ describe('MyVisitsPage', () => {
 
   it('redirects to sign-in when signed out', () => {
     render(
-      <AuthContext.Provider value={{ session: null, ready: true, pendingPasswordChange: null, signIn: vi.fn(), completePasswordChange: vi.fn(), signOut: vi.fn(), signUp: vi.fn(), confirmSignUp: vi.fn() }}>
+      <AuthContext.Provider value={{ session: null, ready: true, pendingPasswordChange: null,
+  pendingMfa: null,
+  completeMfa: vi.fn(), signIn: vi.fn(), completePasswordChange: vi.fn(), signOut: vi.fn(), signUp: vi.fn(), confirmSignUp: vi.fn() }}>
         <MyVisitsPage />
       </AuthContext.Provider>,
     );

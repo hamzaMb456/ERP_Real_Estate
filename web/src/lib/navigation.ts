@@ -39,7 +39,6 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { key: 'propertiesAndUnits', href: '/erp/biens' },
           { key: 'propertiesMap', href: '/erp/biens/carte' },
-          { key: 'commonAreas', href: '/erp/biens/parties-communes' },
           { key: 'incompleteRecords', href: '/erp/biens/fiches-incompletes' },
           { key: 'archivedProperties', href: '/erp/biens/archives' },
         ],
@@ -60,6 +59,7 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { key: 'leases', href: '/erp/baux' },
           { key: 'rentalRequests', href: '/erp/baux/demandes' },
+          { key: 'leaseApprovals', href: '/erp/baux/approbations' },
         ],
       },
       {
@@ -102,6 +102,7 @@ export const NAV_GROUPS: NavGroup[] = [
           { key: 'auditLog', href: '/erp/administration/audit' },
           { key: 'appearance', href: '/erp/administration/apparence' },
           { key: 'visitSettings', href: '/erp/administration/visites' },
+          { key: 'agencies', href: '/erp/administration/agences' },
         ],
       },
     ],
