@@ -102,6 +102,9 @@ export async function confirmPasswordReset(email: string, code: string, newPassw
 /** The refresh that is already running, so calls that start together share one request. */
 let refreshing: Promise<AuthSession | null> | null = null;
 
+/** Cognito's answer when the refresh token itself is no longer valid. Only this ends the session. */
+const REFRESH_REFUSED = 'NotAuthorizedException';
+
 async function refreshSession(session: AuthSession): Promise<AuthSession | null> {
   if (!session.refreshToken) {
     setSession(null);
@@ -111,9 +114,13 @@ async function refreshSession(session: AuthSession): Promise<AuthSession | null>
     const data = await call<{ session: AuthSession }>('refresh', { refreshToken: session.refreshToken });
     setSession(data.session);
     return data.session;
-  } catch {
-    setSession(null);
-    return null;
+  } catch (error) {
+    // A dropped connection or a Cognito hiccup is not a sign-out: keep the stored session and let the next request retry.
+    if (error instanceof AuthError && error.code === REFRESH_REFUSED) {
+      setSession(null);
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -136,8 +143,9 @@ export class SessionExpiredError extends Error {
 
 /**
  * The ID token to send with a request, renewed first when it is about to expire (the ID token lasts one hour, so a page
- * left open would otherwise send an expired token). null = nobody signed in. Throws SessionExpiredError when someone was
- * signed in and the session could not be renewed; the stored session is cleared then.
+ * left open would otherwise send an expired token). null = nobody signed in. Throws SessionExpiredError when Cognito refused
+ * the refresh; the stored session is cleared then. A failed attempt (offline, server error) throws AuthError and keeps the
+ * stored session, so the person is not signed out by a network blip.
  */
 export async function freshToken(): Promise<string | null> {
   const before = getSession();

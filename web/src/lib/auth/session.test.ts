@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SessionExpiredError, freshToken, getSession, setSession, subscribe } from './session';
+import { AuthError, SessionExpiredError, freshToken, getSession, setSession, subscribe } from './session';
 import type { AuthSession } from './types';
 
 const session = (over: Partial<AuthSession> = {}): AuthSession => ({
@@ -61,5 +61,23 @@ describe('freshToken', () => {
     unsubscribe();
     expect(getSession()).toBeNull();
     expect(seen.at(-1)).toBeNull();
+  });
+
+  it('keeps the session when the network drops during the refresh, and retries on the next request', async () => {
+    setSession(session({ expiresAt: Date.now() - 1000 }));
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(freshToken()).rejects.toBeInstanceOf(AuthError);
+    expect(getSession()?.refreshToken).toBe('refresh');
+
+    fetchMock.mockResolvedValueOnce(refreshReply('new-id-token'));
+    await expect(freshToken()).resolves.toBe('new-id-token');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the session when Cognito answers with a server error', async () => {
+    setSession(session({ expiresAt: Date.now() - 1000 }));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ error: 'server-error' }), { status: 500 }));
+    await expect(freshToken()).rejects.toBeInstanceOf(AuthError);
+    expect(getSession()).not.toBeNull();
   });
 });
