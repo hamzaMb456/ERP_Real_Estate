@@ -2,6 +2,12 @@ import type { AuthSession } from '@/lib/auth/types';
 
 const STORAGE_KEY = 'erp-auth-session';
 const REFRESH_BEFORE_MS = 5 * 60 * 1000;
+/** Signed out after this long without the person's own input. Refreshing the token does not restart the clock. */
+const IDLE_LIMIT_MS = 30 * 60 * 1000;
+const LAST_ACTIVE_KEY = 'erp-auth-last-active';
+/** Activity is written at most this often, so scrolling does not hammer localStorage. */
+const ACTIVITY_WRITE_GAP_MS = 10 * 1000;
+const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'touchstart', 'scroll'] as const;
 
 export class AuthError extends Error {
   constructor(readonly code: string) {
@@ -18,12 +24,67 @@ export function getSession(): AuthSession | null {
   return raw ? (JSON.parse(raw) as AuthSession) : null;
 }
 
+/**
+ * Stores a session and tells the listeners. The idle clock starts at a sign-in (no clock yet) and is left alone by a refresh.
+ * Clearing the session clears the clock too.
+ */
 export function setSession(session: AuthSession | null): void {
   if (typeof window !== 'undefined') {
-    if (session) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-    else window.localStorage.removeItem(STORAGE_KEY);
+    if (session) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+      if (readLastActive() === null) markActive();
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LAST_ACTIVE_KEY);
+    }
   }
   for (const listener of listeners) listener(session);
+}
+
+function readLastActive(): number | null {
+  const value = Number(window.localStorage.getItem(LAST_ACTIVE_KEY));
+  return window.localStorage.getItem(LAST_ACTIVE_KEY) === null || !Number.isFinite(value) ? null : value;
+}
+
+function markActive(): void {
+  if (!getSession()) return;
+  const last = readLastActive();
+  if (last !== null && Date.now() - last < ACTIVITY_WRITE_GAP_MS) return;
+  window.localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
+}
+
+/** Ends the session when the person has been idle past the limit. Returns true when it did. */
+function expireIfIdle(): boolean {
+  if (typeof window === 'undefined' || !getSession()) return false;
+  const last = readLastActive();
+  // A session from before the clock existed starts its clock now instead of ending at once.
+  if (last === null) {
+    markActive();
+    return false;
+  }
+  if (Date.now() - last <= IDLE_LIMIT_MS) return false;
+  setSession(null);
+  return true;
+}
+
+/**
+ * Counts the person's own input (click, key, touch, scroll, coming back to the tab) as activity. The limit is checked
+ * before the activity is recorded, so a click after a long pause ends the session instead of extending it.
+ * Returns the function that stops the tracking.
+ */
+export function trackActivity(): () => void {
+  const onActivity = () => {
+    if (!expireIfIdle()) markActive();
+  };
+  const onVisibility = () => {
+    if (document.visibilityState === 'visible') onActivity();
+  };
+  for (const event of ACTIVITY_EVENTS) window.addEventListener(event, onActivity, { capture: true, passive: true });
+  document.addEventListener('visibilitychange', onVisibility);
+  return () => {
+    for (const event of ACTIVITY_EVENTS) window.removeEventListener(event, onActivity, { capture: true });
+    document.removeEventListener('visibilitychange', onVisibility);
+  };
 }
 
 export function subscribe(listener: Listener): () => void {
@@ -126,6 +187,7 @@ async function refreshSession(session: AuthSession): Promise<AuthSession | null>
 
 /** Returns the current session, refreshed first when the ID token is close to expiry. */
 export async function currentSession(): Promise<AuthSession | null> {
+  if (expireIfIdle()) return null;
   const session = getSession();
   if (!session || session.expiresAt - Date.now() > REFRESH_BEFORE_MS) return session;
   refreshing ??= refreshSession(session).finally(() => {

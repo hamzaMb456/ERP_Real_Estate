@@ -24,6 +24,7 @@ export const shell = {
     signIn: 'Se connecter',
   },
   skipToContent: 'Aller au contenu',
+  offline: 'Hors ligne. Les données affichées peuvent être anciennes, et les enregistrements échoueront jusqu’au retour de la connexion.',
   mainNavigation: 'Navigation principale',
   organization: 'Immobilière Carthage',
   user: 'Utilisateur',

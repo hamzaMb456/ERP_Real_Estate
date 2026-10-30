@@ -24,6 +24,7 @@ export const shell: typeof fr = {
     signIn: 'تسجيل الدخول',
   },
   skipToContent: 'الانتقال إلى المحتوى',
+  offline: 'أنت غير متصل بالإنترنت. قد تكون البيانات المعروضة قديمة، وستفشل عمليات الحفظ حتى تعود الاتصال.',
   mainNavigation: 'التنقل الرئيسي',
   organization: 'Immobilière Carthage',
   user: 'مستخدم',

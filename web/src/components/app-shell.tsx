@@ -10,12 +10,14 @@ import { SmoothScroll } from '@/components/motion/smooth-scroll';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useT } from '@/i18n/provider';
 import { isStaffRole } from '@/lib/site/account';
+import { useOnline } from '@/lib/use-online';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, ready } = useAuth();
   const router = useRouter();
   const t = useT();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const online = useOnline();
 
   useEffect(() => {
     if (!ready) return;
@@ -48,6 +50,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <AppSidebar />
       <SidebarInset className="h-svh overflow-hidden">
+        {!online && (
+          <div role="status" className="border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+            {t.shell.offline}
+          </div>
+        )}
         <AppHeader />
         <ScrollProgress container={scrollRef} />
         <SmoothScroll container={scrollRef} />

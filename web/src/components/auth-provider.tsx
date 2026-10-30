@@ -13,6 +13,7 @@ import {
   signOut as endSession,
   signUp as registerAccount,
   subscribe,
+  trackActivity,
 } from '@/lib/auth/session';
 import type { AuthSession } from '@/lib/auth/types';
 import { accountErrorKey } from '@/lib/site/account';
@@ -74,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = subscribe((next) => {
       if (active) setSession(next);
     });
+    const stopTracking = trackActivity();
     currentSession()
       .catch(() => null)
       .finally(() => {
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
       unsubscribe();
+      stopTracking();
     };
   }, []);
 

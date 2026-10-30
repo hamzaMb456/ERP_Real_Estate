@@ -24,6 +24,7 @@ export const shell: typeof fr = {
     signIn: 'Sign in',
   },
   skipToContent: 'Skip to content',
+  offline: 'You are offline. Displayed data may be out of date, and saving will fail until the connection returns.',
   mainNavigation: 'Main navigation',
   organization: 'Immobilière Carthage',
   user: 'User',
