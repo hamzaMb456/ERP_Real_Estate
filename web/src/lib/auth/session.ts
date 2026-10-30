@@ -99,10 +99,10 @@ export async function confirmPasswordReset(email: string, code: string, newPassw
   await call('resetpassword', { email, code, newPassword });
 }
 
-/** Returns the current session, refreshed first when the ID token is close to expiry. */
-export async function currentSession(): Promise<AuthSession | null> {
-  const session = getSession();
-  if (!session || session.expiresAt - Date.now() > REFRESH_BEFORE_MS) return session;
+/** The refresh that is already running, so calls that start together share one request. */
+let refreshing: Promise<AuthSession | null> | null = null;
+
+async function refreshSession(session: AuthSession): Promise<AuthSession | null> {
   if (!session.refreshToken) {
     setSession(null);
     return null;
@@ -115,6 +115,36 @@ export async function currentSession(): Promise<AuthSession | null> {
     setSession(null);
     return null;
   }
+}
+
+/** Returns the current session, refreshed first when the ID token is close to expiry. */
+export async function currentSession(): Promise<AuthSession | null> {
+  const session = getSession();
+  if (!session || session.expiresAt - Date.now() > REFRESH_BEFORE_MS) return session;
+  refreshing ??= refreshSession(session).finally(() => {
+    refreshing = null;
+  });
+  return refreshing;
+}
+
+/** A signed-in person whose session ended and could not be renewed. The app sends them to the sign-in page. */
+export class SessionExpiredError extends Error {
+  constructor() {
+    super('session_expired');
+  }
+}
+
+/**
+ * The ID token to send with a request, renewed first when it is about to expire (the ID token lasts one hour, so a page
+ * left open would otherwise send an expired token). null = nobody signed in. Throws SessionExpiredError when someone was
+ * signed in and the session could not be renewed; the stored session is cleared then.
+ */
+export async function freshToken(): Promise<string | null> {
+  const before = getSession();
+  const current = await currentSession();
+  if (current) return current.accessToken;
+  if (before) throw new SessionExpiredError();
+  return null;
 }
 
 export async function signOut(): Promise<void> {

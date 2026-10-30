@@ -15,6 +15,7 @@ export function toUserMessage(error: unknown, context: ErrorContext = {}): strin
   const t = getMessages().errors;
   if (!(error instanceof Error)) return t.unknown;
   const message = error.message;
+  if (message.includes('session_expired') || message.includes('not signed in')) return t.sessionExpired;
 
   const shares = /ownership_shares_exceeded:(\d{2})\/(\d{2})\/(\d{4})/.exec(message);
   if (shares) return t.sharesExceeded(formatDate(`${shares[3]}-${shares[2]}-${shares[1]}`));

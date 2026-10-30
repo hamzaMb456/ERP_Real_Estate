@@ -34,6 +34,11 @@ describe('toUserMessage', () => {
     );
   });
 
+  it('says the session expired, not that rights are missing, when the sign-in ended', () => {
+    expect(toUserMessage(new Error('session_expired'))).toBe('Votre session a expiré. Reconnectez-vous.');
+    expect(toUserMessage(new Error('permission_denied: not signed in'))).toBe('Votre session a expiré. Reconnectez-vous.');
+  });
+
   it('explains a permission refusal', () => {
     const error = new Error('check constraint of an insert permission has failed');
     expect(toUserMessage(error)).toBe('Vous n’avez pas les droits pour cette action.');

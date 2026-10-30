@@ -27,6 +27,7 @@ export const errors: typeof fr = {
   unknown: 'Unknown error.',
   network: 'Could not connect. Check your network and try again.',
   permission: 'You do not have permission for this action.',
+  sessionExpired: 'Your session has expired. Sign in again.',
   sharesExceeded: (date) => `Total shares exceed 100% from ${date}.`,
   ownershipOverlap: 'This owner already holds this unit over this period.',
   endBeforeStart: 'The end date must come after the start date.',

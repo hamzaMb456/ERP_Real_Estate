@@ -1,22 +1,22 @@
 import { getMessages } from '@/i18n/store';
 import { downloadName } from '@/lib/files';
 import { graphql } from '@/lib/graphql';
-import { getSession } from '@/lib/auth/session';
+import { freshToken } from '@/lib/auth/session';
 import { BUCKET, LEASE_BUCKET } from '@/lib/storage-buckets';
 import type { UploadDeps } from '@/lib/upload';
 
 export { BUCKET, LEASE_BUCKET } from '@/lib/storage-buckets';
 
 /** Uploads/downloads still require a signed-in user; reuse the same session token GraphQL calls use. */
-function authHeader(): Record<string, string> {
-  const token = getSession()?.accessToken;
+async function authHeader(): Promise<Record<string, string>> {
+  const token = await freshToken();
   return token ? { authorization: `Bearer ${token}` } : {};
 }
 
 async function storageFetch(path: string, init: RequestInit): Promise<Response> {
   const response = await fetch(`/api/storage/${path}`, {
     ...init,
-    headers: { ...authHeader(), ...init.headers },
+    headers: { ...(await authHeader()), ...init.headers },
   });
   if (!response.ok) throw new Error(getMessages().common.uploadFailed);
   return response;

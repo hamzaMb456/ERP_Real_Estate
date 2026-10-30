@@ -27,6 +27,7 @@ export const errors = {
   unknown: 'Erreur inconnue.',
   network: 'Connexion impossible. Vérifiez votre réseau puis réessayez.',
   permission: 'Vous n’avez pas les droits pour cette action.',
+  sessionExpired: 'Votre session a expiré. Reconnectez-vous.',
   sharesExceeded: (date: string) => `Le total des parts dépasse 100 % à partir du ${date}.`,
   ownershipOverlap: 'Ce propriétaire détient déjà cette unité sur cette période.',
   endBeforeStart: 'La date de fin doit suivre la date de début.',

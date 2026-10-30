@@ -1,4 +1,4 @@
-import { getSession } from '@/lib/auth/session';
+import { freshToken } from '@/lib/auth/session';
 
 /**
  * One manager action on a staff account (create, resend, disable, resetmfa), sent to the server route with the signed-in
@@ -6,7 +6,7 @@ import { getSession } from '@/lib/auth/session';
  * (for example "email_taken"), which the shared error messages know how to word.
  */
 export async function staffAction<T = { ok: true }>(action: string, body: Record<string, unknown> = {}): Promise<T> {
-  const token = getSession()?.accessToken;
+  const token = await freshToken();
   const response = await fetch('/api/staff', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
