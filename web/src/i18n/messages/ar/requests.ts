@@ -10,6 +10,7 @@ export const requests: typeof fr = {
   loadError: (message) => `تعذّر تحميل الطلبات: ${message}`,
   noMatchTitle: 'لا يوجد طلب مطابق',
   noMatchHint: 'جرّب توسيع البحث أو إزالة أحد المرشحات.',
+  progress: { pending: 'قيد الانتظار', accepted: 'مقبول', rejected: 'مرفوض' },
   rental: {
     title: 'طلبات الكراء',
     description: (count, fresh) => `${plural(count, { one: 'طلب واحد', other: '# طلبات' })} · ${plural(fresh, { one: 'جديد', other: '# جديدة' })}`,

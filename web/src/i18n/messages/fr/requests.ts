@@ -11,6 +11,7 @@ export const requests = {
   loadError: (message: string | number) => `Impossible de charger les demandes : ${message}`,
   noMatchTitle: 'Aucune demande ne correspond',
   noMatchHint: 'Essayez d’élargir la recherche ou de retirer un filtre.',
+  progress: { pending: 'En attente', accepted: 'Acceptée', rejected: 'Refusée' },
   rental: {
     title: 'Demandes de location',
     description: (count: number, fresh: number) =>

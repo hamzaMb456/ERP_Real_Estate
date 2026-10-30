@@ -10,6 +10,7 @@ export const requests: typeof fr = {
   loadError: (message) => `Could not load the requests: ${message}`,
   noMatchTitle: 'No request matches',
   noMatchHint: 'Try widening the search or removing a filter.',
+  progress: { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' },
   rental: {
     title: 'Rental requests',
     description: (count, fresh) => `${plural(count, { one: '# request', other: '# requests' })} · ${plural(fresh, { one: '# new', other: '# new' })}`,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchesRequest, newestFirst, requestUnitHeading, shortTime, telLink, visitWindow, type RentalRequest } from '@/lib/requests';
+import { matchesRequest, newestFirst, rentalProgress, requestUnitHeading, shortTime, telLink, visitWindow, type RentalRequest } from '@/lib/requests';
 
 const request: RentalRequest = {
   id: 'r1',
@@ -48,5 +48,21 @@ describe('request helpers', () => {
     const input = [older, request];
     expect(newestFirst(input).map((item) => item.id)).toEqual(['r1', 'r0']);
     expect(input[0].id).toBe('r0');
+  });
+});
+
+describe('rentalProgress', () => {
+  it('shows only pending, accepted or rejected', () => {
+    expect(rentalProgress('new')).toBe('pending');
+    expect(rentalProgress('contacted')).toBe('pending');
+    expect(rentalProgress('accepted')).toBe('accepted');
+    expect(rentalProgress('declined')).toBe('rejected');
+  });
+
+  it('a closed request shows how it ended, and a refusal when that is unknown', () => {
+    expect(rentalProgress('closed', 'accepted')).toBe('accepted');
+    expect(rentalProgress('closed', 'rejected')).toBe('rejected');
+    expect(rentalProgress('closed', null)).toBe('rejected');
+    expect(rentalProgress('closed')).toBe('rejected');
   });
 });

@@ -402,6 +402,17 @@ export const site = {
     },
   },
   myVisits: {
+  myRentals: {
+    navLabel: 'My requests',
+    title: 'My rental requests',
+    subtitle: 'The status of your requests: pending, accepted or rejected.',
+    loading: 'Loading your requests',
+    emptyTitle: 'No request yet',
+    emptyBody: 'Send a rental request from a listing page to track it here.',
+    browse: 'Browse listings',
+    listingFallback: 'Listing',
+    startsOn: (date: string, months: number) => `From ${date} · ${months} months`,
+  },
     navLabel: 'My visits',
     title: 'My visits',
     subtitle: 'The status of your visit requests.',
@@ -428,6 +439,7 @@ export const site = {
       hidden: 'Hidden listings',
       visits: 'Visits',
     },
+      rentals: 'Requests',
     saved: {
       title: 'Save a search',
       text: 'Pick a city and a property type: your filters are kept to run again with one click.',

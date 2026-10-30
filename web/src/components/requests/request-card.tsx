@@ -25,6 +25,7 @@ export function RequestCard({
   statusLabel,
   tone,
   details,
+  progress,
   actions,
   onSaveNote,
 }: {
@@ -32,6 +33,8 @@ export function RequestCard({
   statusLabel: string;
   tone: string;
   details: ReactNode;
+  /** An optional status bar under the header (the rental requests show one). */
+  progress?: ReactNode;
   actions: ReactNode;
   onSaveNote: (note: string) => Promise<unknown>;
 }) {
@@ -62,6 +65,8 @@ export function RequestCard({
         </div>
         <Badge className={cn('h-6 px-2.5', tone)}>{statusLabel}</Badge>
       </div>
+
+      {progress}
 
       <div className="flex flex-wrap gap-2">
         <Button asChild variant="outline" size="sm">

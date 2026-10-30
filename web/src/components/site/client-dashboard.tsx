@@ -10,6 +10,7 @@ import {
   Home,
   KeyRound,
   Search,
+  FileText,
   Tag,
   Trash2,
   User,
@@ -32,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { ListingCard } from './listing-card';
 
 const GET_VISITS = `query MyVisitsCount { visit_requests { id } }`;
+const GET_RENTALS = `query MyRentalRequestsCount { rental_requests { id } }`;
 
 function StatCard({
   icon: Icon,
@@ -87,6 +89,8 @@ export function ClientDashboard({ cities = [] }: { cities?: string[] }) {
   const hiddenListings = useHiddenListings(signedIn);
   const visitsState = useGraphql<{ visit_requests: { id: string }[] }>(signedIn ? GET_VISITS : '');
   const visitsCount = visitsState.status === 'success' ? visitsState.data.visit_requests.length : 0;
+  const rentalsState = useGraphql<{ rental_requests: { id: string }[] }>(signedIn ? GET_RENTALS : '');
+  const rentalsCount = rentalsState.status === 'success' ? rentalsState.data.rental_requests.length : 0;
 
   // 2. Save Search form state
   const [saveMode, setSaveMode] = useState<SearchMode>('rent');
@@ -191,7 +195,7 @@ export function ClientDashboard({ cities = [] }: { cities?: string[] }) {
 
       {/* 4 Stat Cards */}
       <section aria-label={t.site.dashboard.metaTitle}>
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard
             icon={Heart}
             value={favIds.length}
@@ -215,6 +219,12 @@ export function ClientDashboard({ cities = [] }: { cities?: string[] }) {
             value={visitsCount}
             label={copy.stats.visits}
             href="/compte/visites"
+          />
+          <StatCard
+            icon={FileText}
+            value={rentalsCount}
+            label={copy.stats.rentals}
+            href="/compte/demandes"
           />
         </ul>
       </section>

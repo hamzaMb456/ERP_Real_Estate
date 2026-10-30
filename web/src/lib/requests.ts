@@ -32,7 +32,20 @@ export type RentalRequest = RequestBase & {
   start_date: string;
   duration_months: number;
   status: RentalStatus;
+  /** How a closed request ended; only set once it is closed. */
+  closed_outcome?: 'accepted' | 'rejected' | null;
 };
+
+/** What the client and the staff bar show: only three states, however many steps the staff go through. */
+export type RentalProgress = 'pending' | 'accepted' | 'rejected';
+
+/** new and contacted are still pending; a closed request shows how it ended (a refusal when that is unknown). */
+export function rentalProgress(status: RentalStatus, closedOutcome?: string | null): RentalProgress {
+  if (status === 'accepted') return 'accepted';
+  if (status === 'declined') return 'rejected';
+  if (status === 'closed') return closedOutcome === 'accepted' ? 'accepted' : 'rejected';
+  return 'pending';
+}
 
 export type VisitRequest = RequestBase & {
   visit_date: string;

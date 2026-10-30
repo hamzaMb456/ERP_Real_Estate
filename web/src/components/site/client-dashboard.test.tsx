@@ -49,6 +49,9 @@ describe('ClientDashboard', () => {
       if (query.includes('MyVisitsCount')) {
         return { visit_requests: [{ id: 'v1' }, { id: 'v2' }] };
       }
+      if (query.includes('MyRentalRequestsCount')) {
+        return { rental_requests: [{ id: 'r1' }, { id: 'r2' }, { id: 'r3' }] };
+      }
       if (query.includes('MySavedSearches')) {
         return {
           saved_searches: [
@@ -148,15 +151,18 @@ describe('ClientDashboard', () => {
     expect(profileLink).toHaveAttribute('href', '/compte/profil');
   });
 
-  it('displays the 4 stat cards with values', async () => {
+  it('displays the 5 stat cards with values', async () => {
     renderSignedIn();
     expect(screen.getByText(MESSAGES.fr.site.dashboard.stats.favourites)).toBeInTheDocument();
     expect(screen.getByText(MESSAGES.fr.site.dashboard.stats.savedSearches)).toBeInTheDocument();
     expect(screen.getAllByText(MESSAGES.fr.site.dashboard.stats.hidden).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(MESSAGES.fr.site.dashboard.stats.visits)).toBeInTheDocument();
+    expect(screen.getByText(MESSAGES.fr.site.dashboard.stats.rentals)).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText('2')).toBeInTheDocument(); // visits count
+      expect(screen.getByText('3')).toBeInTheDocument(); // rental requests count
     });
+    expect(screen.getByRole('link', { name: new RegExp(MESSAGES.fr.site.dashboard.stats.rentals) })).toHaveAttribute('href', '/compte/demandes');
   });
 
   it('shows saved searches and allows saving a new search', async () => {

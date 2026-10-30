@@ -5,11 +5,12 @@ import { useCallback, useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { RequestBoard } from '@/components/requests/request-board';
 import { RequestCard } from '@/components/requests/request-card';
+import { RequestProgress } from '@/components/requests/request-progress';
 import { saveRentalNote, setRentalStatus } from '@/components/requests/request-mutations';
 import { requestTone, useRequestAction } from '@/components/requests/use-request-action';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/ownership';
-import { matchesRequest, RENTAL_STATUSES, type RentalRequest, type RentalStatus } from '@/lib/requests';
+import { matchesRequest, RENTAL_STATUSES, rentalProgress, type RentalRequest, type RentalStatus } from '@/lib/requests';
 import { useCanEdit } from '@/lib/use-can-edit';
 import { useGraphql } from '@/lib/use-graphql';
 
@@ -18,7 +19,7 @@ import { useT } from '@/i18n/provider';
 const RENTAL_REQUESTS_QUERY = `
   query RentalRequests {
     rental_requests(order_by: { created_at: desc }, limit: 500) {
-      id full_name phone email message staff_note created_at start_date duration_months status
+      id full_name phone email message staff_note created_at start_date duration_months status closed_outcome
       unit { id code title property { id name city } }
     }
   }
@@ -76,6 +77,7 @@ export default function RentalRequestsPage() {
             request={request}
             statusLabel={text.rental.statuses[request.status]}
             tone={requestTone(request.status)}
+            progress={<RequestProgress outcome={rentalProgress(request.status, request.closed_outcome)} />}
             onSaveNote={(note) => saveRentalNote(request.id, note).then(refresh)}
             details={
               <p className="text-muted-foreground">

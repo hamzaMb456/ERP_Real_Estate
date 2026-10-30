@@ -403,6 +403,17 @@ export const site = {
     },
   },
   myVisits: {
+  myRentals: {
+    navLabel: 'Mes demandes',
+    title: 'Mes demandes de location',
+    subtitle: 'Le suivi de vos demandes : en attente, acceptée ou refusée.',
+    loading: 'Chargement de vos demandes',
+    emptyTitle: 'Aucune demande pour le moment',
+    emptyBody: 'Envoyez une demande de location depuis la fiche d’un logement pour la suivre ici.',
+    browse: 'Voir les annonces',
+    listingFallback: 'Logement',
+    startsOn: (date: string, months: number) => `À partir du ${date} · ${months} mois`,
+  },
     navLabel: 'Mes visites',
     title: 'Mes visites',
     subtitle: 'Le suivi de vos demandes de visite.',
@@ -429,6 +440,7 @@ export const site = {
       hidden: 'Annonces masqu\u00e9es',
       visits: 'Visites',
     },
+      rentals: 'Demandes',
     saved: {
       title: 'Enregistrer une recherche',
       text: 'Choisissez une ville et un type de bien\u00a0: vos filtres sont gard\u00e9s pour les relancer en un clic.',

@@ -403,6 +403,17 @@ export const site = {
     },
   },
   myVisits: {
+  myRentals: {
+    navLabel: 'طلباتي',
+    title: 'طلبات الكراء الخاصة بي',
+    subtitle: 'تتبّع طلباتك : قيد الانتظار أو مقبول أو مرفوض.',
+    loading: 'تحميل طلباتك',
+    emptyTitle: 'لا توجد طلبات حتى الآن',
+    emptyBody: 'أرسل طلب كراء من صفحة أحد العقارات لتتبّعه هنا.',
+    browse: 'عرض العقارات',
+    listingFallback: 'عقار',
+    startsOn: (date: string, months: number) => `ابتداءً من ${date} · ${months} أشهر`,
+  },
     navLabel: 'زياراتي',
     title: 'زياراتي',
     subtitle: 'تتبّع طلبات الزيارة التي قدّمتها.',
@@ -429,6 +440,7 @@ export const site = {
       hidden: 'العقارات المخفية',
       visits: 'الزيارات',
     },
+      rentals: 'الطلبات',
     saved: {
       title: 'حفظ بحث',
       text: 'اختر مدينة ونوع العقار: يتم حفظ عوامل التصفية لإعادة تشغيلها بنقرة واحدة.',
