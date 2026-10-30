@@ -3,7 +3,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { requireSession, type SessionClaims } from '@/lib/server/auth';
 import { resolveStorageKeyBucket } from '@/lib/server/file-ownership';
-import { s3 } from '@/lib/server/s3-client';
+import { s3Public } from '@/lib/server/s3-client';
 import { isStorageKey } from '@/lib/storage-buckets';
 
 const EXPIRES_SECONDS = 300;
@@ -31,7 +31,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: EXPIRES_SECONDS });
+    const url = await getSignedUrl(s3Public, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: EXPIRES_SECONDS });
     return NextResponse.json({ url });
   } catch (error) {
     console.error('[storage/presign] s3 presign failed', error);
