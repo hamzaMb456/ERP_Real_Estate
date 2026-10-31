@@ -1,5 +1,5 @@
 // Finds contacts that look like the one being typed (same CIN, e-mail or phone).
-// Staff are warned, never blocked: two people can share a phone or an e-mail.
+// Users are warned, never blocked: two people can share a phone or an e-mail.
 
 export type DuplicateCandidate = {
   id: string;

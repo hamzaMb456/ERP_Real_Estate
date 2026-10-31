@@ -42,20 +42,13 @@ test('throttle: 3 per phone per hour, 30 per org per 10 minutes', () => {
   assert.equal(isThrottled(Array.from({ length: 30 }, (_, i) => at(1, `${i}`.padStart(8, '0'))), '99999999', now), true);
 });
 
-const member = (id: string, role: string, over: Record<string, unknown> = {}) => ({ id, role, confirmed_at: '2026-10-30T10:00:00Z', disabled_at: null, ...over });
+const member = (id: string, role: string, over: Record<string, unknown> = {}) => ({ id, role, disabled_at: null, ...over });
 
-test('a new request is announced to managers and to the regional staff of the unit branch, never to a locked account', () => {
-  const staff = [
-    member('m1', 'manager'), member('a1', 'org_admin'), member('v1', 'viewer'),
-    member('s-here', 'staff'), member('s-else', 'staff'), member('s-off', 'staff', { disabled_at: '2026-10-31T00:00:00Z' }),
-    member('s-new', 'staff', { confirmed_at: null }), member('m-off', 'manager', { disabled_at: '2026-10-31T00:00:00Z' }),
+test('a new request is announced to every active manager, never to a locked account or a viewer', () => {
+  const members = [
+    member('m1', 'manager'), member('a1', 'org_admin'), member('v1', 'viewer'), member('m-off', 'manager', { disabled_at: '2026-10-31T00:00:00Z' }),
   ];
-  const here = new Set(['s-here', 's-off', 's-new']);
-  assert.deepEqual(requestRecipients(staff, here).map((m) => m.id), ['m1', 'a1', 's-here']);
-});
-
-test('a manager whose record has no confirmation date still hears about requests (managers are not invited)', () => {
-  assert.deepEqual(requestRecipients([member('m1', 'manager', { confirmed_at: undefined })], new Set()).map((m) => m.id), ['m1']);
+  assert.deepEqual(requestRecipients(members).map((m) => m.id), ['m1', 'a1']);
 });
 
 test('a closed rental request keeps its outcome: accepted stays accepted, anything else is a refusal', () => {

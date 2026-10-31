@@ -7,7 +7,6 @@ import { ArrowLeft, SearchX } from '@/components/icons';
 import { LeaseCalendarTab } from '@/components/calendar/lease-calendar-tab';
 import { LEASE_QUERY, type LeaseDetails } from '@/components/leases/lease-details';
 import { LeaseActions } from '@/components/leases/lease-actions';
-import { LeaseApprovalBanner } from '@/components/leases/lease-approval';
 import { LeaseDocuments } from '@/components/leases/lease-documents';
 import { LeaseOverviewTab } from '@/components/leases/lease-overview-tab';
 import { LeaseFlagBadges, LeaseStatusBadge } from '@/components/leases/lease-status-badge';
@@ -112,11 +111,6 @@ export default function LeaseDetailPage() {
           }
         />
       </StaggerItem>
-      {lease.approval && (
-        <StaggerItem>
-          <LeaseApprovalBanner approval={lease.approval} />
-        </StaggerItem>
-      )}
       <StaggerItem>
         <Tabs value={tab} onValueChange={(value) => setTab(value as LeaseTabName)}>
           <TabsList className="h-auto flex-wrap">

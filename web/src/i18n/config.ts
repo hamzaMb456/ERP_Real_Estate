@@ -1,4 +1,4 @@
-// Languages of the interface. French is the default: the staff, the data and the E2E specs are French first.
+// Languages of the interface. French is the default: the team, the data and the E2E specs are French first.
 
 export const LOCALES = ['fr', 'en', 'ar'] as const;
 export type Locale = (typeof LOCALES)[number];

@@ -27,7 +27,7 @@ beforeEach(() => {
   auth.completeMfa.mockReset();
 });
 
-describe('staff sign-in page', () => {
+describe('ERP sign-in page', () => {
   it('asks for email and password first', () => {
     render(<ConnexionPage />);
     expect(screen.getByLabelText('Adresse e-mail professionnelle')).toBeInTheDocument();

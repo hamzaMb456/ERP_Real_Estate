@@ -123,17 +123,23 @@ describe('ListingCard', () => {
     expect(screen.queryByTestId('listing-specs')).not.toBeInTheDocument();
   });
 
-  it('shows « Disponible » unless the availability date is in the future', () => {
+  it('shows « À louer » for a rental unless the availability date is in the future', () => {
     const { rerender } = renderCard(makeListing({ availableFrom: '2020-01-01' }));
-    expect(screen.getByText('Disponible')).toBeInTheDocument();
+    expect(screen.getByText('À louer')).toBeInTheDocument();
 
     rerender(
       <TooltipProvider>
         <ListingCard listing={makeListing({ availableFrom: '2999-03-05' })} />
       </TooltipProvider>,
     );
-    expect(screen.queryByText('Disponible')).not.toBeInTheDocument();
+    expect(screen.queryByText('À louer')).not.toBeInTheDocument();
     expect(screen.getByText(/^Dès le 05\/03\/2999$/)).toBeInTheDocument();
+  });
+
+  it('shows « À vendre » for a unit on sale', () => {
+    renderCard(makeListing({ kind: 'sale', price: 420000 }));
+    expect(screen.getByText('À vendre')).toBeInTheDocument();
+    expect(screen.queryByText('À louer')).not.toBeInTheDocument();
   });
 
   it('prerenders a dated listing as « Dès le <date> » without reading the clock', () => {

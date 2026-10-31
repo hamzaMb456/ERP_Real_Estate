@@ -40,8 +40,8 @@ before(async () => {
 });
 
 test('appointments and daily notifications', { skip: !ready && 'Floci dev tables not reachable' }, async (t) => {
-  await t.test('assignee must be staff of the organization', async () => {
-    assert.equal(await code(saveAppointment(manager, appointment({ assigned_user_id: STRANGER }))), 'appointment_staff_invalid');
+  await t.test('assignee must be a manager of the organization', async () => {
+    assert.equal(await code(saveAppointment(manager, appointment({ assigned_user_id: STRANGER }))), 'appointment_assignee_invalid');
     assert.equal(await code(saveAppointment(manager, appointment({ ends_at: '2026-05-11T09:00:00Z' }))), 'appointments_dates_check');
   });
 
@@ -52,7 +52,7 @@ test('appointments and daily notifications', { skip: !ready && 'Floci dev tables
     assert.equal(p?.email_status, 'pending');
   });
 
-  await t.test('daily run: lease ending soon for all staff, reminder for the assignee only, idempotent', async () => {
+  await t.test('daily run: lease ending soon for all managers, reminder for the assignee only, idempotent', async () => {
     const first = (await generateDailyNotifications('2026-05-10')).filter((n) => n.organization_id === ORG);
     const kinds = first.map((n) => `${n.kind}:${n.user_id === MANAGER ? 'M' : 'A'}`).sort();
     assert.deepEqual(kinds, ['appointment_reminder:M', 'lease_ending_soon:A', 'lease_ending_soon:M']);

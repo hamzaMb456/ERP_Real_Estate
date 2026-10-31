@@ -7,7 +7,7 @@ const session = (over: Partial<AuthSession> = {}): AuthSession => ({
   cognitoAccessToken: 'cog',
   refreshToken: 'refresh',
   expiresAt: Date.now() + 60 * 60 * 1000,
-  user: { id: 'u1', email: 'a@b.c', displayName: 'A', defaultRole: 'staff' },
+  user: { id: 'u1', email: 'a@b.c', displayName: 'A', defaultRole: 'manager' },
   ...over,
 });
 

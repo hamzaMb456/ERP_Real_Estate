@@ -11,7 +11,7 @@ export const labels: typeof fr = {
     land: 'Land',
   },
   unitStatuses: {
-    vacant: 'Available',
+    vacant: 'Available for rent',
     rented: 'Rented',
     for_sale: 'For sale',
     sold: 'Sold',

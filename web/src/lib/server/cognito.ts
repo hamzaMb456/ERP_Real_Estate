@@ -52,7 +52,7 @@ function claimsOf(idToken: string): Record<string, unknown> {
   return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as Record<string, unknown>;
 }
 
-/** Builds the browser session from a Cognito result. Staff keep their role; a client account becomes "user". */
+/** Builds the browser session from a Cognito result. An ERP role keeps its name; a client account becomes "user". */
 export function toSession(result: AuthenticationResult, previousRefreshToken?: string): AuthSession {
   const claims = claimsOf(result.IdToken);
   const role = claims['custom:role'];

@@ -4,30 +4,24 @@ import { dispatch } from './dispatch.ts';
 import type { Op } from './registry.ts';
 
 const ORG = '11111111-1111-4111-8111-111111111111';
-const op: Op = { kind: 'query', roles: ['staff', 'manager'], run: async () => ({ ran: true }) };
+const op: Op = { kind: 'query', roles: ['manager', 'viewer'], run: async () => ({ ran: true }) };
 const ops = { Probe: op };
 const args = { op: 'Probe', variables: '{}' };
 const caller = (role: string) => ({ role, userId: 'u-1', orgId: ORG });
 
-test('a staff caller runs only after the active-staff check passes', async () => {
-  const seen: string[] = [];
-  const result = await dispatch('run', args, caller('staff'), ops, async (c) => { seen.push(c.userId); });
+test('a role listed by the operation runs it', async () => {
+  const result = await dispatch('run', args, caller('viewer'), ops);
   assert.equal(result, JSON.stringify({ ran: true }));
-  assert.deepEqual(seen, ['u-1']);
 });
 
-test('a staff caller whose check fails never reaches the operation', async () => {
+test('a role not listed by the operation is refused before it runs', async () => {
   let ran = false;
   const guarded = { Probe: { ...op, run: async () => { ran = true; return {}; } } };
-  await assert.rejects(
-    dispatch('run', args, caller('staff'), guarded, async () => { throw Object.assign(new Error('permission_denied'), { code: 'permission_denied' }); }),
-    /permission_denied/,
-  );
+  await assert.rejects(dispatch('run', args, caller('user'), guarded), /permission_denied/);
   assert.equal(ran, false);
 });
 
-test('other roles are not checked', async () => {
-  let checked = 0;
-  await dispatch('run', args, caller('manager'), ops, async () => { checked += 1; });
-  assert.equal(checked, 0);
+test('an unknown operation or the wrong field kind is refused', async () => {
+  await assert.rejects(dispatch('exec', args, caller('manager'), ops), /unknown_operation:Probe/);
+  await assert.rejects(dispatch('run', { op: 'Missing' }, caller('manager'), ops), /unknown_operation:Missing/);
 });

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** /erp/mot-de-passe-oublie: forgotten password of the ERP staff. */
+/** /erp/mot-de-passe-oublie: forgotten password of the ERP users. */
 export default function ErpForgotPasswordPage() {
   return (
     <AuthSplitLayout>

@@ -1,4 +1,4 @@
-/** Where the staff application lives: the public site owns `/`, the ERP owns everything under `/erp`. */
+/** Where the ERP lives: the public site owns `/`, the ERP owns everything under `/erp`. */
 export const ERP_BASE = '/erp';
 
 /** Prefixes the ERP used before it moved under `/erp`; bookmarks and stored notification links still use them. */

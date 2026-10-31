@@ -1,7 +1,8 @@
-// Staff notifications: the daily job (generate_daily_notifications) and the bell's read marks.
+// Notifications for managers: the daily job (generate_daily_notifications) and the bell's read marks.
 // One item per recipient; id = <user_id>#<dedupe_key>, so a conditional put replaces the
 // unique (organization, user, dedupe_key) constraint and a second run the same day is a no-op.
 import type { Caller } from './auth.ts';
+import { MANAGER_ROLES } from './auth.ts';
 import { addDays, todayTunis, tunisDayOf } from './dates.ts';
 import { fail } from './errors.ts';
 import type { Item } from './db.ts';
@@ -11,7 +12,6 @@ import type { Lease } from './lease-rules.ts';
 import { LEASE_RULES } from './lease-rules.ts';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 
-const STAFF_ROLES = new Set(['org_admin', 'manager']);
 const DAY_SECONDS = 86_400;
 
 export interface Notification {
@@ -62,10 +62,10 @@ export async function insertNotification(draft: Draft, now = new Date()): Promis
   }
 }
 
-async function staffByOrg(): Promise<Map<string, Item[]>> {
-  const staff = (await scanAll('StaffMember')).filter((s) => STAFF_ROLES.has(s.role));
+async function managersByOrg(): Promise<Map<string, Item[]>> {
+  const managers = (await scanAll('StaffMember')).filter((s) => MANAGER_ROLES.has(s.role));
   const byOrg = new Map<string, Item[]>();
-  for (const s of staff) byOrg.set(s.organization_id, [...(byOrg.get(s.organization_id) ?? []), s]);
+  for (const s of managers) byOrg.set(s.organization_id, [...(byOrg.get(s.organization_id) ?? []), s]);
   return byOrg;
 }
 
@@ -89,12 +89,12 @@ export function leaseEvents(lease: Lease, today: string): { kind: string; dedupe
 }
 
 /**
- * Daily job, after expireOverdueLeases: lease notifications for every staff member, and
- * reminders for tomorrow's planned appointments (assignee, or all staff when nobody is assigned).
+ * Daily job, after expireOverdueLeases: lease notifications for every manager, and
+ * reminders for tomorrow's planned appointments (assignee, or all managers when nobody is assigned).
  * Old notifications go away by DynamoDB TTL instead of a delete.
  */
 export async function generateDailyNotifications(today = todayTunis()): Promise<Notification[]> {
-  const staff = await staffByOrg();
+  const managers = await managersByOrg();
   const inserted: Notification[] = [];
   const add = async (d: Draft) => {
     const n = await insertNotification(d);
@@ -104,7 +104,7 @@ export async function generateDailyNotifications(today = todayTunis()): Promise<
   const leases = (await scanAll('Lease')).filter((l) => !l.archived_at) as Lease[];
   for (const lease of leases) {
     for (const event of leaseEvents(lease, today)) {
-      for (const s of staff.get(lease.organization_id) ?? []) {
+      for (const s of managers.get(lease.organization_id) ?? []) {
         await add({
           organization_id: lease.organization_id, user_id: s.id, kind: event.kind, title: `Bail ${lease.number}`,
           link: `/baux/${lease.id}`, lease_id: lease.id, dedupe_key: event.dedupe_key,
@@ -117,7 +117,7 @@ export async function generateDailyNotifications(today = todayTunis()): Promise<
   const planned = await scanAll('Appointment', { expression: '#s = :planned', names: { '#s': 'status' }, values: { ':planned': 'planned' } });
   const now = new Date().toISOString();
   for (const a of planned.filter((x) => tunisDayOf(x.starts_at) === tomorrow)) {
-    const recipients = (staff.get(a.organization_id) ?? []).filter((s) => !a.assigned_user_id || s.id === a.assigned_user_id);
+    const recipients = (managers.get(a.organization_id) ?? []).filter((s) => !a.assigned_user_id || s.id === a.assigned_user_id);
     for (const s of recipients) {
       await add({
         organization_id: a.organization_id, user_id: s.id, kind: 'appointment_reminder', title: a.title,
@@ -138,8 +138,8 @@ export async function generateDailyNotifications(today = todayTunis()): Promise<
 
 /** The bell: mark the caller's own notifications read (all unread ones when no ids are given). */
 export async function markNotificationsRead(caller: Caller, ids?: string[]): Promise<number> {
-  const staffOrViewer = STAFF_ROLES.has(caller.role) || caller.role === 'viewer';
-  if (!caller.orgId || !caller.userId || !staffOrViewer) fail('permission_denied');
+  const orgUser = MANAGER_ROLES.has(caller.role) || caller.role === 'viewer';
+  if (!caller.orgId || !caller.userId || !orgUser) fail('permission_denied');
   const targets = ids
     ? (await Promise.all(ids.map((id) => getItem('Notification', { id })))).filter((n): n is Item => n !== undefined)
     : await queryAll('Notification', { index: 'byUser', key: 'user_id', value: caller.userId });

@@ -11,8 +11,8 @@ const { insertNotification } = await import('../domain/notifications.ts');
 const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
 
 const ORG = randomUUID();
-const [STAFF, CONTACT, LEASE, UNIT, PROPERTY] = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
-const manager = { role: 'manager', userId: STAFF, orgId: ORG };
+const [MANAGER_ID, CONTACT, LEASE, UNIT, PROPERTY] = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+const manager = { role: 'manager', userId: MANAGER_ID, orgId: ORG };
 const call = async (field: 'run' | 'exec', op: string, variables: Record<string, unknown>) =>
   JSON.parse(await dispatch(field, { op, variables: JSON.stringify(variables) }, manager));
 const put = (model: string, item: Record<string, unknown>) =>
@@ -20,7 +20,7 @@ const put = (model: string, item: Record<string, unknown>) =>
 
 before(async () => {
   if (!ready) return;
-  await put('StaffMember', { id: STAFF, organization_id: ORG, display_name: 'Nadia', email: 'n@example.test', role: 'manager' });
+  await put('StaffMember', { id: MANAGER_ID, organization_id: ORG, display_name: 'Nadia', email: 'n@example.test', role: 'manager' });
   await put('Contact', { id: CONTACT, organization_id: ORG, full_name: 'Prospect P' });
   await put('Property', { id: PROPERTY, organization_id: ORG, branch_id: 'BR', name: 'Résidence E' });
   await put('Unit', { id: UNIT, organization_id: ORG, property_id: PROPERTY, code: 'E1', status: 'rented' });
@@ -30,7 +30,7 @@ before(async () => {
 test('batch 4: calendar and notifications', { skip: !ready && 'Floci dev tables not reachable' }, async (t) => {
   const id = randomUUID();
   await call('exec', 'InsertAppointment', {
-    appointment: { id, kind: 'viewing', title: 'Visite E1', starts_at: '2026-11-03T09:00:00Z', ends_at: '2026-11-03T10:00:00Z', unit_id: UNIT, assigned_user_id: STAFF },
+    appointment: { id, kind: 'viewing', title: 'Visite E1', starts_at: '2026-11-03T09:00:00Z', ends_at: '2026-11-03T10:00:00Z', unit_id: UNIT, assigned_user_id: MANAGER_ID },
     participants: [{ appointment_id: id, contact_id: CONTACT, role: 'prospect' }],
   });
 
@@ -47,7 +47,7 @@ test('batch 4: calendar and notifications', { skip: !ready && 'Floci dev tables 
   await t.test('detail, lookups, contact appointments', async () => {
     const a = (await call('run', 'Appointment', { id })).appointment;
     assert.deepEqual([a.assigned_user.display_name, a.unit.property.name, a.participants[0].contact.full_name], ['Nadia', 'Résidence E', 'Prospect P']);
-    assert.equal((await call('run', 'CalendarLookups', {})).staff_members[0].user_id, STAFF);
+    assert.equal((await call('run', 'CalendarLookups', {})).staff_members[0].user_id, MANAGER_ID);
     assert.equal((await call('run', 'ContactAppointments', { contactId: CONTACT })).appointment_participants[0].appointment.id, id);
   });
 
@@ -61,8 +61,8 @@ test('batch 4: calendar and notifications', { skip: !ready && 'Floci dev tables 
   });
 
   await t.test('bell: list, unread count, mark one, mark all', async () => {
-    const n1 = await insertNotification({ organization_id: ORG, user_id: STAFF, kind: 'lease_grace', title: 'Bail 7', link: '/baux/x', dedupe_key: `t1:${id}` });
-    await insertNotification({ organization_id: ORG, user_id: STAFF, kind: 'lease_grace', title: 'Bail 8', link: '/baux/y', dedupe_key: `t2:${id}` });
+    const n1 = await insertNotification({ organization_id: ORG, user_id: MANAGER_ID, kind: 'lease_grace', title: 'Bail 7', link: '/baux/x', dedupe_key: `t1:${id}` });
+    await insertNotification({ organization_id: ORG, user_id: MANAGER_ID, kind: 'lease_grace', title: 'Bail 8', link: '/baux/y', dedupe_key: `t2:${id}` });
     assert.equal((await call('run', 'Notifications', {})).notifications_aggregate.aggregate.count, 2);
     await call('exec', 'MarkNotificationRead', { id: n1!.id, now: new Date().toISOString() });
     assert.equal((await call('run', 'Notifications', {})).notifications_aggregate.aggregate.count, 1);

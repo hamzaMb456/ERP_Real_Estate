@@ -1,7 +1,7 @@
 import 'server-only';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-/** Mirrors web/src/lib/use-can-edit.ts — roles allowed to write storage files. */
+/** Mirrors web/src/lib/use-can-edit.ts — roles allowed to write records and storage files. */
 const WRITER_ROLES = new Set(['org_admin', 'manager']);
 
 function requiredEnv(name: string): string {
@@ -35,23 +35,7 @@ export async function requireSession(authHeader: string | null): Promise<Session
   return { userId, role, token, orgId };
 }
 
-/** Throws unless the session role may write storage files. */
+/** Throws unless the session role may write storage files (managers and org admins; viewers only read). */
 export function requireWriter(session: SessionClaims): void {
   if (!WRITER_ROLES.has(session.role)) throw new Error('forbidden');
-}
-
-/** Roles that upload and remove photos and documents. Regional staff may; the data layer limits them to their agencies. */
-const FILE_EDITOR_ROLES = new Set(['org_admin', 'manager', 'staff']);
-
-/** Throws unless the session role may upload or remove files (the data layer still checks which ones). */
-export function requireFileEditor(session: SessionClaims): void {
-  if (!FILE_EDITOR_ROLES.has(session.role)) throw new Error('forbidden');
-}
-
-/** Roles that manage staff accounts. Never regional staff, never viewers. */
-const MANAGER_ROLES = new Set(['org_admin', 'manager']);
-
-/** Throws unless the session is a manager or org_admin with an organization. */
-export function requireManager(session: SessionClaims): void {
-  if (!MANAGER_ROLES.has(session.role) || !session.orgId) throw new Error('forbidden');
 }

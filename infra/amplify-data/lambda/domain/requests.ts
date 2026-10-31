@@ -1,8 +1,8 @@
-// Visitor requests from the website (rent, visit) and their handling by staff, ported from
+// Visitor requests from the website (rent, visit) and their handling by managers, ported from
 // db/migrations/0008_visitor_requests.sql and 0009_client_accounts.sql.
 import { randomUUID } from 'node:crypto';
 import type { Caller } from './auth.ts';
-import { requireEditor } from './auth.ts';
+import { requireWriter } from './auth.ts';
 import { todayTunis } from './dates.ts';
 import { DomainError, fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
@@ -18,7 +18,7 @@ const VISIT_STATUSES = new Set(['new', 'confirmed', 'declined', 'done', 'cancell
 
 type Kind = 'rental' | 'visit';
 const MODEL: Record<Kind, string> = { rental: 'RentalRequest', visit: 'VisitRequest' };
-const STAFF_NOTICE: Record<Kind, { kind: string; title: string; link: string }> = {
+const NOTICE: Record<Kind, { kind: string; title: string; link: string }> = {
   rental: { kind: 'rental_request', title: 'Nouvelle demande de location', link: '/erp/baux/demandes' },
   visit: { kind: 'visit_request', title: 'Nouvelle demande de visite', link: '/erp/visites' },
 };
@@ -44,21 +44,15 @@ async function listingFor(unitId: string): Promise<Item> {
 }
 
 /**
- * The managers and the regional staff of the unit's branch hear about a new request in the bell; the mailer then sends
- * each bell notice by e-mail to its recipient.
+ * The managers hear about a new request in the bell; the mailer then sends each bell notice by e-mail to its recipient.
  */
-async function notifyStaff(kind: Kind, request: Item): Promise<void> {
-  const [staff, unit] = await Promise.all([
+async function notifyManagers(kind: Kind, request: Item): Promise<void> {
+  const [members, unit] = await Promise.all([
     queryAll('StaffMember', { index: 'byOrg', key: 'organization_id', value: request.organization_id }),
     getItem('Unit', { id: request.unit_id }),
   ]);
-  const property = unit?.property_id ? await getItem('Property', { id: unit.property_id }) : undefined;
-  const assigned = property?.branch_id
-    ? await queryAll('StaffAssignment', { index: 'byBranch', key: 'branch_id', value: property.branch_id })
-    : [];
-  const branchStaff = new Set(assigned.filter((a) => a.organization_id === request.organization_id).map((a) => String(a.user_id)));
-  const notice = STAFF_NOTICE[kind];
-  for (const s of requestRecipients(staff as { id: string; role: string }[], branchStaff)) {
+  const notice = NOTICE[kind];
+  for (const s of requestRecipients(members as { id: string; role: string }[])) {
     await insertNotification({
       organization_id: request.organization_id, user_id: s.id, kind: notice.kind, title: notice.title,
       body: `${request.full_name} - ${unit?.code ?? ''}`, link: notice.link, dedupe_key: `${notice.kind}:${request.id}`,
@@ -68,7 +62,7 @@ async function notifyStaff(kind: Kind, request: Item): Promise<void> {
 
 /**
  * Shared submit path: listing check, contact check, throttle under a per-phone lock (two submissions
- * of one phone cannot both slip under the limit), the kind's own checks, insert, staff notice.
+ * of one phone cannot both slip under the limit), the kind's own checks, insert, manager notice.
  */
 async function submit(
   kind: Kind,
@@ -105,7 +99,7 @@ async function submit(
         versionBump(throttleLockId(orgId, contact.phone_digits), lock?.value as number | undefined),
         { Put: { TableName: table(MODEL[kind]), Item: item, ConditionExpression: 'attribute_not_exists(id)' } },
       ]);
-      await notifyStaff(kind, item);
+      await notifyManagers(kind, item);
       return { id: item.id, kind };
     } catch (err) {
       if (attempt >= ATTEMPTS || !(err instanceof DomainError && err.code === 'concurrent_update')) throw err;
@@ -154,9 +148,9 @@ async function loadRequest(kind: Kind, orgId: string, id: string): Promise<Item>
   return r;
 }
 
-/** Staff handle a rental request: status and note only. */
+/** Managers handle a rental request: status and note only. */
 export async function updateRentalRequest(caller: Caller, id: string, patch: { status?: string; staff_note?: string | null }): Promise<Item> {
-  const orgId = requireEditor(caller, 'permission_denied');
+  const orgId = requireWriter(caller, 'permission_denied');
   if (patch.status !== undefined && !RENTAL_STATUSES.has(patch.status)) fail('rental_requests_status_check');
   const current = await loadRequest('rental', orgId, id);
   const next: Item = { ...current, ...pick(patch, ['status', 'staff_note']), updated_at: new Date().toISOString() };
@@ -168,7 +162,7 @@ export async function updateRentalRequest(caller: Caller, id: string, patch: { s
 }
 
 /**
- * Staff handle a visit request: status, note, linked appointment. Two confirmed visits never share
+ * Managers handle a visit request: status, note, linked appointment. Two confirmed visits never share
  * a slot (visit_requests_one_confirmed_slot): confirming takes a slot lock, leaving 'confirmed' frees it.
  */
 export async function updateVisitRequest(
@@ -176,7 +170,7 @@ export async function updateVisitRequest(
   id: string,
   patch: { status?: string; staff_note?: string | null; appointment_id?: string | null },
 ): Promise<Item> {
-  const orgId = requireEditor(caller, 'permission_denied');
+  const orgId = requireWriter(caller, 'permission_denied');
   if (patch.status !== undefined && !VISIT_STATUSES.has(patch.status)) fail('visit_requests_status_check');
   const current = await loadRequest('visit', orgId, id);
   if (patch.appointment_id) {

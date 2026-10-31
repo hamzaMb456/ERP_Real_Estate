@@ -8,7 +8,7 @@
 //    body ever runs, so no mutation can write.
 // 2. Authorizer: unsigned, garbage, forged and expired tokens must be rejected.
 // 3. AppSync over HTTP: no / garbage / forged token = 401; public token is limited to public operations.
-// 4. Cross-tenant: every staff query is run with real ids as a real-org caller (positive control)
+// 4. Cross-tenant: every org-user query is run with real ids as a real-org caller (positive control)
 //    and as an admin of a made-up organization; the second must never see a real record.
 // 5. Client (role user) scoping on MyVisits.
 import { randomUUID } from 'node:crypto';
@@ -33,7 +33,7 @@ const lambda = new LambdaClient({});
 const dynamo = new DynamoDBClient({});
 const ENDPOINT = `${process.env.AWS_ENDPOINT_URL}/v1/apis/${apiId}/graphql`;
 const ROLES = ['public', 'user', 'org_admin', 'manager', 'viewer'];
-const STAFF = ['org_admin', 'manager', 'viewer'];
+const ORG_USERS = ['org_admin', 'manager', 'viewer'];
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const SECRET_KEYS = ['full_name', 'email', 'phone', 'display_name', 'name', 'title', 'address', 'description'];
 
@@ -104,7 +104,7 @@ async function roleMatrix(fn, orgId) {
     for (const role of [...ROLES, 'admin', '']) jobs.push({ name, op, role });
   }
   await inBatches(jobs, 12, async ({ name, op, role }) => {
-    const who = caller(role, STAFF.includes(role) ? orgId : '', randomUUID());
+    const who = caller(role, ORG_USERS.includes(role) ? orgId : '', randomUUID());
     const r = await callOp(fn, who, name, '{');
     const allowed = op.roles.includes(role);
     const denied = Boolean(r.error && /permission_denied/.test(r.error));
@@ -160,9 +160,9 @@ async function httpChecks(orgId, fakeOrg) {
     const r = await http(token, 'Contacts', {});
     check('http', r.status === 401, `${label} must be 401, got ${r.status}`);
   }
-  const staffAsPublic = await http('public', 'Contacts', {});
-  check('http', /permission_denied/.test(JSON.stringify(staffAsPublic.json?.errors ?? '')) && !staffAsPublic.json?.data?.run, 'public token on a staff operation is denied');
-  check('error-leak', !/\/var\/task|node_modules|\bat [\w.$<>]+ \(|\.(js|ts):\d+/.test(JSON.stringify(staffAsPublic.json ?? '')), 'AppSync error replies must not carry Lambda stack frames or file paths');
+  const orgUserAsPublic = await http('public', 'Contacts', {});
+  check('http', /permission_denied/.test(JSON.stringify(orgUserAsPublic.json?.errors ?? '')) && !orgUserAsPublic.json?.data?.run, 'public token on an org-user operation is denied');
+  check('error-leak', !/\/var\/task|node_modules|\bat [\w.$<>]+ \(|\.(js|ts):\d+/.test(JSON.stringify(orgUserAsPublic.json ?? '')), 'AppSync error replies must not carry Lambda stack frames or file paths');
   const broken = await http('public', 'PublicLatestListings', { where: 'not-an-object' });
   check('error-leak', !/\/var\/task|node_modules|\bat [\w.$<>]+ \(|\.(js|ts):\d+/.test(JSON.stringify(broken.json ?? '')), 'an unexpected resolver error must not carry frames or file paths either');
   const noOrg = await http('public', 'PublicLatestListings', { where: {}, orderBy: [], limit: 5 });
@@ -224,7 +224,7 @@ function leaksIn(text, secrets, echoed) {
 async function crossTenant(fn, items, orgId, fakeOrg, secrets) {
   const first = (model) => items[model]?.[0]?.id;
   const P = first('Property'), U = first('Unit'), C = first('Contact'), L = first('Lease'), A = first('Appointment');
-  const staffQueries = Object.entries(OPS).filter(([, op]) => op.kind === 'query' && op.roles.length === 3 && STAFF.every((r) => op.roles.includes(r)));
+  const orgUserQueries = Object.entries(OPS).filter(([, op]) => op.kind === 'query' && op.roles.length === 3 && ORG_USERS.every((r) => op.roles.includes(r)));
   // Notifications are per user: use a user that really has some.
   const userId = items.Notification?.[0]?.user_id ?? randomUUID();
   const realCaller = (role) => caller(role, orgId, userId);
@@ -246,9 +246,9 @@ async function crossTenant(fn, items, orgId, fakeOrg, secrets) {
   ]);
   let exercised = 0;
   const unexercised = [];
-  const stats = { ops: staffQueries.length, calls: 0, errors: 0 };
+  const stats = { ops: orgUserQueries.length, calls: 0, errors: 0 };
 
-  await inBatches(staffQueries, 6, async ([name]) => {
+  await inBatches(orgUserQueries, 6, async ([name]) => {
     let exercisedThisOp = false;
     for (const { label, vars } of varSets) {
       const echoed = new Set(Object.values(vars).flat().filter((v) => typeof v === 'string').map((v) => v.toLowerCase()));
@@ -260,7 +260,7 @@ async function crossTenant(fn, items, orgId, fakeOrg, secrets) {
       if (!real.error && leaksIn(realText, secrets, new Set()).length > 0) exercisedThisOp = true;
       if (!real.error) {
         const same = roles.every((r) => !r.error && JSON.stringify(r.value) === realText);
-        check('staff-parity', same, `${name} (${label}): manager/viewer must see what org_admin sees`);
+        check('org-user-parity', same, `${name} (${label}): manager/viewer must see what org_admin sees`);
       }
       const found = fake.error ? [] : leaksIn(JSON.stringify(fake.value ?? ''), secrets, echoed);
       check('cross-tenant', found.length === 0, `${name} (${label}) leaked to another org: ${found.slice(0, 3).join(', ')}`);
@@ -284,8 +284,8 @@ async function clientScoping(fn, items) {
   check('client', !own.error && JSON.stringify(own.value).includes(visit.id), 'positive control: a client sees their own visit request');
   const other = await callOp(fn, caller('user', '', randomUUID()), 'MyVisits', {});
   check('client', !other.error && !JSON.stringify(other.value).includes(visit.id), 'another client never sees that visit request');
-  const staff = await callOp(fn, caller('org_admin', visit.organization_id ?? '', randomUUID()), 'MyVisits', '{', 'run');
-  check('client', Boolean(staff.error && /permission_denied/.test(staff.error)), 'staff cannot call the client-only MyVisits');
+  const orgUser = await callOp(fn, caller('org_admin', visit.organization_id ?? '', randomUUID()), 'MyVisits', '{', 'run');
+  check('client', Boolean(orgUser.error && /permission_denied/.test(orgUser.error)), 'org users cannot call the client-only MyVisits');
 }
 
 // ---- main -----------------------------------------------------------------------------------------
@@ -305,7 +305,7 @@ await httpChecks(orgId, fakeOrg);
 const stats = await crossTenant(fns.api, items, orgId, fakeOrg, secrets);
 await clientScoping(fns.api, items);
 
-console.log(`\ncross-tenant coverage: ${stats.exercised}/${stats.ops} staff queries returned real data for the real org (positive control); ${stats.calls} calls, ${stats.errors} errored for missing variables\nnot exercised with real data (empty tables or variables this script cannot guess): ${stats.unexercised.join(', ') || 'none'}`);
+console.log(`\ncross-tenant coverage: ${stats.exercised}/${stats.ops} org-user queries returned real data for the real org (positive control); ${stats.calls} calls, ${stats.errors} errored for missing variables\nnot exercised with real data (empty tables or variables this script cannot guess): ${stats.unexercised.join(', ') || 'none'}`);
 for (const [group, c] of Object.entries(counts)) console.log(`${group.padEnd(14)} ${String(c.pass).padStart(5)} pass  ${String(c.fail).padStart(4)} fail`);
 if (failures.length) {
   console.log(`\n${failures.length} FAILURES`);

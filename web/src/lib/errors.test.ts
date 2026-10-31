@@ -69,7 +69,7 @@ describe('toUserMessage', () => {
 
   it.each([
     [
-      'appointment_staff_invalid',
+      'appointment_assignee_invalid',
       'Ce collaborateur ne peut pas mener de rendez-vous : choisissez un gestionnaire ou un administrateur actif de l’organisation.',
     ],
     [
@@ -82,7 +82,7 @@ describe('toUserMessage', () => {
   });
 
   it('does not treat an appointment business error as retryable', () => {
-    expect(isRetryable(new Error('appointment_staff_invalid'))).toBe(false);
+    expect(isRetryable(new Error('appointment_assignee_invalid'))).toBe(false);
   });
 
   it('keeps an unknown message and handles non-errors', () => {

@@ -44,10 +44,8 @@ export function ActivateDialog({ leaseId, trigger, onDone }: { leaseId: string; 
       submitLabel={t.leases.dialogs.activateSubmit}
       disabled={!signedOn}
       onSubmit={async () => {
-        const result = await graphql<{ activate_lease: { status: string }[] }>(ACTIVATE, { id: leaseId, signed: signedOn });
-        // Staff with a missing deposit or document: the lease stays a draft and a manager decides.
-        if (result.activate_lease?.[0]?.status === 'draft') toast.info(t.leases.dialogs.approvalRequested);
-        else toast.success(t.leases.dialogs.activated);
+        await graphql(ACTIVATE, { id: leaseId, signed: signedOn });
+        toast.success(t.leases.dialogs.activated);
         onDone();
       }}
     >

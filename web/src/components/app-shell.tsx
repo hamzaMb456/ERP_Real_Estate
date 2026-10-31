@@ -9,7 +9,7 @@ import { PageTransition, Pulse, ScrollProgress, ScrollStagger } from '@/componen
 import { SmoothScroll } from '@/components/motion/smooth-scroll';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useT } from '@/i18n/provider';
-import { isStaffRole } from '@/lib/site/account';
+import { isOrgRole } from '@/lib/site/account';
 import { useOnline } from '@/lib/use-online';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -26,13 +26,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       // Read from window, not usePathname/useSearchParams: those would force a Suspense boundary around the whole shell.
       const { pathname, search } = window.location;
       router.replace('/erp/connexion?next=' + encodeURIComponent(pathname + search));
-    } else if (!isStaffRole(session.user?.defaultRole ?? '')) {
+    } else if (!isOrgRole(session.user?.defaultRole ?? '')) {
       // A client account (role "user") must not access the ERP — redirect them to the public site.
       router.replace('/');
     }
   }, [ready, session, router]);
 
-  if (!ready || !session || !isStaffRole(session.user?.defaultRole ?? '')) {
+  if (!ready || !session || !isOrgRole(session.user?.defaultRole ?? '')) {
     return (
       <div className="flex h-svh items-center justify-center text-sm text-muted-foreground" role="status">
         <Pulse>{t.common.loading}</Pulse>

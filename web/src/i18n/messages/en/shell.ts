@@ -1,28 +1,6 @@
 import type { shell as fr } from '../fr/shell';
 
 export const shell: typeof fr = {
-  activation: {
-    title: 'Activate your account',
-    hello: (name: string) => `Hello ${name}`,
-    checking: 'Checking the link…',
-    invalid: 'This link is no longer valid. Ask your manager for a new invitation.',
-    passwordStep: 'Choose your password',
-    password: 'Password',
-    confirmPassword: 'Confirm the password',
-    passwordWeak: 'At least 8 characters, with an uppercase letter, a lowercase letter and a digit.',
-    passwordMismatch: 'The passwords do not match.',
-    continue: 'Continue',
-    authenticatorStep: 'Set up the authenticator app',
-    authenticatorHelp: 'Scan the code with an app such as Google Authenticator or Microsoft Authenticator, then enter the 6-digit code it shows.',
-    setupKey: 'Setup key (if you cannot scan)',
-    code: '6-digit code',
-    verify: 'Finish activation',
-    wrongCode: 'Wrong code. Try again with the code shown now.',
-    failed: 'Activation failed. Try again.',
-    doneTitle: 'Account activated',
-    doneBody: 'You can now sign in. The app will ask for a code every time you sign in.',
-    signIn: 'Sign in',
-  },
   skipToContent: 'Skip to content',
   offline: 'You are offline. Displayed data may be out of date, and saving will fail until the connection returns.',
   mainNavigation: 'Main navigation',

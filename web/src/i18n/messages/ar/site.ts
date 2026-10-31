@@ -42,7 +42,8 @@ export const site = {
     home: 'العودة إلى الرئيسية',
   },
   listingCard: {
-    available: 'متاح',
+    forRent: 'للكراء',
+    forSale: 'للبيع',
     availableFrom: (date: string) => `متاح ابتداءً من ${date}`,
     perMonth: '/ شهريًا',
     rooms: (count: number) => plural(count, { zero: '# غرف', one: 'غرفة واحدة', two: 'غرفتان', few: '# غرف', many: '# غرفة', other: '# غرفة' }),
@@ -402,7 +403,6 @@ export const site = {
       other: 'تعذّر إتمام العملية. أعد المحاولة بعد قليل.',
     },
   },
-  myVisits: {
   myRentals: {
     navLabel: 'طلباتي',
     title: 'طلبات الكراء الخاصة بي',
@@ -414,6 +414,7 @@ export const site = {
     listingFallback: 'عقار',
     startsOn: (date: string, months: number) => `ابتداءً من ${date} · ${months} أشهر`,
   },
+  myVisits: {
     navLabel: 'زياراتي',
     title: 'زياراتي',
     subtitle: 'تتبّع طلبات الزيارة التي قدّمتها.',
@@ -439,8 +440,8 @@ export const site = {
       savedSearches: 'عمليات البحث المحفوظة',
       hidden: 'العقارات المخفية',
       visits: 'الزيارات',
-    },
       rentals: 'الطلبات',
+    },
     saved: {
       title: 'حفظ بحث',
       text: 'اختر مدينة ونوع العقار: يتم حفظ عوامل التصفية لإعادة تشغيلها بنقرة واحدة.',

@@ -1,36 +1,6 @@
 import type { leases as fr } from '../fr/leases';
 
 export const leases: typeof fr = {
-  approvals: {
-    rejectReason: 'سبب الرفض (اختياري)',
-    status: { pending: 'في الانتظار', approved: 'مقبولة', rejected: 'مرفوضة' },
-    banner: {
-      pending: 'التفعيل في انتظار موافقة المدير.',
-      approved: (date: string) => `تمت الموافقة على التفعيل بتاريخ ${date}.`,
-      rejected: 'رفض المدير التفعيل. يبقى العقد مسودة.',
-      note: 'السبب',
-    },
-    mineTitle: 'طلبات التفعيل الخاصة بي',
-    mineIntro: 'تابع العقود التي طلبت تفعيلها.',
-    mineEmpty: 'لم ترسل أي طلب.',
-    decidedOn: 'قُررت في',
-    title: 'موافقات العقود',
-    intro: 'تفعيلات يطلبها موظفو المنطقة. الموافقة تفعّل العقد، والرفض يبقيه مسودة.',
-    empty: 'لا توجد طلبات في الانتظار.',
-    lease: (n: number | string | null) => (n ? `عقد رقم ${n}` : 'عقد'),
-    requestedOn: 'طُلب في',
-    missing: 'ناقص',
-    approve: 'موافقة وتفعيل',
-    reject: 'رفض',
-    done: 'تمت معالجة الطلب.',
-    forbidden: 'مخصص للمدير.',
-    missingItems: {
-      deposit: 'وديعة العقد',
-      unitDeposit: 'عدد أشهر الضمان للوحدة',
-      unitReservation: 'مبلغ حجز الوحدة',
-      doc: { signed_lease: 'العقد الموقع', id_document: 'وثيقة هوية المكتري', registration_receipt: 'وصل التسجيل' },
-    },
-  },
   number: (number) => `عقد الإيجار عدد ${number}`,
   statuses: {
     draft: 'مسودة',
@@ -164,7 +134,6 @@ export const leases: typeof fr = {
     activateSubmit: 'تفعيل العقد',
     activated: 'تم تفعيل العقد',
 
-    approvalRequested: 'أُرسل الطلب إلى المدير للموافقة.',
     signedOn: 'تاريخ الإمضاء',
     signedOnHelp: 'تاريخ إمضاء العقد من الأطراف. يُستعمل لحساب أجل تسجيل العقد.',
     renewTitle: 'تجديد العقد',

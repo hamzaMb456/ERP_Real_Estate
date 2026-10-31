@@ -3,7 +3,7 @@
 // constraint trigger in SQL); a transfer (end one owner, start another) is one change.
 import { randomUUID } from 'node:crypto';
 import type { Caller } from './auth.ts';
-import { requireEditor } from './auth.ts';
+import { requireWriter } from './auth.ts';
 import { ensureContactRole } from './contacts.ts';
 import { addDays, todayTunis } from './dates.ts';
 import { fail } from './errors.ts';
@@ -58,7 +58,7 @@ export async function changeOwnerships(
   change: OwnershipChange,
   today = todayTunis(),
 ): Promise<Ownership[]> {
-  const orgId = requireEditor(caller, FORBIDDEN);
+  const orgId = requireWriter(caller, FORBIDDEN);
   const upserts = change.upsert ?? [];
   const removals = new Set(change.remove ?? []);
   if (upserts.length + removals.size > MAX_CHANGES) fail('ownership_too_many_changes');

@@ -3,7 +3,7 @@ import { daysBetween, todayTunis } from '@/lib/dates';
 import type { EndReason, LeaseDraftInput, LeaseOverviewRow, LeaseStatus, RegistrationState } from '@/lib/lease-types';
 import { formatDate } from '@/lib/ownership';
 
-/** Reasons staff can pick when ending a lease (expired_auto is set by the daily job only). */
+/** Reasons a user can pick when ending a lease (expired_auto is set by the daily job only). */
 export const ENDABLE_REASONS: EndReason[] = ['term_reached', 'terminated_by_renter', 'terminated_by_owner', 'other'];
 
 /** Codes stored in the database; their labels live in the dictionary (leases.documentCategories). */

@@ -5,22 +5,14 @@ vi.mock('server-only', () => ({}));
 
 const session = (role: string) => ({ userId: 'u1', role, token: 't', orgId: 'o1' });
 
-describe('requireFileEditor', () => {
-  it('lets managers, org admins and regional staff upload and remove files', async () => {
-    const { requireFileEditor } = await import('./auth');
-    for (const role of ['org_admin', 'manager', 'staff']) expect(() => requireFileEditor(session(role))).not.toThrow();
-  });
-
-  it('keeps viewers, clients and anonymous callers out', async () => {
-    const { requireFileEditor } = await import('./auth');
-    for (const role of ['viewer', 'user', 'public', 'staff_pending', '']) expect(() => requireFileEditor(session(role))).toThrow('forbidden');
-  });
-});
-
 describe('requireWriter', () => {
-  it('stays limited to managers and org admins', async () => {
+  it('lets managers and org admins upload and remove files', async () => {
     const { requireWriter } = await import('./auth');
-    expect(() => requireWriter(session('manager'))).not.toThrow();
-    expect(() => requireWriter(session('staff'))).toThrow('forbidden');
+    for (const role of ['org_admin', 'manager']) expect(() => requireWriter(session(role))).not.toThrow();
+  });
+
+  it('keeps viewers, clients, retired roles and anonymous callers out', async () => {
+    const { requireWriter } = await import('./auth');
+    for (const role of ['viewer', 'user', 'public', 'staff', 'staff_pending', '']) expect(() => requireWriter(session(role))).toThrow('forbidden');
   });
 });

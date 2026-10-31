@@ -1,28 +1,6 @@
 import type { shell as fr } from '../fr/shell';
 
 export const shell: typeof fr = {
-  activation: {
-    title: 'تفعيل حسابك',
-    hello: (name: string) => `مرحبا ${name}`,
-    checking: 'جارٍ التحقق من الرابط…',
-    invalid: 'هذا الرابط لم يعد صالحا. اطلب دعوة جديدة من مسؤولك.',
-    passwordStep: 'اختر كلمة المرور',
-    password: 'كلمة المرور',
-    confirmPassword: 'تأكيد كلمة المرور',
-    passwordWeak: '8 أحرف على الأقل مع حرف كبير وحرف صغير ورقم.',
-    passwordMismatch: 'كلمتا المرور غير متطابقتين.',
-    continue: 'متابعة',
-    authenticatorStep: 'إعداد تطبيق المصادقة',
-    authenticatorHelp: 'امسح الرمز بتطبيق مثل Google Authenticator أو Microsoft Authenticator ثم أدخل الرمز المكوّن من 6 أرقام الذي يعرضه.',
-    setupKey: 'مفتاح الإعداد (إن تعذّر المسح)',
-    code: 'رمز من 6 أرقام',
-    verify: 'إنهاء التفعيل',
-    wrongCode: 'رمز غير صحيح. حاول بالرمز المعروض الآن.',
-    failed: 'فشل التفعيل. حاول مرة أخرى.',
-    doneTitle: 'تم تفعيل الحساب',
-    doneBody: 'يمكنك الآن تسجيل الدخول. سيطلب التطبيق رمزا في كل مرة.',
-    signIn: 'تسجيل الدخول',
-  },
   skipToContent: 'الانتقال إلى المحتوى',
   offline: 'أنت غير متصل بالإنترنت. قد تكون البيانات المعروضة قديمة، وستفشل عمليات الحفظ حتى تعود الاتصال.',
   mainNavigation: 'التنقل الرئيسي',

@@ -12,7 +12,7 @@ const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
 const { marshall } = await import('@aws-sdk/util-dynamodb');
 
 const ORG = randomUUID();
-const STAFF = randomUUID();
+const RECIPIENT = randomUUID();
 const APPT = randomUUID();
 const [WITH_EMAIL, NO_EMAIL] = [randomUUID(), randomUUID()];
 const sent: { to: string; subject: string }[] = [];
@@ -25,7 +25,7 @@ const participant = (contactId: string, status = 'pending') => ({ appointment_id
 
 before(async () => {
   if (!ready) return;
-  await put('StaffMember', { id: STAFF, organization_id: ORG, display_name: 'Staff', email: 'staff@example.test', role: 'manager' });
+  await put('StaffMember', { id: RECIPIENT, organization_id: ORG, display_name: 'Recipient', email: 'recipient@example.test', role: 'manager' });
   await put('Contact', { id: WITH_EMAIL, organization_id: ORG, full_name: 'Has mail', email: 'client@example.test' });
   await put('Contact', { id: NO_EMAIL, organization_id: ORG, full_name: 'No mail' });
   await put('Appointment', appointment);
@@ -60,10 +60,10 @@ test('change-driven e-mails', { skip: !ready && 'Floci dev tables not reachable'
     assert.equal(sent.length, before + 1);
   });
 
-  await t.test('a new notification is mailed to its staff recipient', async () => {
-    const n = await insertNotification({ organization_id: ORG, user_id: STAFF, kind: 'lease_grace', title: 'Bail 9', link: '/baux/x', dedupe_key: `test:${randomUUID()}` });
+  await t.test('a new notification is mailed to its recipient', async () => {
+    const n = await insertNotification({ organization_id: ORG, user_id: RECIPIENT, kind: 'lease_grace', title: 'Bail 9', link: '/baux/x', dedupe_key: `test:${randomUUID()}` });
     assert.equal(await handleChange({ model: 'Notification', op: 'INSERT', new: n! }, deps), 'sent');
-    assert.equal(sent.at(-1)?.to, 'staff@example.test');
+    assert.equal(sent.at(-1)?.to, 'recipient@example.test');
     assert.ok((await getItem('Notification', { id: n!.id }))?.emailed_at);
   });
 });

@@ -2,7 +2,7 @@
 // unit code among active units, and the single unit a house or a plot gets automatically.
 import { randomUUID } from 'node:crypto';
 import type { Caller } from './auth.ts';
-import { requireEditor, requireWriter } from './auth.ts';
+import { requireWriter } from './auth.ts';
 import { isIsoDate } from './dates.ts';
 import { fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
@@ -113,7 +113,7 @@ async function loadOwned(model: string, orgId: string, id: string, missing: stri
 
 /** A house or a plot gets its single unit (create_single_unit). */
 export async function createProperty(caller: Caller, object: Item): Promise<Item> {
-  const orgId = requireEditor(caller, 'permission_denied');
+  const orgId = requireWriter(caller, 'permission_denied');
   const type = object.type ?? 'building';
   if (!['building', 'house', 'plot'].includes(type)) fail('properties_type_check');
   const { type: _type, ...rest } = object;
@@ -138,7 +138,7 @@ export async function createProperty(caller: Caller, object: Item): Promise<Item
 
 /** Any column but the type (a building never becomes a house). */
 export async function updateProperty(caller: Caller, id: string, set: Item): Promise<Item> {
-  const orgId = requireEditor(caller, 'permission_denied');
+  const orgId = requireWriter(caller, 'permission_denied');
   const current = await loadOwned('Property', orgId, id, 'property_not_found');
   const columns = checkColumns('properties', PROPERTY_RULES, set);
   if (columns.branch_id && columns.branch_id !== current.branch_id) await loadOwned('Branch', orgId, columns.branch_id, 'branch_not_found');
@@ -152,7 +152,7 @@ export async function updateProperty(caller: Caller, id: string, set: Item): Pro
 // ------------------------------------------------------------------ units
 
 export async function createUnit(caller: Caller, object: Item): Promise<Item> {
-  const orgId = requireEditor(caller, 'permission_denied');
+  const orgId = requireWriter(caller, 'permission_denied');
   const { property_id: propertyId, ...rest } = object;
   await loadOwned('Property', orgId, propertyId, 'property_not_found');
   const columns = checkColumns('units', UNIT_RULES, rest);
@@ -169,7 +169,7 @@ export async function createUnit(caller: Caller, object: Item): Promise<Item> {
 
 /** units_property_id_code_key holds among active units only: archiving frees the code. */
 export async function updateUnit(caller: Caller, id: string, set: Item): Promise<Item> {
-  const orgId = requireEditor(caller, 'permission_denied');
+  const orgId = requireWriter(caller, 'permission_denied');
   const current = await loadOwned('Unit', orgId, id, 'unit_not_found');
   const next = { ...current, ...checkColumns('units', UNIT_RULES, set), updated_at: now() };
   const wasActive = !current.archived_at;

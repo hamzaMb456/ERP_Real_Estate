@@ -36,7 +36,7 @@ export type RentalRequest = RequestBase & {
   closed_outcome?: 'accepted' | 'rejected' | null;
 };
 
-/** What the client and the staff bar show: only three states, however many steps the staff go through. */
+/** What the client and the team see: only three states, however many steps the team goes through. */
 export type RentalProgress = 'pending' | 'accepted' | 'rejected';
 
 /** new and contacted are still pending; a closed request shows how it ended (a refusal when that is unknown). */
@@ -67,7 +67,7 @@ export function visitWindow(date: string, time: string): { startsAt: string; end
   return { startsAt, endsAt: new Date(Date.parse(startsAt) + VISIT_MINUTES * 60_000).toISOString() };
 }
 
-/** « B-102 · Les Jardins de Carthage » (the unit's own title does not help staff find the record). */
+/** « B-102 · Les Jardins de Carthage » (the unit's own title does not help the team find the record). */
 export const requestUnitHeading = (unit: RequestUnit): string => `${unit.code} · ${unit.property.name}`;
 
 /** Free-text search over the visitor's name, phone and e-mail and the unit's reference, bien and city. */

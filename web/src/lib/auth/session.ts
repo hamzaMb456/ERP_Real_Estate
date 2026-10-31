@@ -136,7 +136,7 @@ export async function completeNewPassword(email: string, newPassword: string, ch
   setSession(data.session);
 }
 
-/** Second step for regional staff: the 6-digit code from their authenticator app. */
+/** Second step: the 6-digit code from the authenticator app of the account. */
 export async function completeMfa(email: string, code: string, challengeSession: string, challengeUserId: string): Promise<void> {
   const data = await call<{ session: AuthSession }>('mfa', { email, code, challengeSession, challengeUserId });
   setSession(data.session);

@@ -1,4 +1,4 @@
-// DynamoDB Streams (Notification, AppointmentParticipant, Appointment, StaffInvitation) -> e-mails.
+// DynamoDB Streams (Notification, AppointmentParticipant, Appointment) -> e-mails.
 // SMTP + APP_URL come from the Secrets Manager secret the functions/ Lambdas already use.
 import { resolveSecretEnv } from '../../../../functions/_lib/secrets';
 import { resolveMailer } from '../../../../functions/_lib/smtp-env';
@@ -23,7 +23,7 @@ export const handler = async (event: StreamEvent) => {
   const results: string[] = [];
   for (const record of event.Records ?? []) {
     try {
-      results.push(await handleChange(fromStreamRecord(record), { mailer: getMailer, appUrl: env.APP_URL, inviteSecret: env.INVITE_SECRET }));
+      results.push(await handleChange(fromStreamRecord(record), { mailer: getMailer, appUrl: env.APP_URL }));
     } catch (err) {
       // Missing SMTP config fails before any mail goes out: throw so the stream retries the batch.
       if ((err as Error).message.startsWith('mailer not configured')) throw err;

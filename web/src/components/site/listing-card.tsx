@@ -75,7 +75,7 @@ export function ListingCard({ listing }: { listing: PublicListing }) {
         )}
 
         <span className="absolute start-3 top-3 inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground shadow-sm">
-          {comesLater && listing.availableFrom ? copy.availableFrom(formatDate(listing.availableFrom)) : copy.available}
+          {comesLater && listing.availableFrom ? copy.availableFrom(formatDate(listing.availableFrom)) : isRent ? copy.forRent : copy.forSale}
         </span>
 
         <div className="absolute end-3 top-3 z-10 flex items-center gap-1.5">

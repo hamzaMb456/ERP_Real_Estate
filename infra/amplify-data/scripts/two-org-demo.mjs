@@ -36,7 +36,7 @@ async function cognito(op, body) {
   return data;
 }
 
-async function createStaffAccount(email, password, name, orgId) {
+async function createAdminAccount(email, password, name, orgId) {
   await cognito('AdminCreateUser', {
     UserPoolId: POOL, Username: email, MessageAction: 'SUPPRESS', TemporaryPassword: password,
     UserAttributes: [
@@ -84,7 +84,7 @@ const B = { tag: 'B', orgId: randomUUID(), email: 'admin-b@agence-b.test', name:
 
 for (const [o, n] of [[A, 8001], [B, 8002]]) {
   await seedAgency(o.tag, o.orgId, n);
-  await createStaffAccount(o.email, PASSWORD, o.name, o.orgId);
+  await createAdminAccount(o.email, PASSWORD, o.name, o.orgId);
   const claims = await verifyLogin(o.email, PASSWORD);
   console.log(`Agence ${o.tag}`);
   console.log(`  email       : ${o.email}`);

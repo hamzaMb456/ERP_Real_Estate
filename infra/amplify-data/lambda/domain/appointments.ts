@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import type { Caller } from './auth.ts';
-import { requireEditor } from './auth.ts';
+import { MANAGER_ROLES, requireWriter } from './auth.ts';
 import { isIsoDateTime, tunisDayOf } from './dates.ts';
 import { fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
@@ -12,7 +12,6 @@ import { reminderDedupeKey, notificationId } from './notifications.ts';
 const KINDS = new Set(['viewing', 'move_in', 'move_out', 'meeting', 'other']);
 const STATUSES = new Set(['planned', 'done', 'cancelled']);
 const PARTICIPANT_ROLES = new Set(['renter', 'guarantor', 'prospect', 'buyer', 'other']);
-const STAFF_ROLES = new Set(['org_admin', 'manager']);
 const FORBIDDEN = 'permission_denied';
 const BATCH_WRITE_LIMIT = 25;
 
@@ -55,9 +54,9 @@ export function validateAppointment(a: AppointmentInput): void {
   }
 }
 
-/** Every reference must belong to the caller's organization; the assignee must be its staff. */
+/** Every reference must belong to the caller's organization; the assignee must be a manager of the organization. */
 async function assertReferences(orgId: string, a: AppointmentInput): Promise<void> {
-  const [unit, lease, staff, contacts] = await Promise.all([
+  const [unit, lease, assignee, contacts] = await Promise.all([
     a.unit_id ? getItem('Unit', { id: a.unit_id }) : undefined,
     a.lease_id ? getItem('Lease', { id: a.lease_id }) : undefined,
     a.assigned_user_id ? getItem('StaffMember', { id: a.assigned_user_id }) : undefined,
@@ -65,8 +64,8 @@ async function assertReferences(orgId: string, a: AppointmentInput): Promise<voi
   ]);
   if (a.unit_id && unit?.organization_id !== orgId) fail('unit_not_found');
   if (a.lease_id && lease?.organization_id !== orgId) fail('lease_not_found');
-  // check_appointment_staff
-  if (a.assigned_user_id && !(staff?.organization_id === orgId && STAFF_ROLES.has(staff?.role))) fail('appointment_staff_invalid');
+  // check_appointment_assignee
+  if (a.assigned_user_id && !(assignee?.organization_id === orgId && MANAGER_ROLES.has(assignee?.role))) fail('appointment_assignee_invalid');
   if (contacts.length !== (a.participants ?? []).length || contacts.some((c) => c.organization_id !== orgId)) fail('contact_not_found');
 }
 
@@ -80,16 +79,16 @@ async function deleteMany(model: string, keys: Item[]): Promise<void> {
   }
 }
 
-/** The reminder of one appointment day, for every staff member of the org (ids are deterministic). */
+/** The reminder of one appointment day, for every manager of the org (ids are deterministic). */
 async function dropReminders(orgId: string, appointmentId: string, startsAt: string): Promise<void> {
-  const staff = await queryAll('StaffMember', { index: 'byOrg', key: 'organization_id', value: orgId });
+  const managers = await queryAll('StaffMember', { index: 'byOrg', key: 'organization_id', value: orgId });
   const key = reminderDedupeKey(appointmentId, tunisDayOf(startsAt));
-  await deleteMany('Notification', staff.map((s) => ({ id: notificationId(s.id, key) })));
+  await deleteMany('Notification', managers.map((s) => ({ id: notificationId(s.id, key) })));
 }
 
 /** Create or update an appointment (and optionally its participants) in one transaction. */
 export async function saveAppointment(caller: Caller, input: AppointmentInput): Promise<Item> {
-  const orgId = requireEditor(caller, FORBIDDEN);
+  const orgId = requireWriter(caller, FORBIDDEN);
   validateAppointment(input);
   const existing = input.id ? await getItem('Appointment', { id: input.id }) : undefined;
   if (input.id && existing?.organization_id !== orgId) fail('appointment_not_found');
@@ -160,7 +159,7 @@ export async function saveAppointment(caller: Caller, input: AppointmentInput): 
 
 /** Re-send an invitation: the e-mail pipeline picks participants back up when they turn pending. */
 export async function resendInvitation(caller: Caller, appointmentId: string, contactId: string): Promise<void> {
-  const orgId = requireEditor(caller, FORBIDDEN);
+  const orgId = requireWriter(caller, FORBIDDEN);
   const updated = await updateIfCondition({
     model: 'AppointmentParticipant',
     Key: { appointment_id: appointmentId, contact_id: contactId },
@@ -173,7 +172,7 @@ export async function resendInvitation(caller: Caller, appointmentId: string, co
 
 /** Delete an appointment with its participants and reminders (the cascades in SQL). */
 export async function deleteAppointment(caller: Caller, id: string): Promise<void> {
-  const orgId = requireEditor(caller, FORBIDDEN);
+  const orgId = requireWriter(caller, FORBIDDEN);
   const existing = await getItem('Appointment', { id });
   if (existing?.organization_id !== orgId) fail('appointment_not_found');
   const participants = await queryAll('AppointmentParticipant', { key: 'appointment_id', value: id });

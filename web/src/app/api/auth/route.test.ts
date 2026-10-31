@@ -123,14 +123,14 @@ describe('POST /api/auth sign-in with the authenticator code', () => {
     expect(await response.json()).toEqual({ challenge: 'mfa', email: 'amel@agence.tn', challengeSession: 'sess-1', challengeUserId: 'sub-1' });
   });
 
-  it('mfa answers the challenge with the user id, not the email, and returns a staff session', async () => {
+  it('mfa answers the challenge with the user id, not the email, and returns a session', async () => {
     fetchMock.mockResolvedValueOnce(cognitoOk({
-      AuthenticationResult: { IdToken: idTokenFor({ sub: 'sub-1', email: 'amel@agence.tn', 'custom:role': 'staff' }), AccessToken: 'a', RefreshToken: 'r', ExpiresIn: 3600 },
+      AuthenticationResult: { IdToken: idTokenFor({ sub: 'sub-1', email: 'amel@agence.tn', 'custom:role': 'manager' }), AccessToken: 'a', RefreshToken: 'r', ExpiresIn: 3600 },
     }));
     const response = await post({ action: 'mfa', email: 'amel@agence.tn', code: '123456', challengeSession: 'sess-1', challengeUserId: 'sub-1' });
     expect(response.status).toBe(200);
     const body = (await response.json()) as { session: { user: { defaultRole: string } } };
-    expect(body.session.user.defaultRole).toBe('staff');
+    expect(body.session.user.defaultRole).toBe('manager');
     const call = lastCall();
     expect(call.target).toBe('AWSCognitoIdentityProviderService.RespondToAuthChallenge');
     expect(call.body).toMatchObject({
@@ -154,7 +154,7 @@ describe('POST /api/auth sign-in with the authenticator code', () => {
   });
 });
 
-describe('POST /api/auth direct sessions for staff', () => {
+describe('POST /api/auth direct sessions', () => {
   const tokens = (role: string) => ({
     AuthenticationResult: { IdToken: idTokenFor({ sub: 'sub-1', email: 'amel@agence.tn', 'custom:role': role }), AccessToken: 'a', RefreshToken: 'r', ExpiresIn: 3600 },
   });
@@ -166,22 +166,9 @@ describe('POST /api/auth direct sessions for staff', () => {
     expect(((await response.json()) as { session: { user: { defaultRole: string } } }).session.user.defaultRole).toBe('manager');
   });
 
-  it('a staff login that comes back with tokens and no code is refused (the second step was switched off)', async () => {
-    fetchMock.mockResolvedValueOnce(cognitoOk(tokens('staff')));
-    const response = await post({ action: 'signin', email: 'amel@agence.tn', password: 'pw' });
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: 'NotAuthorizedException' });
-  });
-
-  it('the same goes for a staff session coming out of the new-password step', async () => {
-    fetchMock.mockResolvedValueOnce(cognitoOk(tokens('staff')));
-    const response = await post({ action: 'newpassword', email: 'amel@agence.tn', newPassword: 'Strong-pass-1', challengeSession: 's' });
-    expect(response.status).toBe(400);
-  });
-
-  it('a staff session after the authenticator code is still allowed', async () => {
-    fetchMock.mockResolvedValueOnce(cognitoOk(tokens('staff')));
-    const response = await post({ action: 'mfa', email: 'amel@agence.tn', code: '123456', challengeSession: 's', challengeUserId: 'sub-1' });
+  it('a session after the authenticator code is allowed', async () => {
+    fetchMock.mockResolvedValueOnce(cognitoOk(tokens('manager')));
+    const response = await post({ action: 'mfa', email: 'karim@agence.tn', code: '123456', challengeSession: 's', challengeUserId: 'sub-1' });
     expect(response.status).toBe(200);
   });
 });

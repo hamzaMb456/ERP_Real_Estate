@@ -1,10 +1,9 @@
-// Agencies (branches) and the branches each regional staff member works in. Only the manager or org_admin writes.
+// Agencies (branches). Only the manager or org_admin writes.
 import { randomUUID } from 'node:crypto';
 import { requireWriter, type Caller } from './auth.ts';
 import type { Item, TxItem } from './db.ts';
 import { getItem, queryAll, table, transact } from './db.ts';
 import { fail } from './errors.ts';
-import { activityItem } from './staff-accounts.ts';
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -56,24 +55,4 @@ export async function updateBranch(caller: Caller, id: string, input: BranchInpu
   const next: Item = { ...current, ...fields };
   await transact([{ Put: { TableName: table('Branch'), Item: next } } as TxItem]);
   return next;
-}
-
-/** Replaces the branches a regional staff member works in. */
-export async function setStaffBranches(caller: Caller, userId: string, branchIds: string[]): Promise<void> {
-  const orgId = requireWriter(caller, 'permission_denied');
-  const member = await getItem('StaffMember', { id: userId });
-  if (!member || member.organization_id !== orgId) fail('staff_not_found');
-  if (member.role !== 'staff') fail('staff_role_required');
-  const valid = new Set((await branchesOf(orgId)).map((b) => b.id as string));
-  const wanted = [...new Set(branchIds)];
-  if (wanted.some((id) => !valid.has(id))) fail('branch_not_found');
-  const existing = await queryAll('StaffAssignment', { index: 'byUser', key: 'user_id', value: userId });
-  const items: TxItem[] = [
-    ...existing.map((r) => ({ Delete: { TableName: table('StaffAssignment'), Key: { id: r.id } } }) as TxItem),
-    ...wanted.map((branch_id) => ({
-      Put: { TableName: table('StaffAssignment'), Item: { __typename: 'StaffAssignment', id: randomUUID(), organization_id: orgId, user_id: userId, branch_id, role: 'staff' } },
-    }) as TxItem),
-    activityItem(orgId, userId, 'branches_changed', caller.userId, wanted.join(',')),
-  ];
-  await transact(items);
 }

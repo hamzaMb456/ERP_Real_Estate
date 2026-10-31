@@ -412,6 +412,8 @@ function UnitForm({
           <div className="space-y-2">
             <p className="text-sm font-medium">{f.status}</p>
             <Controller control={control} name="status" render={({ field }) => <ChoiceChips label={f.status} value={field.value} options={statusOptions} onChange={field.onChange} />} />
+            {status === 'vacant' && <FieldHelp>{q.statusRentHelp}</FieldHelp>}
+            {forSale && <FieldHelp>{q.statusSaleHelp}</FieldHelp>}
           </div>
         </div>
       ),

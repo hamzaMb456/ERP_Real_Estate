@@ -1,7 +1,7 @@
 // Integration: TWO-ORGANIZATION isolation, end to end through the dispatcher on Floci.
 // Seeds two full, independent organizations (A and B), then proves in both directions that:
-//   - staff of org A see only org A rows (and symmetrically for B);
-//   - staff of org A reading an org B id get null / an empty list — never B data;
+//   - admin of org A see only org A rows (and symmetrically for B);
+//   - admin of org A reading an org B id get null / an empty list — never B data;
 //   - writes on foreign rows are refused (contact_not_found, unit_not_found, ...);
 //   - the public catalog of one organization never contains the other's listings.
 // Fixtures use random ids and stay in the dev tables (same policy as the other integration tests).
@@ -22,13 +22,13 @@ const put = (model: string, item: Record<string, unknown>) =>
   doc.send(new PutCommand({ TableName: table(model), Item: { __typename: model, created_at: '2026-01-01T00:00:00Z', updated_at: 'x', ...item } }));
 
 interface Org {
-  tag: string; org: string; staff: string; branch: string; property: string; unit: string;
+  tag: string; org: string; admin: string; branch: string; property: string; unit: string;
   contact: string; lease: string; visit: string; appointment: string; notification: string;
 }
 
 function seedOrg(tag: string, org: string): Org {
   return {
-    tag, org, staff: randomUUID(), branch: randomUUID(), property: randomUUID(),
+    tag, org, admin: randomUUID(), branch: randomUUID(), property: randomUUID(),
     unit: randomUUID(), contact: randomUUID(), lease: randomUUID(), visit: randomUUID(),
     appointment: randomUUID(), notification: randomUUID(),
   };
@@ -37,7 +37,7 @@ function seedOrg(tag: string, org: string): Org {
 const [A, B] = [seedOrg('A', ORG_A), seedOrg('B', ORG_B)];
 const fixturesOf = (o: Org, leaseNumber: number): Array<[string, Record<string, unknown>]> => [
   ['Organization', { id: o.org, name: `Org ${o.tag}` }],
-  ['StaffMember', { id: o.staff, organization_id: o.org, display_name: `Admin ${o.tag}`, email: `admin-${o.tag.toLowerCase()}@example.test`, role: 'org_admin' }],
+  ['StaffMember', { id: o.admin, organization_id: o.org, display_name: `Admin ${o.tag}`, email: `admin-${o.tag.toLowerCase()}@example.test`, role: 'org_admin' }],
   ['Branch', { id: o.branch, organization_id: o.org, name: `Agence ${o.tag}`, city: 'Tunis' }],
   ['Property', { id: o.property, organization_id: o.org, branch_id: o.branch, name: `Résidence ${o.tag}`, type: 'building', city: 'Aouina' }],
   ['Unit', { id: o.unit, organization_id: o.org, property_id: o.property, code: `${o.tag}-1`, type: 'apartment', status: 'vacant', rent_amount: o.tag === 'A' ? 1850 : 2100, show_on_website: true, title: `S+2 ${o.tag}` }],
@@ -45,12 +45,12 @@ const fixturesOf = (o: Org, leaseNumber: number): Array<[string, Record<string, 
   ['Contact', { id: o.contact, organization_id: o.org, full_name: `Locataire ${o.tag}` }],
   ['Lease', { id: o.lease, organization_id: o.org, number: leaseNumber, status: 'active', start_date: '2026-06-01', end_date: '2027-05-31', unit_ids: [o.unit], signed_at: '2026-05-20', rents: [], terms: [] }],
   ['VisitRequest', { id: o.visit, organization_id: o.org, unit_id: o.unit, visit_date: '2026-11-05', visit_time: '10:00', full_name: `Visiteur ${o.tag}`, phone: '98 111 222', status: 'new' }],
-  ['Appointment', { id: o.appointment, organization_id: o.org, kind: 'viewing', title: `Visite ${o.tag}`, starts_at: '2026-11-03T09:00:00Z', ends_at: '2026-11-03T10:00:00Z', status: 'planned', unit_id: o.unit, assigned_user_id: o.staff }],
-  ['Notification', { id: o.notification, organization_id: o.org, user_id: o.staff, kind: 'visit_request', title: `Demande ${o.tag}`, link: '/visites', dedupe_key: `twoorg:${o.tag}:${o.notification}`, read_at: null }],
+  ['Appointment', { id: o.appointment, organization_id: o.org, kind: 'viewing', title: `Visite ${o.tag}`, starts_at: '2026-11-03T09:00:00Z', ends_at: '2026-11-03T10:00:00Z', status: 'planned', unit_id: o.unit, assigned_user_id: o.admin }],
+  ['Notification', { id: o.notification, organization_id: o.org, user_id: o.admin, kind: 'visit_request', title: `Demande ${o.tag}`, link: '/visites', dedupe_key: `twoorg:${o.tag}:${o.notification}`, read_at: null }],
 ];
 
-const adminA = { role: 'org_admin', userId: A.staff, orgId: ORG_A };
-const adminB = { role: 'org_admin', userId: B.staff, orgId: ORG_B };
+const adminA = { role: 'org_admin', userId: A.admin, orgId: ORG_A };
+const adminB = { role: 'org_admin', userId: B.admin, orgId: ORG_B };
 const pub = { role: 'public', userId: '', orgId: '' };
 const call = async (who: { role: string; userId: string; orgId: string }, field: 'run' | 'exec', op: string, variables: Record<string, unknown> = {}) =>
   JSON.parse(await dispatch(field, { op, variables: JSON.stringify(variables) }, who));

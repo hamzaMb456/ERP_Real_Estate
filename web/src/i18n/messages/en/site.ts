@@ -43,7 +43,8 @@ export const site = {
     home: 'Back to home',
   },
   listingCard: {
-    available: 'Available',
+    forRent: 'For rent',
+    forSale: 'For sale',
     availableFrom: (date: string) => `From ${date}`,
     perMonth: '/ month',
     rooms: (count: number) => plural(count, { one: '# room', other: '# rooms' }),
@@ -401,7 +402,6 @@ export const site = {
       other: 'Could not complete this. Try again in a moment.',
     },
   },
-  myVisits: {
   myRentals: {
     navLabel: 'My requests',
     title: 'My rental requests',
@@ -413,6 +413,7 @@ export const site = {
     listingFallback: 'Listing',
     startsOn: (date: string, months: number) => `From ${date} · ${months} months`,
   },
+  myVisits: {
     navLabel: 'My visits',
     title: 'My visits',
     subtitle: 'The status of your visit requests.',
@@ -438,8 +439,8 @@ export const site = {
       savedSearches: 'Saved searches',
       hidden: 'Hidden listings',
       visits: 'Visits',
-    },
       rentals: 'Requests',
+    },
     saved: {
       title: 'Save a search',
       text: 'Pick a city and a property type: your filters are kept to run again with one click.',

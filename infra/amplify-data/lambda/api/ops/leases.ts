@@ -3,8 +3,7 @@ import type { Caller } from '../../domain/auth.ts';
 import { todayTunis } from '../../domain/dates.ts';
 import type { Item } from '../../domain/db.ts';
 import { batchGet, getItem, queryAll } from '../../domain/db.ts';
-import { DomainError, fail } from '../../domain/errors.ts';
-import { decideApproval, latestApproval, missingFromCode, myApprovals, pendingApprovals, requestApproval } from '../../domain/approvals.ts';
+import { fail } from '../../domain/errors.ts';
 import { linkFile } from '../../domain/files.ts';
 import { currentRents, leaseFlags, leaseOverview } from '../../domain/lease-overview.ts';
 import type { DraftInput, Lease, PartyInput, RentInput } from '../../domain/lease-rules.ts';
@@ -12,31 +11,15 @@ import { activateLease, changeRent, endLease, renewLease, saveDraftLease, update
 import { matches, sortRows } from '../query-eval.ts';
 import { active, activeLeaseByUnit, byOrg, contactsById, ownerIds, ownersOf } from '../org-data.ts';
 import type { Op, Vars } from '../registry.ts';
-import { EDITORS, REGIONAL, STAFF, WRITERS, mutation, query } from '../registry.ts';
-import { branchScope, inScope, scopedRows, unitsInScope } from '../../domain/scope.ts';
+import { ORG_USERS, WRITERS, mutation, query } from '../registry.ts';
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 const num = (v: unknown): number => (typeof v === 'string' ? Number(v) : (v as number));
 
-/** A lease of the caller's organization whose units are all in the caller's scope (managers: every lease). */
+/** A lease of the caller's organization. */
 async function ownedLease(caller: Caller, id: string): Promise<Lease | null> {
   const l = await getItem('Lease', { id });
-  if (l?.organization_id !== caller.orgId) return null;
-  const inside = await unitsInScope(await branchScope(caller), (l.unit_ids as string[] | undefined) ?? []);
-  return inside ? (l as Lease) : null;
-}
-
-/** The leases the caller may see in a list: every unit of the lease must be in the caller's scope. */
-async function leasesInScope(caller: Caller, leases: Item[]): Promise<Item[]> {
-  const scope = await branchScope(caller);
-  if (scope === null) return leases;
-  const [units, properties] = await Promise.all([byOrg('Unit', caller.orgId), byOrg('Property', caller.orgId)]);
-  const branchOf = new Map(properties.map((p) => [p.id as string, p.branch_id]));
-  const allowed = new Set(units.filter((u) => inScope(scope, branchOf.get(u.property_id as string))).map((u) => u.id as string));
-  return leases.filter((l) => {
-    const ids = (l.unit_ids as string[] | undefined) ?? [];
-    return ids.length > 0 && ids.every((id) => allowed.has(id));
-  });
+  return l?.organization_id === caller.orgId ? (l as Lease) : null;
 }
 
 /** CreateLease / UpdateDraftLease send the lease and its child rows separately: rebuild one draft. */
@@ -57,9 +40,9 @@ function draftFrom(v: Vars, existingId?: string): DraftInput {
 }
 
 export const leaseOps: Record<string, Op> = {
-  Leases: query(REGIONAL, async (c) => {
+  Leases: query(ORG_USERS, async (c) => {
     const today = todayTunis();
-    const visible = await leasesInScope(c, (await byOrg('Lease', c.orgId)).filter((l) => !l.archived_at));
+    const visible = (await byOrg('Lease', c.orgId)).filter((l) => !l.archived_at);
     const rows = visible.map((l) => leaseOverview(l as Lease, today));
     return {
       lease_overview: sortRows(rows, [{ number: 'desc' }]).slice(0, 500).map((o) => ({
@@ -71,7 +54,7 @@ export const leaseOps: Record<string, Op> = {
     };
   }),
 
-  Lease: query(REGIONAL, async (c, v) => {
+  Lease: query(ORG_USERS, async (c, v) => {
     const lease = await ownedLease(c, str(v.id));
     if (!lease) return { lease: null };
     const [units, parties] = await Promise.all([
@@ -99,12 +82,11 @@ export const leaseOps: Record<string, Op> = {
         terms: sortRows(lease.terms ?? [], { start_date: 'asc' }),
         rents: sortRows(lease.rents ?? [], [{ effective_from: 'asc' }]),
         current_rents: o.current_rents,
-        approval: await latestApproval(c.orgId, lease.id),
       },
     };
   }),
 
-  DraftLease: query(REGIONAL, async (c, v) => {
+  DraftLease: query(ORG_USERS, async (c, v) => {
     const lease = await ownedLease(c, str(v.id));
     if (!lease) return { lease: null };
     const parties = await queryAll('LeaseParty', { key: 'lease_id', value: lease.id });
@@ -119,7 +101,7 @@ export const leaseOps: Record<string, Op> = {
     };
   }),
 
-  LeaseCalendar: query(REGIONAL, async (c, v) => {
+  LeaseCalendar: query(ORG_USERS, async (c, v) => {
     const lease = await ownedLease(c, str(v.id));
     if (!lease) return { lease: null };
     const [unit] = await batchGet('Unit', (lease.unit_ids ?? []).slice(0, 1));
@@ -134,20 +116,19 @@ export const leaseOps: Record<string, Op> = {
     };
   }),
 
-  LeaseFormUnits: query(REGIONAL, async (c, v) => {
+  LeaseFormUnits: query(ORG_USERS, async (c, v) => {
     const keep = new Set((v.keep as string[]) ?? []);
     const [units, properties] = await Promise.all([byOrg('Unit', c.orgId), byOrg('Property', c.orgId)]);
-    const propertyById = new Map(active(scopedRows(await branchScope(c), properties, (p) => p.branch_id)).map((p) => [p.id as string, p]));
+    const propertyById = new Map(active(properties).map((p) => [p.id as string, p]));
     const rows = active(units)
       .filter((u) => propertyById.has(u.property_id) && (u.status === 'vacant' || keep.has(u.id)))
       .map((u) => ({ id: u.id, code: u.code, rent_amount: u.rent_amount, property: { id: u.property_id, name: propertyById.get(u.property_id)!.name } }));
     return { units: sortRows(rows, [{ property: { name: 'asc' } }, { code: 'asc' }]) };
   }),
 
-  UnitLease: query(REGIONAL, async (c, v) => {
+  UnitLease: query(ORG_USERS, async (c, v) => {
     const unit = await getItem('Unit', { id: str(v.id) });
     if (unit?.organization_id !== c.orgId) return { unit_current_lease: [] };
-    if (!(await unitsInScope(await branchScope(c), [unit.id as string]))) return { unit_current_lease: [] };
     const today = todayTunis();
     const leases = (await byOrg('Lease', c.orgId)).filter((l) => l.status === 'active' && (l.unit_ids as string[] | undefined)?.includes(unit.id));
     return {
@@ -163,16 +144,15 @@ export const leaseOps: Record<string, Op> = {
     };
   }),
 
-  LeaseDocuments: query(REGIONAL, async (c, v) => {
+  LeaseDocuments: query(ORG_USERS, async (c, v) => {
     const lease = await ownedLease(c, str(v.id));
     if (!lease) return { lease_files: [] };
     const files = await queryAll('FileLink', { index: 'byTarget', key: 'target_key', value: `lease#${lease.id}` });
     return { lease_files: sortRows(files, [{ created_at: 'desc' }]).map((f) => ({ id: f.id, storage_file_id: f.storage_file_id, title: f.title, category: f.category, created_at: f.created_at })) };
   }),
 
-  CreateLease: mutation(EDITORS, async (c, v) => {
+  CreateLease: mutation(WRITERS, async (c, v) => {
     const draft = draftFrom(v);
-    if (!(await unitsInScope(await branchScope(c), draft.unit_ids))) fail('out_of_scope');
     const lease = await saveDraftLease(c, draft);
     return {
       insert_leases_one: { id: lease.id },
@@ -181,71 +161,28 @@ export const leaseOps: Record<string, Op> = {
       insert_lease_rents: { affected_rows: draft.rents.length },
     };
   }),
-  UpdateDraftLease: mutation(EDITORS, async (c, v) => {
+  UpdateDraftLease: mutation(WRITERS, async (c, v) => {
     const current = await ownedLease(c, str(v.id));
     if (!current) fail('lease_not_found');
     const draft = draftFrom({ ...v, set: { start_date: current.start_date, end_date: current.end_date, payment_day: current.payment_day, deposit_amount: current.deposit_amount, ...(v.set as Item) } }, current.id);
-    if (!(await unitsInScope(await branchScope(c), draft.unit_ids))) fail('out_of_scope');
     await saveDraftLease(c, draft);
     return {
       delete_lease_parties: { affected_rows: 0 }, delete_lease_units: { affected_rows: 0 }, update_leases_by_pk: { id: current.id },
       insert_lease_units: { affected_rows: draft.unit_ids.length }, insert_lease_parties: { affected_rows: draft.parties.length }, insert_lease_rents: { affected_rows: draft.rents.length },
     };
   }),
-  ActivateLease: mutation(EDITORS, async (c, v) => {
+  ActivateLease: mutation(WRITERS, async (c, v) => {
     if (!(await ownedLease(c, str(v.id)))) fail('lease_not_found');
-    try {
-      const l = await activateLease(c, str(v.id), str(v.signed) || undefined);
-      return { activate_lease: [{ id: l.id, status: l.status }] };
-    } catch (err) {
-      // Regional staff with the deposit or documents missing ask a manager instead; the lease stays a draft.
-      const missing = err instanceof DomainError ? missingFromCode(err.code) : null;
-      if (!missing) throw err;
-      await requestApproval(c, str(v.id), str(v.signed) || undefined, missing);
-      return { activate_lease: [{ id: str(v.id), status: 'draft' }] };
-    }
+    const l = await activateLease(c, str(v.id), str(v.signed) || undefined);
+    return { activate_lease: [{ id: l.id, status: l.status }] };
   }),
-  MyLeaseApprovals: query(EDITORS, async (c) => {
-    const rows = await myApprovals(c);
-    const leases = await batchGet('Lease', [...new Set(rows.map((r) => r.lease_id as string))]);
-    const byId = new Map(leases.map((l) => [l.id as string, l]));
-    return {
-      lease_approvals: rows.map((r) => {
-        const l = byId.get(r.lease_id as string);
-        return {
-          id: r.id, lease_id: r.lease_id, status: r.status, requested_at: r.requested_at, decided_at: r.decided_at ?? null,
-          decision_note: r.decision_note ?? null, missing: r.missing ?? [], lease_number: l?.number ?? null, unit_labels: l?.unit_labels ?? [],
-        };
-      }),
-    };
-  }),
-  LeaseApprovals: query(WRITERS, async (c) => {
-    const rows = await pendingApprovals(c);
-    const leases = await batchGet('Lease', [...new Set(rows.map((r) => r.lease_id as string))]);
-    const byId = new Map(leases.map((l) => [l.id as string, l]));
-    return {
-      lease_approvals: sortRows(rows, [{ requested_at: 'asc' }]).map((r) => {
-        const l = byId.get(r.lease_id as string);
-        return {
-          id: r.id, lease_id: r.lease_id, requested_at: r.requested_at, signed_on: r.signed_on ?? null, missing: r.missing ?? [],
-          lease_number: l?.number ?? null, unit_labels: l?.unit_labels ?? [], party_names: l?.party_names ?? [],
-        };
-      }),
-    };
-  }),
-  DecideLeaseApproval: mutation(WRITERS, async (c, v) => {
-    const decision = str(v.decision);
-    if (decision !== 'approve' && decision !== 'reject') fail('approval_decision_invalid');
-    const row = await decideApproval(c, str(v.id), decision, (v.note as string | null) ?? null);
-    return { update_lease_approvals_by_pk: { id: row.id, status: row.status } };
-  }),
-  RenewLease: mutation(EDITORS, async (c, v) => {
+  RenewLease: mutation(WRITERS, async (c, v) => {
     if (!(await ownedLease(c, str(v.id)))) fail('lease_not_found');
     const rents = ((v.rents as Item[] | null) ?? []).map((r) => ({ unit_id: r.unit_id, rent_amount: num(r.rent_amount), charges_amount: r.charges_amount == null ? 0 : num(r.charges_amount) }));
     const l = await renewLease(c, str(v.id), str(v.end), rents, (v.note as string | null) ?? undefined);
     return { renew_lease: [{ id: l.id, end_date: l.end_date }] };
   }),
-  EndLease: mutation(EDITORS, async (c, v) => {
+  EndLease: mutation(WRITERS, async (c, v) => {
     if (!(await ownedLease(c, str(v.id)))) fail('lease_not_found');
     const l = await endLease(c, str(v.id), str(v.on), (v.reason as string | null) ?? undefined);
     return { end_lease: [{ id: l.id, status: l.status }] };
@@ -255,13 +192,13 @@ export const leaseOps: Record<string, Op> = {
     return { change_rent: [{ id: l.id }] };
   }),
   SetLeaseArchived: mutation(WRITERS, async (c, v) => ({ update_leases_by_pk: { id: (await updateLeaseRecord(c, str(v.id), { archived_at: (v.archived_at as string | null) ?? null })).id } })),
-  SaveRegistration: mutation(EDITORS, async (c, v) => {
+  SaveRegistration: mutation(WRITERS, async (c, v) => {
     if (!(await ownedLease(c, str(v.id)))) fail('lease_not_found');
     return {
       update_leases_by_pk: { id: (await updateLeaseRecord(c, str(v.id), { registered_at: (v.on as string | null) ?? null, registration_receipt: (v.receipt as string | null) ?? null })).id },
     };
   }),
-  LinkLeaseFile: mutation(EDITORS, async (c, v) => {
+  LinkLeaseFile: mutation(WRITERS, async (c, v) => {
     const o = v.object as Item;
     if (!(await ownedLease(c, str(o.lease_id)))) fail('lease_not_found');
     return { insert_lease_files_one: { id: (await linkFile(c, { lease_id: o.lease_id, storage_file_id: o.storage_file_id, title: o.title, category: o.category })).id } };

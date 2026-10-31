@@ -19,7 +19,6 @@ export const LEASE_QUERY = `
       terms(order_by: { start_date: asc }) { id kind start_date end_date note }
       rents(order_by: [{ effective_from: asc }]) { id unit_id effective_from rent_amount charges_amount reason }
       current_rents { unit_id effective_from rent_amount charges_amount next_change_on next_rent_amount }
-      approval { id status missing decision_note decided_at requested_at }
     }
   }
 `;
@@ -67,13 +66,4 @@ export type LeaseDetails = {
     next_change_on: string | null;
     next_rent_amount: number | string | null;
   }[];
-  /** The latest activation request for this lease, whatever its outcome. */
-  approval: {
-    id: string;
-    status: 'pending' | 'approved' | 'rejected';
-    missing: string[];
-    decision_note: string | null;
-    decided_at: string | null;
-    requested_at: string;
-  } | null;
 };

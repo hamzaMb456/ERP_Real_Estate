@@ -14,7 +14,7 @@ const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
 const ORG = randomUUID();
 const CLIENT_A = { role: 'user', userId: randomUUID(), orgId: '' };
 const CLIENT_B = { role: 'user', userId: randomUUID(), orgId: '' };
-const STAFF = { role: 'manager', userId: randomUUID(), orgId: ORG };
+const MANAGER_CALLER = { role: 'manager', userId: randomUUID(), orgId: ORG };
 const PUBLIC = { role: 'public', userId: '', orgId: '' };
 
 const call = async (field: 'run' | 'exec', op: string, variables: Record<string, unknown>, caller = CLIENT_A) =>
@@ -101,8 +101,8 @@ test('client space: saved searches, hidden listings, recently viewed', { skip: !
     await assert.rejects(call('exec', 'RecordListingView', { listing: randomUUID() }), /listing_not_found/);
   });
 
-  await t.test('staff and the anonymous public are refused', async () => {
-    for (const caller of [STAFF, PUBLIC]) {
+  await t.test('managers and the anonymous public are refused', async () => {
+    for (const caller of [MANAGER_CALLER, PUBLIC]) {
       await assert.rejects(call('run', 'MySavedSearches', {}, caller), /permission_denied/);
       await assert.rejects(call('exec', 'SaveSearch', { label: 'X', filters: FILTERS }, caller), /permission_denied/);
       await assert.rejects(call('run', 'MyRecentlyViewed', {}, caller), /permission_denied/);

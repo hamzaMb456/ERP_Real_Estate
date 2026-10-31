@@ -18,7 +18,7 @@ import { useT } from '@/i18n/provider';
 
 /**
  * Card of one visitor request, shared by « Demandes de location » and « Visites »: who asks (with call and write links),
- * about which unit, the specific details (a slot, a start date), the visitor's message, the staff's note and the actions.
+ * about which unit, the specific details (a slot, a start date), the visitor's message, the team's note and the actions.
  */
 export function RequestCard({
   request,

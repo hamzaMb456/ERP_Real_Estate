@@ -44,7 +44,8 @@ export const site = {
     home: 'Retour à l’accueil',
   },
   listingCard: {
-    available: 'Disponible',
+    forRent: 'À louer',
+    forSale: 'À vendre',
     availableFrom: (date: string) => `Dès le ${date}`,
     perMonth: '/ mois',
     rooms: (count: number) => plural(count, { one: '# pièce', other: '# pièces' }),
@@ -402,7 +403,6 @@ export const site = {
       other: 'Opération impossible. Réessayez dans un instant.',
     },
   },
-  myVisits: {
   myRentals: {
     navLabel: 'Mes demandes',
     title: 'Mes demandes de location',
@@ -414,6 +414,7 @@ export const site = {
     listingFallback: 'Logement',
     startsOn: (date: string, months: number) => `À partir du ${date} · ${months} mois`,
   },
+  myVisits: {
     navLabel: 'Mes visites',
     title: 'Mes visites',
     subtitle: 'Le suivi de vos demandes de visite.',
@@ -439,8 +440,8 @@ export const site = {
       savedSearches: 'Recherches sauvegard\u00e9es',
       hidden: 'Annonces masqu\u00e9es',
       visits: 'Visites',
-    },
       rentals: 'Demandes',
+    },
     saved: {
       title: 'Enregistrer une recherche',
       text: 'Choisissez une ville et un type de bien\u00a0: vos filtres sont gard\u00e9s pour les relancer en un clic.',

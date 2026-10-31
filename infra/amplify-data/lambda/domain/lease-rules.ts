@@ -177,33 +177,6 @@ export function assertActivatable(
   if (lease.registered_at && lease.registered_at < signedAt) fail('leases_registration_check');
 }
 
-/** Documents a lease needs on file (FileLink categories) before it can be activated without approval. */
-export const ACTIVATION_DOCUMENTS = ['signed_lease', 'id_document', 'registration_receipt'] as const;
-
-/** The unit fields that feed the deposit check. */
-export interface UnitDeposit {
-  id: string;
-  deposit_months?: number | null;
-  reservation_deposit?: number | null;
-}
-
-/**
- * What is missing for activation without a manager's approval: the lease deposit, the deposit fields
- * of each unit, and the required documents. An empty list means no approval is needed.
- */
-export function activationGaps(lease: Lease, units: UnitDeposit[], documents: readonly string[]): string[] {
-  const gaps: string[] = [];
-  if (!(lease.deposit_amount > 0)) gaps.push('deposit_amount');
-  for (const unit of units) {
-    if (unit.deposit_months == null) gaps.push(`unit:${unit.id}:deposit_months`);
-    if (unit.reservation_deposit == null) gaps.push(`unit:${unit.id}:reservation_deposit`);
-  }
-  for (const doc of ACTIVATION_DOCUMENTS) {
-    if (!documents.includes(doc)) gaps.push(`doc:${doc}`);
-  }
-  return gaps;
-}
-
 /** renew_lease: the new end must be after both the current end and today. */
 export function assertRenewable(lease: Lease, newEnd: string, today: string): void {
   if (lease.status !== 'active') fail('lease_not_active');

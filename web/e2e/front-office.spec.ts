@@ -52,14 +52,14 @@ test('a unit goes on the public site by itself, then is hidden from the ERP and 
   const bienName = `${STALE_BIEN_PREFIX} ${Date.now().toString().slice(-6)}`;
   let bienUrl: string | null = null;
   let unitUrl: string | null = null;
-  let staffSignedIn = false;
+  let erpSignedIn = false;
   const visitor = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
   const guest = await visitor.newPage();
 
   try {
-    // 1. Staff: a bien with one vacant unit and a photo.
+    // 1. Manager: a bien with one vacant unit and a photo.
     await signIn(page);
-    staffSignedIn = true;
+    erpSignedIn = true;
     await archiveStaleBiens(page);
 
     await createBien(page, bienName);
@@ -96,9 +96,9 @@ test('a unit goes on the public site by itself, then is hidden from the ERP and 
     await page.goto('/biens');
     await expect(page).toHaveURL(/\/erp\/biens$/);
 
-    // 4. Staff signs out.
+    // 4. Manager signs out.
     await signOut(page);
-    staffSignedIn = false;
+    erpSignedIn = false;
 
     // 5. Visitor: the card is on /louer, then the unit page.
     const card = guest.locator('article').filter({ has: guest.locator(`a[href="${listingPath}"]`) });
@@ -125,9 +125,9 @@ test('a unit goes on the public site by itself, then is hidden from the ERP and 
     await guest.goto('/biens');
     await expect(guest).toHaveURL(/\/erp\/connexion/);
 
-    // 6. Staff signs in again and hides the unit from the website.
+    // 6. Manager signs in again and hides the unit from the website.
     await signIn(page);
-    staffSignedIn = true;
+    erpSignedIn = true;
     await page.goto(unitUrl);
     await websiteCard(page).getByRole('checkbox', { name: /Afficher sur le site web/ }).uncheck();
     await expect(page.getByText('Unité retirée du site')).toBeVisible();
@@ -144,7 +144,7 @@ test('a unit goes on the public site by itself, then is hidden from the ERP and 
     await visitor.close().catch(() => undefined);
     if (bienUrl) {
       try {
-        if (!staffSignedIn) await signIn(page);
+        if (!erpSignedIn) await signIn(page);
         await page.goto(bienUrl);
         const archive = page.getByRole('button', { name: 'Archiver' });
         await expect(archive).toBeVisible({ timeout: 15_000 });

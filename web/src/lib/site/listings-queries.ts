@@ -18,7 +18,7 @@ export const PAGE_SIZE = 12;
 
 /**
  * Unit statuses that are not on offer. The view already hides archived units; a sold unit or one under maintenance
- * can still have a published listing until staff close it, and must not show up.
+ * can still have a published listing until the team closes it, and must not show up.
  */
 export const EXCLUDED_UNIT_STATUSES = ['sold', 'under_maintenance'] as const;
 
@@ -48,7 +48,7 @@ export type PublicListing = {
   surfaceM2: number | null;
   floor: number | null;
   unitStatus: string;
-  /** The bien's city; null when staff left it empty (such a listing still shows, it just has no city). */
+  /** The bien's city; null when the team left it empty (such a listing still shows, it just has no city). */
   city: string | null;
   governorate: string | null;
   /** Rounded to 3 decimals by the view: the exact address is not public. */

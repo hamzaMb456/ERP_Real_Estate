@@ -33,7 +33,7 @@
   --sand-text: #544636;
   --sand-deep: #ede1cc;
   /* The glossy field tokens (gloss.css) resolve on :root, i.e. from the ERP palette: pin the emerald ones here so
-     the search inputs of the public site never take the colour the staff picked for the ERP. */
+     the search inputs of the public site never take the colour the user picked for the ERP. */
   --field-border: color-mix(in oklch, var(--primary) 24%, var(--border));
   --field-border-hover: color-mix(in oklch, var(--primary) 48%, var(--border));
   --field-base: color-mix(in oklch, var(--primary) 4%, var(--card));

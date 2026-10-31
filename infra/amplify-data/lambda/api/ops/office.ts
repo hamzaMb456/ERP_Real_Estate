@@ -2,7 +2,6 @@
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import type { Caller } from '../../domain/auth.ts';
 import { requireWriter } from '../../domain/auth.ts';
-import { contactIdsInScope, fileTargetVisible, unitIdsInScope, unitVisible } from '../../domain/access.ts';
 import { deleteAppointment, saveAppointment } from '../../domain/appointments.ts';
 import type { AppointmentInput } from '../../domain/appointments.ts';
 import type { Item } from '../../domain/db.ts';
@@ -17,29 +16,28 @@ import type { Where } from '../query-eval.ts';
 import { eqValue, matches, page, sortRows } from '../query-eval.ts';
 import { byOrg } from '../org-data.ts';
 import type { Op } from '../registry.ts';
-import { EDITORS, REGIONAL, STAFF, WRITERS, mutation, query } from '../registry.ts';
+import { ORG_USERS, WRITERS, mutation, query } from '../registry.ts';
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 const PAYMENT_METHODS = new Set(['virtual', 'manual']);
 
-/** A file link the caller may change: its property, unit or lease must be in their branches. */
+/** A file link the caller may change: any link of their organization. */
 async function writableLink(caller: Caller, id: string): Promise<Item> {
   const link = await getItem('FileLink', { id });
-  if (link?.organization_id !== caller.orgId || !(await fileTargetVisible(caller, link))) fail('out_of_scope');
+  if (link?.organization_id !== caller.orgId) fail('out_of_scope');
   return link;
 }
 
-/** A request the caller may change: its unit must be one of theirs (the manager: any request of the organization). */
+/** A request the caller may change: any request of their organization. */
 async function writableRequest(caller: Caller, model: 'RentalRequest' | 'VisitRequest', id: string): Promise<Item> {
   const row = await getItem(model, { id });
-  if (row?.organization_id !== caller.orgId || !unitVisible(await unitIdsInScope(caller), row.unit_id)) fail('request_not_found');
+  if (row?.organization_id !== caller.orgId) fail('request_not_found');
   return row;
 }
 
-/** Requests with their unit { id code title property { id name city } }, newest first, only for the units in scope. */
-async function requestsWithUnits(model: string, orgId: string, units: Set<string> | null): Promise<Item[]> {
-  const [allRows, allUnits, properties] = await Promise.all([byOrg(model, orgId), byOrg('Unit', orgId), byOrg('Property', orgId)]);
-  const rows = allRows.filter((r) => unitVisible(units, r.unit_id));
+/** Requests with their unit { id code title property { id name city } }, newest first. */
+async function requestsWithUnits(model: string, orgId: string): Promise<Item[]> {
+  const [rows, allUnits, properties] = await Promise.all([byOrg(model, orgId), byOrg('Unit', orgId), byOrg('Property', orgId)]);
   const unitById = new Map(allUnits.map((u) => [u.id as string, u]));
   const propertyById = new Map(properties.map((p) => [p.id as string, p]));
   return page(sortRows(rows, { created_at: 'desc' }), 500).map((r) => {
@@ -61,28 +59,25 @@ async function targetFiles(caller: Caller, where: Where): Promise<Item[]> {
   if (!model || !id) fail('file_target_required');
   const owner = await getItem(model, { id });
   if (owner?.organization_id !== caller.orgId) return [];
-  if (!(await fileTargetVisible(caller, model === 'Property' ? { property_id: id } : { unit_id: id }))) return [];
   const files = await queryAll('FileLink', { index: 'byTarget', key: 'target_key', value: `${model.toLowerCase()}#${id}` });
   return files.filter((f) => matches(f, where));
 }
 
 export const officeOps: Record<string, Op> = {
-  RentalRequests: query(REGIONAL, async (c) => ({ rental_requests: await requestsWithUnits('RentalRequest', c.orgId, await unitIdsInScope(c)) })),
-  VisitRequests: query(REGIONAL, async (c) => ({ visit_requests: await requestsWithUnits('VisitRequest', c.orgId, await unitIdsInScope(c)) })),
-  SetRentalRequest: mutation(EDITORS, async (c, v) => {
+  RentalRequests: query(ORG_USERS, async (c) => ({ rental_requests: await requestsWithUnits('RentalRequest', c.orgId) })),
+  VisitRequests: query(ORG_USERS, async (c) => ({ visit_requests: await requestsWithUnits('VisitRequest', c.orgId) })),
+  SetRentalRequest: mutation(WRITERS, async (c, v) => {
     await writableRequest(c, 'RentalRequest', str(v.id));
     return { update_rental_requests_by_pk: { id: (await updateRentalRequest(c, str(v.id), (v.set ?? {}) as Item)).id } };
   }),
-  SetVisitRequest: mutation(EDITORS, async (c, v) => {
+  SetVisitRequest: mutation(WRITERS, async (c, v) => {
     await writableRequest(c, 'VisitRequest', str(v.id));
     return { update_visit_requests_by_pk: { id: (await updateVisitRequest(c, str(v.id), (v.set ?? {}) as Item)).id } };
   }),
   /** Appointment first, then the request takes the slot; if the slot is taken, the appointment is removed again. */
-  ConfirmVisit: mutation(EDITORS, async (c, v) => {
-    const units = await unitIdsInScope(c);
+  ConfirmVisit: mutation(WRITERS, async (c, v) => {
     await writableRequest(c, 'VisitRequest', str(v.id));
     const { id: appointmentId, ...fields } = (v.appointment ?? {}) as Item;
-    if (fields.unit_id !== undefined && !unitVisible(units, fields.unit_id)) fail('out_of_scope');
     const appointment = await saveAppointment(c, { ...(fields as AppointmentInput), create_id: appointmentId });
     try {
       await updateVisitRequest(c, str(v.id), { status: 'confirmed', appointment_id: appointment.id });
@@ -92,13 +87,11 @@ export const officeOps: Record<string, Op> = {
     }
     return { insert_appointments_one: { id: appointment.id }, update_visit_requests_by_pk: { id: str(v.id) } };
   }),
-  CloseVisit: mutation(EDITORS, async (c, v) => {
-    const units = await unitIdsInScope(c);
+  CloseVisit: mutation(WRITERS, async (c, v) => {
     await writableRequest(c, 'VisitRequest', str(v.id));
     await updateVisitRequest(c, str(v.id), { status: str(v.status) });
     const current = await getItem('Appointment', { id: str(v.appointmentId) });
     if (current?.organization_id !== c.orgId) fail('appointment_not_found');
-    if (!unitVisible(units, current.unit_id)) fail('out_of_scope');
     await saveAppointment(c, {
       id: current.id, kind: current.kind, title: current.title, location: current.location, starts_at: current.starts_at, ends_at: current.ends_at,
       status: str(v.appointmentStatus), assigned_user_id: current.assigned_user_id, unit_id: current.unit_id, lease_id: current.lease_id,
@@ -107,24 +100,23 @@ export const officeOps: Record<string, Op> = {
     return { update_visit_requests_by_pk: { id: str(v.id) }, update_appointments_by_pk: { id: current.id } };
   }),
 
-  Photos: query(REGIONAL, async (c, v) => ({
+  Photos: query(ORG_USERS, async (c, v) => ({
     property_files: sortRows(await targetFiles(c, v.where as Where), [{ sort_order: 'asc' }, { created_at: 'asc' }])
       .map((f) => ({ id: f.id, storage_file_id: f.storage_file_id, title: f.title, is_cover: f.is_cover, sort_order: f.sort_order })),
   })),
-  Documents: query(REGIONAL, async (c, v) => ({
+  Documents: query(ORG_USERS, async (c, v) => ({
     property_files: sortRows(await targetFiles(c, v.where as Where), [{ created_at: 'desc' }])
       .map((f) => ({ id: f.id, storage_file_id: f.storage_file_id, title: f.title, category: f.category, created_at: f.created_at })),
   })),
-  LinkFile: mutation(EDITORS, async (c, v) => {
-    if (!(await fileTargetVisible(c, v.object as Item))) fail('out_of_scope');
+  LinkFile: mutation(WRITERS, async (c, v) => {
     return { insert_property_files_one: { id: (await linkFile(c, v.object as never)).id } };
   }),
-  SetCover: mutation(EDITORS, async (c, v) => {
+  SetCover: mutation(WRITERS, async (c, v) => {
     await writableLink(c, str(v.id));
     await setCover(c, str(v.id));
     return { update_property_files: { affected_rows: 1 }, update_property_files_by_pk: { id: str(v.id) } };
   }),
-  SwapOrder: mutation(EDITORS, async (c, v) => {
+  SwapOrder: mutation(WRITERS, async (c, v) => {
     await writableLink(c, str(v.a));
     await writableLink(c, str(v.b));
     await updateFileLink(c, str(v.a), { sort_order: Number(v.aOrder) });
@@ -132,7 +124,7 @@ export const officeOps: Record<string, Op> = {
     return { first: { id: str(v.a) }, second: { id: str(v.b) } };
   }),
   /** Storage routes: is this object linked to something the caller may see? */
-  StorageFileOwnership: query(REGIONAL, async (c, v) => {
+  StorageFileOwnership: query(ORG_USERS, async (c, v) => {
     const key = str(v.key);
     if (!(await canAccessStorageFile(c, key))) return { property_files: [], lease_files: [] };
     const lock = await getItem('Lock', { id: `UNIQ#file#${key}` });
@@ -142,17 +134,17 @@ export const officeOps: Record<string, Op> = {
   }),
 
   /** Upload route, after the S3 put: the caller becomes the object's uploader (replaces raw SQL on app_storage_files). */
-  RegisterStorageFile: mutation(EDITORS, async (c, v) => {
+  RegisterStorageFile: mutation(WRITERS, async (c, v) => {
     if (!/^[0-9a-f-]{36}$/i.test(str(v.key))) fail('invalid_storage_file');
     await registerStorageFile(c.userId, str(v.key), str(v.bucket) as Bucket);
     return { insert_app_storage_files_one: { id: str(v.key) } };
   }),
-  ForgetStorageFile: mutation(EDITORS, async (c, v) => {
+  ForgetStorageFile: mutation(WRITERS, async (c, v) => {
     await forgetStorageFile(c, str(v.key));
     return { delete_app_storage_files_by_pk: { id: str(v.key) } };
   }),
 
-  VisitPaymentMethod: query(STAFF, async (c) => {
+  VisitPaymentMethod: query(ORG_USERS, async (c) => {
     const org = await getItem('Organization', { id: c.orgId });
     return {
       organizations: org
@@ -178,14 +170,8 @@ export const officeOps: Record<string, Op> = {
     return { update_organizations_by_pk: { id: c.orgId } };
   }),
 
-  RecordGaps: query(REGIONAL, async (c) => {
-    const [allProperties, allUnits, allContacts] = await Promise.all([byOrg('Property', c.orgId), byOrg('Unit', c.orgId), byOrg('Contact', c.orgId)]);
-    const unitSet = await unitIdsInScope(c);
-    const contactSet = await contactIdsInScope(c, unitSet);
-    const units = unitSet === null ? allUnits : allUnits.filter((u) => unitSet.has(u.id as string));
-    const propertyIds = new Set(units.map((u) => u.property_id as string));
-    const properties = unitSet === null ? allProperties : allProperties.filter((p) => propertyIds.has(p.id as string));
-    const contacts = contactSet === null ? allContacts : allContacts.filter((x) => contactSet.has(x.id as string));
+  RecordGaps: query(ORG_USERS, async (c) => {
+    const [properties, units, contacts] = await Promise.all([byOrg('Property', c.orgId), byOrg('Unit', c.orgId), byOrg('Contact', c.orgId)]);
     return {
       record_gaps: sortRows(recordGaps(properties, units, contacts), [{ entity_type: 'asc' }, { entity_label: 'asc' }])
         .map(({ organization_id: _o, ...g }) => g),

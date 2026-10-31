@@ -11,7 +11,7 @@ export const labels: typeof fr = {
     land: 'أرض',
   },
   unitStatuses: {
-    vacant: 'شاغرة',
+    vacant: 'متاحة للكراء',
     rented: 'مُكتراة',
     for_sale: 'للبيع',
     sold: 'مُباعة',

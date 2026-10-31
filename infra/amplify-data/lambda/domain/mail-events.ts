@@ -6,10 +6,9 @@ import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import { decideAppointmentAction, decideParticipantAction } from '../../../../functions/_lib/appointment-decisions.ts';
 import type { RowChangeEvent } from '../../../../functions/_lib/event.ts';
-import { appointmentMail, notificationMail, staffInvitationMail } from '../../../../functions/_lib/mail-templates.ts';
+import { appointmentMail, notificationMail } from '../../../../functions/_lib/mail-templates.ts';
 import type { Item } from './db.ts';
 import { batchGet, doc, getItem, queryAll, table } from './db.ts';
-import { signToken } from './staff-invitations.ts';
 
 const MAX_ERROR_LENGTH = 500;
 const NO_EMAIL_ERROR = 'destinataire sans e-mail';
@@ -28,8 +27,6 @@ export interface MailDeps {
   /** Lazy: built only when a mail really goes out (SMTP config comes from Secrets Manager). */
   mailer: () => Mailer;
   appUrl?: string;
-  /** Signs the links in staff invitations. Comes from the same secret as the SMTP settings. */
-  inviteSecret?: string;
 }
 
 export interface ChangeRecord {
@@ -169,7 +166,7 @@ async function markNotification(id: string, set: { emailed_at?: string; email_er
   }));
 }
 
-/** A new bell notification is also mailed to its staff recipient. */
+/** A new bell notification is also mailed to its recipient. */
 async function onNotification(change: ChangeRecord, deps: MailDeps): Promise<string> {
   if (change.op !== 'INSERT' || !change.new) return 'none';
   const row = await getItem('Notification', { id: change.new.id });
@@ -196,21 +193,7 @@ async function onNotification(change: ChangeRecord, deps: MailDeps): Promise<str
   return 'sent';
 }
 
-/** A new staff invitation: one mail with the signed link. Not for changes, and not for a link already used or revoked. */
-async function onStaffInvitation(change: ChangeRecord, deps: MailDeps): Promise<string> {
-  const row = change.new;
-  if (change.op !== 'INSERT' || !row || row.used_at || row.revoked_at) return 'none';
-  // Missing settings fail loudly (the stream retries the batch) instead of dropping an invitation.
-  if (!deps.inviteSecret) throw new Error('mailer not configured: INVITE_SECRET missing');
-  if (!deps.appUrl) throw new Error('mailer not configured: APP_URL missing');
-  const link = `${deps.appUrl.replace(/\/+$/, '')}/erp/invitation?token=${signToken(deps.inviteSecret, row.id, row.expires_at)}`;
-  const mail = staffInvitationMail(row.display_name, link);
-  await deps.mailer().send({ to: row.email, subject: mail.subject, text: mail.text });
-  return 'sent';
-}
-
 export async function handleChange(change: ChangeRecord, deps: MailDeps): Promise<string> {
-  if (change.model === 'StaffInvitation') return onStaffInvitation(change, deps);
   if (change.model === 'AppointmentParticipant') return onParticipant(change, deps);
   if (change.model === 'Appointment') return onAppointment(change, deps);
   if (change.model === 'Notification') return onNotification(change, deps);

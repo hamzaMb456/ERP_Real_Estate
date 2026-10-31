@@ -11,7 +11,7 @@ export const labels = {
     land: 'Terrain',
   } as Record<string, string>,
   unitStatuses: {
-    vacant: 'Disponible',
+    vacant: 'Disponible à la location',
     rented: 'Loué',
     for_sale: 'À vendre',
     sold: 'Vendu',

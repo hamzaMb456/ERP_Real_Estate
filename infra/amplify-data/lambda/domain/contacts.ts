@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Caller } from './auth.ts';
-import { requireEditor } from './auth.ts';
+import { requireWriter } from './auth.ts';
 import { fail } from './errors.ts';
 import type { Item } from './db.ts';
 import { getItem, table, transact, updateIfCondition } from './db.ts';
@@ -19,7 +19,7 @@ function checkRoles(roles: string[]): string[] {
 
 /** is_organization (the agency itself) is never set through the API: one per org, made at signup. */
 export async function createContact(caller: Caller, object: Item, roles: string[] = []): Promise<Item> {
-  const orgId = requireEditor(caller, 'permission_denied');
+  const orgId = requireWriter(caller, 'permission_denied');
   const columns = checkColumns('contacts', CONTACT_RULES, object);
   if (!columns.full_name) fail('contacts_full_name_check');
   const at = new Date().toISOString();
@@ -33,7 +33,7 @@ export async function createContact(caller: Caller, object: Item, roles: string[
 
 /** Columns plus role changes in one write; the organization's own contact is never archived. */
 export async function updateContact(caller: Caller, id: string, set: Item, removeRoles: string[] = [], addRoles: string[] = []): Promise<Item> {
-  const orgId = requireEditor(caller, 'permission_denied');
+  const orgId = requireWriter(caller, 'permission_denied');
   const current = await getItem('Contact', { id });
   if (current?.organization_id !== orgId) fail('contact_not_found');
   const roles = checkRoles([...((current.roles as string[] | undefined) ?? []).filter((r) => !removeRoles.includes(r)), ...addRoles]);

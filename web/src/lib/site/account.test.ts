@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { accountErrorKey, accountHref, isStaffRole, safeSiteNext, validateAccount } from './account';
+import { accountErrorKey, accountHref, isOrgRole, safeSiteNext, validateAccount } from './account';
 
-describe('isStaffRole', () => {
+describe('isOrgRole', () => {
   it('knows the ERP roles and not the client role', () => {
-    expect(isStaffRole('org_admin')).toBe(true);
-    expect(isStaffRole('manager')).toBe(true);
-    expect(isStaffRole('viewer')).toBe(true);
-    expect(isStaffRole('user')).toBe(false);
-    expect(isStaffRole(undefined)).toBe(false);
-    expect(isStaffRole(null)).toBe(false);
+    expect(isOrgRole('org_admin')).toBe(true);
+    expect(isOrgRole('manager')).toBe(true);
+    expect(isOrgRole('viewer')).toBe(true);
+    expect(isOrgRole('user')).toBe(false);
+    expect(isOrgRole(undefined)).toBe(false);
+    expect(isOrgRole(null)).toBe(false);
   });
 });
 

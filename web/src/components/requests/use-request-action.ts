@@ -19,7 +19,7 @@ const TONES: Record<string, string> = {
 export const requestTone = (status: string): string => TONES[status] ?? TONES.closed;
 
 /**
- * Runs one staff action on a request: marks that request busy (its buttons disable), toasts the result and reloads the
+ * Runs one team action on a request: marks that request busy (its buttons disable), toasts the result and reloads the
  * list. `describeError` lets a page word a known failure itself (a slot already taken); anything else goes through showError.
  */
 export function useRequestAction(reload: () => void, failTitle: string, describeError?: (error: unknown) => string | null) {

@@ -13,7 +13,7 @@ const BAR: Record<RentalProgress, { width: string; fill: string; value: number }
 
 /**
  * Where a rental request stands, in three states only (pending, accepted, rejected), as a linear bar: half full while the
- * agency has not decided, full green once accepted, full red once refused. Shown to the client and to the staff.
+ * agency has not decided, full green once accepted, full red once refused. Shown to the client and to the team.
  */
 export function RequestProgress({ outcome, className }: { outcome: RentalProgress; className?: string }) {
   const label = useT().requests.progress[outcome];

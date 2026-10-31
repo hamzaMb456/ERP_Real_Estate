@@ -1,28 +1,6 @@
 // Frame around every page: header, sidebar, command palette, sign-in page, placeholders.
 
 export const shell = {
-  activation: {
-    title: 'Activer votre compte',
-    hello: (name: string) => `Bonjour ${name}`,
-    checking: 'Vérification du lien…',
-    invalid: 'Ce lien n’est plus valable. Demandez une nouvelle invitation à votre responsable.',
-    passwordStep: 'Choisissez votre mot de passe',
-    password: 'Mot de passe',
-    confirmPassword: 'Confirmer le mot de passe',
-    passwordWeak: 'Au moins 8 caractères, avec une majuscule, une minuscule et un chiffre.',
-    passwordMismatch: 'Les mots de passe ne correspondent pas.',
-    continue: 'Continuer',
-    authenticatorStep: 'Configurez l’application d’authentification',
-    authenticatorHelp: 'Scannez le code avec une application comme Google Authenticator ou Microsoft Authenticator, puis saisissez le code à 6 chiffres qu’elle affiche.',
-    setupKey: 'Clé de configuration (si vous ne pouvez pas scanner)',
-    code: 'Code à 6 chiffres',
-    verify: 'Terminer l’activation',
-    wrongCode: 'Code incorrect. Réessayez avec le code affiché maintenant.',
-    failed: 'L’activation a échoué. Réessayez.',
-    doneTitle: 'Compte activé',
-    doneBody: 'Vous pouvez maintenant vous connecter. L’application vous demandera un code à chaque connexion.',
-    signIn: 'Se connecter',
-  },
   skipToContent: 'Aller au contenu',
   offline: 'Hors ligne. Les données affichées peuvent être anciennes, et les enregistrements échoueront jusqu’au retour de la connexion.',
   mainNavigation: 'Navigation principale',

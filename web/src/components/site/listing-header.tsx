@@ -90,7 +90,7 @@ export function ListingHeader({ listing }: { listing: PublicListing }) {
     <header data-scroll-item="" className={CARD} suppressHydrationWarning>
       <p className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
         <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
-        {comesLater && listing.availableFrom ? copy.availableFrom(formatDate(listing.availableFrom)) : copy.available}
+        {comesLater && listing.availableFrom ? copy.availableFrom(formatDate(listing.availableFrom)) : isRent ? copy.forRent : copy.forSale}
       </p>
       <h1 className="font-heading-site mb-2 text-2xl leading-snug font-bold tracking-tight [overflow-wrap:anywhere] text-foreground md:text-3xl">
         {listing.title}

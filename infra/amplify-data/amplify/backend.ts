@@ -18,7 +18,7 @@ const JWKS_URL = `http://floci:4566/${COGNITO_POOL_ID}/.well-known/jwks.json`;
 const SECRET_NAME = process.env.ERP_SECRET_NAME ?? 'erp-functions-config';
 // 05:00 UTC = 06:00 Tunis (Tunisia has no daylight saving time).
 const DAILY_SCHEDULE = 'cron(0 5 * * ? *)';
-const MAILED_MODELS = ['Notification', 'AppointmentParticipant', 'Appointment', 'StaffInvitation'];
+const MAILED_MODELS = ['Notification', 'AppointmentParticipant', 'Appointment'];
 
 // Tables only: no generated CRUD, custom (Lambda) auth. All access goes through Lambda resolvers.
 const TABLE_DIRECTIVE = '@model(queries: null, mutations: null, subscriptions: null, '
@@ -61,9 +61,6 @@ for (const fn of [apiFn, dailyFn, mailerFn]) {
     table.grantReadWriteData(fn);
   }
 }
-
-// The Api function reads INVITE_SECRET (invitation links) from the same secret as the mailer.
-apiFn.addToRolePolicy(new iam.PolicyStatement({ actions: ['secretsmanager:GetSecretValue'], resources: ['*'] }));
 
 // E-mails follow table changes (Amplify already enables NEW_AND_OLD_IMAGES streams on every table).
 mailerFn.addToRolePolicy(new iam.PolicyStatement({ actions: ['secretsmanager:GetSecretValue'], resources: ['*'] }));

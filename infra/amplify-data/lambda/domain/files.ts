@@ -3,8 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import type { Caller } from './auth.ts';
-import { fileTargetVisible } from './access.ts';
-import { MANAGER_ROLES, requireEditor } from './auth.ts';
+import { requireWriter } from './auth.ts';
 import { fail } from './errors.ts';
 import type { Item, TxItem } from './db.ts';
 import { doc, getItem, pick, table, transact } from './db.ts';
@@ -17,7 +16,7 @@ const PROPERTY_CATEGORIES = new Set(['title_deed', 'plan', 'certificate', 'contr
 const LEASE_CATEGORIES = new Set(['signed_lease', 'id_document', 'registration_receipt', 'inspection_report', 'inspection_photo', 'other']);
 const BUCKETS = new Set<Bucket>(['property-files', 'lease-files']);
 const FORBIDDEN = 'permission_denied';
-const STAFF_READERS = new Set(['org_admin', 'manager', 'viewer']);
+const ORG_USERS = new Set(['org_admin', 'manager', 'viewer']);
 
 const uniqueLockId = (storageFileId: string): string => `UNIQ#file#${storageFileId}`;
 const coverLockId = (targetKey: string): string => `COVER#${targetKey}`;
@@ -84,7 +83,7 @@ export async function registerStorageFile(uploaderUserId: string, storageFileId:
  * otherwise a guessed file id from another organization could be linked and then read.
  */
 export async function linkFile(caller: Caller, input: LinkInput): Promise<Item> {
-  const orgId = requireEditor(caller, FORBIDDEN);
+  const orgId = requireWriter(caller, FORBIDDEN);
   const target = resolveTarget(input);
   const { kind, category } = validateLink(input, target);
   const [owner, storage] = await Promise.all([
@@ -125,7 +124,7 @@ const putLinkIfUnchanged = (next: Item, seen: string): TxItem => ({
 
 /** Rename, recategorize or reorder a file (kind and target never change). */
 export async function updateFileLink(caller: Caller, id: string, patch: { title?: string; category?: string | null; sort_order?: number }): Promise<Item> {
-  const orgId = requireEditor(caller, FORBIDDEN);
+  const orgId = requireWriter(caller, FORBIDDEN);
   const link = await loadLink(orgId, id);
   const next = { ...link, ...pick(patch, ['title', 'category', 'sort_order']), updated_at: new Date().toISOString() };
   validateLink(next as LinkInput, { model: link.lease_id ? 'Lease' : 'Unit' });
@@ -136,7 +135,7 @@ export async function updateFileLink(caller: Caller, id: string, patch: { title?
 
 /** Make a photo the cover of its target; the previous cover stops being one, atomically. */
 export async function setCover(caller: Caller, id: string): Promise<void> {
-  const orgId = requireEditor(caller, FORBIDDEN);
+  const orgId = requireWriter(caller, FORBIDDEN);
   const link = await loadLink(orgId, id);
   if (link.kind !== 'photo') fail('property_files_cover_is_photo');
   if (link.is_cover) return;
@@ -160,7 +159,7 @@ export async function setCover(caller: Caller, id: string): Promise<void> {
 
 /** Unlink a file (the S3 object itself is removed by the storage route). */
 export async function unlinkFile(caller: Caller, id: string): Promise<Item> {
-  const orgId = requireEditor(caller, FORBIDDEN);
+  const orgId = requireWriter(caller, FORBIDDEN);
   const link = await loadLink(orgId, id);
   await transact([
     { Delete: { TableName: table('FileLink'), Key: { id }, ConditionExpression: 'updated_at = :seen', ExpressionAttributeValues: { ':seen': link.updated_at } } },
@@ -176,15 +175,10 @@ export async function unlinkFile(caller: Caller, id: string): Promise<Item> {
  * the link that pointed to it.
  */
 export async function forgetStorageFile(caller: Caller, storageFileId: string): Promise<void> {
-  requireEditor(caller, FORBIDDEN);
+  requireWriter(caller, FORBIDDEN);
   if (!(await canAccessStorageFile(caller, storageFileId))) fail('invalid_storage_file');
   const lock = await getItem('Lock', { id: uniqueLockId(storageFileId) });
-  if (lock?.file_id) {
-    // Regional staff manage photos; signed leases, IDs and plans can only be removed by a manager.
-    const link = await getItem('FileLink', { id: lock.file_id });
-    if (link?.kind === 'document' && !MANAGER_ROLES.has(caller.role)) fail('file_delete_forbidden');
-    await unlinkFile(caller, lock.file_id);
-  }
+  if (lock?.file_id) await unlinkFile(caller, lock.file_id);
   await transact([{ Delete: { TableName: table('StorageFile'), Key: { id: storageFileId } } }]);
 }
 
@@ -195,10 +189,10 @@ export async function forgetStorageFile(caller: Caller, storageFileId: string): 
 export async function canAccessStorageFile(caller: Caller, storageFileId: string): Promise<boolean> {
   const lock = await getItem('Lock', { id: uniqueLockId(storageFileId) });
   if (lock?.file_id) {
-    // Linked files (signed leases, ID documents...) are for the organization's staff only.
-    if (!(STAFF_READERS.has(caller.role) || caller.role === 'staff') || !caller.orgId) return false;
+    // Linked files (signed leases, ID documents...) are for the organization's own users only.
+    if (!ORG_USERS.has(caller.role) || !caller.orgId) return false;
     const link = await getItem('FileLink', { id: lock.file_id });
-    return link?.organization_id === caller.orgId && (await fileTargetVisible(caller, link));
+    return link?.organization_id === caller.orgId;
   }
   const storage = await getItem('StorageFile', { id: storageFileId });
   return Boolean(caller.userId) && storage?.uploaded_by_user_id === caller.userId;

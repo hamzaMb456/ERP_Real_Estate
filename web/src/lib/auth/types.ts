@@ -2,7 +2,7 @@ export type AuthUser = {
   id: string;
   email: string;
   displayName: string;
-  /** Staff role (org_admin, manager, viewer) or "user" for a client account. */
+  /** ERP role (org_admin, manager, viewer) or "user" for a client account. */
   defaultRole: string;
 };
 

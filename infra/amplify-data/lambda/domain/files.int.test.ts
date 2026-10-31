@@ -13,9 +13,7 @@ const ORG = randomUUID();
 const ME = randomUUID();
 const manager = { role: 'manager', userId: ME, orgId: ORG };
 const otherOrgManager = { role: 'manager', userId: randomUUID(), orgId: randomUUID() };
-const STAFF = randomUUID();
-const staff = { role: 'staff', userId: STAFF, orgId: ORG };
-const outsider = { role: 'staff', userId: randomUUID(), orgId: ORG };
+const viewer = { role: 'viewer', userId: randomUUID(), orgId: ORG };
 const UNIT = randomUUID();
 const PROPERTY = randomUUID();
 
@@ -33,7 +31,6 @@ const upload = async (bucket: 'property-files' | 'lease-files' = 'property-files
 
 before(async () => {
   if (!ready) return;
-  await put('StaffAssignment', { id: randomUUID(), organization_id: ORG, user_id: STAFF, branch_id: 'B', role: 'staff' });
   await put('Property', { id: PROPERTY, organization_id: ORG, branch_id: 'B', name: 'Résidence' });
   await put('Unit', { id: UNIT, organization_id: ORG, property_id: PROPERTY, code: 'C1', status: 'vacant', rent_amount: 800, show_on_website: true });
 });
@@ -69,22 +66,22 @@ test('file links on DynamoDB', { skip: !ready && 'Floci dev tables not reachable
     assert.equal(await getItem('PublicListing', { id: UNIT }), undefined);
   });
 
-  await t.test('regional staff remove the photos of their branch, never the documents', async () => {
-    const photo = await files.linkFile(staff, { unit_id: UNIT, storage_file_id: await upload('property-files', STAFF), title: 'Salon' });
+  await t.test('a viewer cannot remove a file; a manager removes a photo and a document', async () => {
+    const photo = await files.linkFile(manager, { unit_id: UNIT, storage_file_id: await upload(), title: 'Salon' });
     const plan = await files.linkFile(manager, { unit_id: UNIT, kind: 'document', category: 'plan', storage_file_id: await upload(), title: 'Plan' });
-    assert.equal(await code(files.forgetStorageFile(staff, plan.storage_file_id)), 'file_delete_forbidden');
-    assert.ok(await getItem('FileLink', { id: plan.id }));
-    assert.equal(await code(files.forgetStorageFile(staff, photo.storage_file_id)), 'no error');
+    assert.equal(await code(files.forgetStorageFile(viewer, photo.storage_file_id)), 'permission_denied');
+    assert.ok(await getItem('FileLink', { id: photo.id }));
+    assert.equal(await code(files.forgetStorageFile(manager, photo.storage_file_id)), 'no error');
     assert.equal(await getItem('FileLink', { id: photo.id }), undefined);
     await files.forgetStorageFile(manager, plan.storage_file_id);
   });
 
-  await t.test('staff of another branch cannot remove a photo, and an unlinked upload is removable by its uploader', async () => {
+  await t.test('a user of another organization cannot remove a photo, and an unlinked upload is removable by its uploader', async () => {
     const photo = await files.linkFile(manager, { unit_id: UNIT, storage_file_id: await upload(), title: 'Cuisine' });
-    assert.equal(await code(files.forgetStorageFile(outsider, photo.storage_file_id)), 'invalid_storage_file');
+    assert.equal(await code(files.forgetStorageFile(otherOrgManager, photo.storage_file_id)), 'invalid_storage_file');
     assert.ok(await getItem('FileLink', { id: photo.id }));
     await files.unlinkFile(manager, photo.id);
-    const orphan = await upload('property-files', STAFF);
-    assert.equal(await code(files.forgetStorageFile(staff, orphan)), 'no error');
+    const orphan = await upload('property-files', ME);
+    assert.equal(await code(files.forgetStorageFile(manager, orphan)), 'no error');
   });
 });

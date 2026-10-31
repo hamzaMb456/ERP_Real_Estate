@@ -59,7 +59,6 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { key: 'leases', href: '/erp/baux' },
           { key: 'rentalRequests', href: '/erp/baux/demandes' },
-          { key: 'leaseApprovals', href: '/erp/baux/approbations' },
         ],
       },
       {

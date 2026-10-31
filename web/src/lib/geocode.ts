@@ -1,6 +1,6 @@
 // Address search through OpenStreetMap Nominatim, used only on an explicit click
 // (fair-use policy: no per-keystroke requests). Any failure means "no result":
-// staff then place the pin by hand.
+// the team then places the pin by hand.
 
 export type GeocodeResult = { label: string; lat: number; lon: number };
 export type LatLon = { lat: number; lon: number };

@@ -1,14 +1,14 @@
-// Client accounts of the public site: a client is an ordinary Cognito user with the default role "user"; staff have one of
+// Client accounts of the public site: a client is an ordinary Cognito user with the default role "user"; the team has one of
 // the ERP roles. Helpers shared by the sign-in and sign-up pages, the gates and the ERP guard.
 
-export const STAFF_ROLES: readonly string[] = ['org_admin', 'manager', 'viewer', 'staff'];
+export const ORG_ROLES: readonly string[] = ['org_admin', 'manager', 'viewer'];
 export const SIGN_IN_PATH = '/compte/connexion';
 export const SIGN_UP_PATH = '/compte/inscription';
 export const FORGOT_PASSWORD_PATH = '/compte/mot-de-passe-oublie';
 export const MIN_PASSWORD_LENGTH = 8;
 
-/** True when the role is one of the ERP staff roles (a client never has one). */
-export const isStaffRole = (role: string | null | undefined): boolean => role !== null && role !== undefined && STAFF_ROLES.includes(role);
+/** True when the role is one of the ERP roles (a client never has one). */
+export const isOrgRole = (role: string | null | undefined): boolean => role !== null && role !== undefined && ORG_ROLES.includes(role);
 
 // Where a visitor may be sent back to after signing in: pages of the public site only (never the ERP, never another site).
 const SITE_NEXT = /^\/(?:logement\/[0-9a-f-]{36}|louer|acheter|favoris)?(?:\?[^#\s]*)?$/i;

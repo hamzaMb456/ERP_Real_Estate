@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { requireFileEditor, requireSession, type SessionClaims } from '@/lib/server/auth';
+import { requireSession, requireWriter, type SessionClaims } from '@/lib/server/auth';
 import { resolveStorageKeyBucket } from '@/lib/server/file-ownership';
 import { forgetStorageFile } from '@/lib/server/storage-registry';
 import { s3 } from '@/lib/server/s3-client';
@@ -12,7 +12,7 @@ export async function POST(request: Request): Promise<Response> {
   let session: SessionClaims;
   try {
     session = await requireSession(request.headers.get('authorization'));
-    requireFileEditor(session);
+    requireWriter(session);
   } catch {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }

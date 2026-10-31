@@ -1,36 +1,6 @@
 // Leases: list, fiche, form, dialogs, registration, flags and validation messages.
 
 export const leases = {
-  approvals: {
-    rejectReason: 'Motif du refus (facultatif)',
-    status: { pending: 'En attente', approved: 'Approuvée', rejected: 'Refusée' },
-    banner: {
-      pending: 'Activation en attente de l\'approbation du gestionnaire.',
-      approved: (date: string) => `Activation approuvée le ${date}.`,
-      rejected: 'Activation refusée par le gestionnaire. Le bail reste un brouillon.',
-      note: 'Motif',
-    },
-    mineTitle: 'Mes demandes d\'activation',
-    mineIntro: 'Suivi des baux que vous avez demandé d\'activer.',
-    mineEmpty: 'Vous n\'avez envoyé aucune demande.',
-    decidedOn: 'Décidée le',
-    title: 'Approbations de bail',
-    intro: 'Activations demandées par le personnel de la région. Approuver active le bail ; refuser le laisse en brouillon.',
-    empty: 'Aucune demande en attente.',
-    lease: (n: number | string | null) => (n ? `Bail N° ${n}` : 'Bail'),
-    requestedOn: 'Demandé le',
-    missing: 'Manque',
-    approve: 'Approuver et activer',
-    reject: 'Refuser',
-    done: 'Demande traitée.',
-    forbidden: 'Réservé au gestionnaire.',
-    missingItems: {
-      deposit: 'Dépôt du bail',
-      unitDeposit: 'Caution (mois de loyer) de l\'unité',
-      unitReservation: 'Montant de réservation de l\'unité',
-      doc: { signed_lease: 'Bail signé', id_document: 'Pièce d\'identité du locataire', registration_receipt: 'Reçu d\'enregistrement' },
-    },
-  },
   number: (number: string | number) => `Bail N° ${number}`,
   statuses: {
     draft: 'Brouillon',
@@ -164,7 +134,6 @@ export const leases = {
     activateSubmit: 'Activer le bail',
     activated: 'Bail activé',
 
-    approvalRequested: 'Demande envoyée au gestionnaire pour approbation.',
     signedOn: 'Date de signature',
     signedOnHelp: 'Date à laquelle le bail a été signé par les parties. Elle sert à calculer le délai d’enregistrement du bail.',
     renewTitle: 'Renouveler le bail',

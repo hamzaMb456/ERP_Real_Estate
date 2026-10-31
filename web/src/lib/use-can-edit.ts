@@ -2,10 +2,10 @@
 
 import { useAuth } from '@/components/auth-provider';
 
-const WRITER_ROLES = new Set(['org_admin', 'manager', 'staff']);
+const WRITER_ROLES = new Set(['org_admin', 'manager']);
 const MANAGER_ROLES = new Set(['org_admin', 'manager']);
 
-/** True when the signed-in user's role may create and change records (viewers read only; staff only inside their branches, which the backend checks). */
+/** True when the signed-in user's role may create and change records (viewers read only). */
 export function useCanEdit(): boolean {
   const { session } = useAuth();
   return WRITER_ROLES.has(session?.user?.defaultRole ?? '');

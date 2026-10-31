@@ -27,7 +27,7 @@ const RENTAL_REQUESTS_QUERY = `
 
 type Step = { to: RentalStatus; label: 'markContacted' | 'accept' | 'decline' | 'close' | 'reopen'; primary?: boolean };
 
-/** What a staff member can do next from each status (a refused or closed request can be reopened). */
+/** What a manager can do next from each status (a refused or closed request can be reopened). */
 const NEXT_STEPS: Record<RentalStatus, Step[]> = {
   new: [
     { to: 'contacted', label: 'markContacted', primary: true },
